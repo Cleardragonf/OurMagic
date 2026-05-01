@@ -1,0 +1,27 @@
+package com.ourmagic.magic.spell.effect;
+
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.entity.projectile.Arrow;
+import net.minecraft.world.phys.Vec3;
+
+public class ArrowPayload implements PayloadEffect {
+    @Override
+    public boolean apply(SpellContext context, SpellTarget target) {
+        Arrow arrow = new Arrow(context.level(), context.player());
+        arrow.setBaseDamage(3.0D * context.damagePower());
+        if (target.entity().filter(entity -> entity == context.player()).isPresent()) {
+            arrow.shootFromRotation(context.player(), context.player().getXRot(), context.player().getYRot() + (context.castIndex() - (context.castCount() - 1) / 2.0F) * 4.0F, 0.0F, 2.4F, 0.6F);
+        } else {
+            Vec3 direction = target.position().subtract(context.player().getEyePosition());
+            if (direction.lengthSqr() < 0.001D) {
+                direction = context.player().getLookAngle();
+            }
+            arrow.shoot(direction.x, direction.y, direction.z, 2.4F, 0.6F);
+        }
+        context.level().addFreshEntity(arrow);
+        if (context.castIndex() == 0) {
+            context.beam(context.player().getEyePosition().add(context.player().getLookAngle().scale(12 * context.data().power())), ParticleTypes.ENCHANTED_HIT);
+        }
+        return true;
+    }
+}
