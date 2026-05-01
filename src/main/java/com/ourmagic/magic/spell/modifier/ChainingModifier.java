@@ -21,7 +21,7 @@ public class ChainingModifier implements SpellModifier {
 
         return context -> {
             boolean cast = effect.cast(context);
-            int chainLevel = context.data().activeUpgradeLevel(Spell.UPGRADE_CHAINING) + context.data().activeUpgradeLevel(Spell.UPGRADE_CHAINING_ENTITIES);
+            int chainLevel = context.data().activeUpgradeLevel(Spell.UPGRADE_CHAINING) + context.data().activeUpgradeLevel(Spell.UPGRADE_ENTITIES);
             if (!cast || chainLevel <= 0 || !(context.level() instanceof ServerLevel serverLevel)) {
                 return cast;
             }
@@ -37,8 +37,8 @@ public class ChainingModifier implements SpellModifier {
                 hitEntities.add(start.get().excludedEntityId());
             }
 
-            double radius = 4.0D + chainLevel + context.data().activeUpgradeLevel(Spell.UPGRADE_CHAINING_RADIUS);
-            float chainPower = 1.0F + (1 + context.data().activeUpgradeLevel(Spell.UPGRADE_CHAINING_DAMAGE)) * 0.10F;
+            double radius = (4.0D + chainLevel) * context.radiusMultiplier();
+            float chainPower = 1.0F + (1 + context.data().activeUpgradeLevel(Spell.UPGRADE_DAMAGE)) * 0.10F;
 
             for (int i = 0; i < chainLevel; i++) {
                 Optional<LivingEntity> next = context.nearestLiving(origin, radius, hitEntities);

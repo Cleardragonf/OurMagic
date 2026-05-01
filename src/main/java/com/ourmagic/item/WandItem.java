@@ -61,7 +61,7 @@ public class WandItem extends Item {
 
         Spell spell = SpellRegistry.get(data.activeSpell());
         if (spell == null) {
-            player.displayClientMessage(Component.translatable("message.ourmagic.no_spell").withStyle(ChatFormatting.RED), true);
+            player.displayClientMessage(Component.translatable("message.ourmagic.unsupported_spell", data.activeSpell()).withStyle(ChatFormatting.RED), false);
             return InteractionResultHolder.fail(stack);
         }
 
@@ -148,7 +148,7 @@ public class WandItem extends Item {
         for (int i = offset; i < end; i++) {
             WandData.WandSpellData spell = data.spells().get(i);
             ChatFormatting color = i == data.activeIndex() ? ChatFormatting.AQUA : ChatFormatting.GRAY;
-            tooltip.add(Component.literal("    [" + i + "] " + spell.key() + " lvl=" + spell.level() + " xp=" + spell.xp() + "/" + spell.xpToNextLevel() + " pts=" + spell.attributePoints() + " cost=" + spell.manaCost() + " cooldown=" + spell.cooldownTicks() + " upgrades=c" + spell.chaining() + "/m" + spell.multistrike() + "/r" + spell.range() + "/d" + spell.duration()).withStyle(color));
+            tooltip.add(Component.literal("    [" + i + "] " + spell.key() + " lvl=" + spell.level() + " xp=" + spell.xp() + "/" + spell.xpToNextLevel() + " pts=" + spell.attributePoints() + " cost=" + spell.manaCost() + " cooldown=" + spell.cooldownTicks() + " upgrades=c" + spell.chaining() + "/m" + spell.multistrike() + "/range" + spell.range() + "/radius" + spell.radius() + "/d" + spell.duration()).withStyle(color));
         }
         if (spellCount > SPELL_TOOLTIP_WINDOW) {
             tooltip.add(Component.literal("  showing " + (offset + 1) + "-" + end + " of " + spellCount + " | Shift + mouse wheel").withStyle(ChatFormatting.DARK_GRAY));

@@ -251,7 +251,7 @@ graduate:
      - deprimo|3
      - duro|2
      - incendio|3
-     - arrow|3
+     - arrow@self
      - episkey|2
      - reducio|2
      - conjunctivitis|2
@@ -302,7 +302,7 @@ headstaff_upgrade:
      - episkey|3
      - ferula|3
      - ascendio|3
-     - arrow|4
+     - arrow@self
      - duro|2
      - bombarda|2
      - glacius|3
@@ -507,7 +507,7 @@ prefect_upgrade:
      - deprimo|3
      - duro|2
      - incendio|3
-     - arrow|3
+     - arrow@self
      - episkey|2
      - reducio|2
      - lumos|3
@@ -619,7 +619,7 @@ staff_upgrade:
      - deprimo|3
      - duro|2
      - incendio|3
-     - arrow|3
+     - arrow@self
      - episkey|2
      - reducio|2
      - lumos|3

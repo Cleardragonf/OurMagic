@@ -54,6 +54,6 @@ wizardwand:
     inherit: base_wand
     icon: wood_hoe:1
     effect_color: random
-    active_spell: missile
+    active_spell: missile@self
     class: wizard
 

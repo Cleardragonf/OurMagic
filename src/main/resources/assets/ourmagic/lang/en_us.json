@@ -6,5 +6,6 @@
   "command.ourmagic.admin_wand.given": "Gave an admin wand to %s",
   "message.ourmagic.no_mana": "Not enough mana",
   "message.ourmagic.no_spell": "This wand has no spell selected",
+  "message.ourmagic.unsupported_spell": "Unsupported spell recipe: %s",
   "message.ourmagic.cycled": "Selected %s"
 }

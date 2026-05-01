@@ -6,7 +6,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.util.RandomSource;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +18,7 @@ public final class WandTemplates {
     private static final Map<String, WandTemplate> TEMPLATES = new LinkedHashMap<>();
 
     static {
-        register(new WandTemplate(DEFAULT_TEMPLATE, "Wand", 1.0f, List.of(rolledSpell(SpellRegistry.get("missile"), 1.0F, 1.0F))));
+        register(new WandTemplate(DEFAULT_TEMPLATE, "Wand", 1.0f, List.of(rolledSpell(SpellRegistry.get("missile@self"), 1.0F, 1.0F))));
         register(new WandTemplate(ADMIN_TEMPLATE, "Admin Wand", 2.0f, adminSpells()));
     }
 
@@ -45,9 +44,6 @@ public final class WandTemplates {
     }
 
     public static ItemStack applyRandom(ItemStack stack, RandomSource random) {
-        List<Spell> spellPool = new ArrayList<>(SpellRegistry.all());
-        Collections.shuffle(spellPool, new java.util.Random(random.nextLong()));
-
         int spellCount = 1;
         if (random.nextFloat() < 0.20F) {
             spellCount++;
@@ -57,11 +53,17 @@ public final class WandTemplates {
         }
 
         List<WandData.WandSpellData> spells = new ArrayList<>();
-        for (int i = 0; i < Math.min(spellCount, spellPool.size()); i++) {
-            Spell spell = spellPool.get(i);
+        for (int i = 0; i < spellCount; i++) {
+            Spell spell = SpellRegistry.randomSpell(random);
+            if (spell == null) {
+                continue;
+            }
             int cost = ranged(random, spell.manaCost(), 0.70F, 1.35F);
             int cooldown = ranged(random, spell.cooldownTicks(), 0.70F, 1.40F);
             spells.add(new WandData.WandSpellData(spell.key(), cost, cooldown));
+        }
+        if (spells.isEmpty()) {
+            spells.add(rolledSpell(SpellRegistry.get("missile@self"), 1.0F, 1.0F));
         }
 
         new WandData(DEFAULT_TEMPLATE, "Wand", 0.85F + random.nextFloat() * 0.45F, spells, 0, 0).save(stack);

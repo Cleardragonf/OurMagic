@@ -8,13 +8,12 @@ import net.minecraft.world.level.Level;
 public interface Spell {
     String UPGRADE_CHAINING = "chaining";
     String UPGRADE_MULTISTRIKE = "multistrike";
+    String UPGRADE_DAMAGE = "damage";
     String UPGRADE_RANGE = "range";
+    String UPGRADE_RADIUS = "radius";
     String UPGRADE_DURATION = "duration";
-    String UPGRADE_CHAINING_DAMAGE = "chaining.damage";
-    String UPGRADE_CHAINING_ENTITIES = "chaining.entities";
-    String UPGRADE_CHAINING_RADIUS = "chaining.radius";
-    String UPGRADE_MULTISTRIKE_CASTS = "multistrike.casts";
-    String UPGRADE_MULTISTRIKE_POWER = "multistrike.power";
+    String UPGRADE_ENTITIES = "entities";
+    String UPGRADE_CASTS = "casts";
 
     String key();
 

@@ -41,6 +41,10 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
         return 1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RANGE) * 0.20F;
     }
 
+    public float radiusMultiplier() {
+        return 1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RADIUS) * 0.20F;
+    }
+
     public float durationMultiplier() {
         return 1.0F + data.activeUpgradeLevel(Spell.UPGRADE_DURATION) * 0.20F;
     }

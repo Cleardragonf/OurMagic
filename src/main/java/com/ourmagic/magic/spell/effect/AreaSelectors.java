@@ -34,11 +34,11 @@ public final class AreaSelectors {
         return entitiesAroundTarget(baseRadius, true, maxExtraTargets, includeOrigin, entity -> entity instanceof Player);
     }
 
-    public static AreaSelector livingAroundTarget(double baseRadius, boolean scaleWithRangeUpgrade, int maxExtraTargets, boolean includeOrigin) {
-        return entitiesAroundTarget(baseRadius, scaleWithRangeUpgrade, maxExtraTargets, includeOrigin, entity -> entity instanceof net.minecraft.world.entity.LivingEntity);
+    public static AreaSelector livingAroundTarget(double baseRadius, boolean scaleWithRadiusUpgrade, int maxExtraTargets, boolean includeOrigin) {
+        return entitiesAroundTarget(baseRadius, scaleWithRadiusUpgrade, maxExtraTargets, includeOrigin, entity -> entity instanceof net.minecraft.world.entity.LivingEntity);
     }
 
-    public static AreaSelector entitiesAroundTarget(double baseRadius, boolean scaleWithRangeUpgrade, int maxExtraTargets, boolean includeOrigin, Predicate<Entity> filter) {
+    public static AreaSelector entitiesAroundTarget(double baseRadius, boolean scaleWithRadiusUpgrade, int maxExtraTargets, boolean includeOrigin, Predicate<Entity> filter) {
         return new AreaSelector() {
             @Override
             public List<SpellTarget> select(SpellContext context, SpellTarget origin) {
@@ -65,7 +65,8 @@ public final class AreaSelectors {
 
             @Override
             public double radius(SpellContext context) {
-                return scaleWithRangeUpgrade ? baseRadius * (context.rangeMultiplier() - 1.0F) : baseRadius * context.data().power() * context.data().activeUtilityMultiplier();
+                double radius = baseRadius * context.data().power() * context.data().activeUtilityMultiplier();
+                return scaleWithRadiusUpgrade ? radius * context.radiusMultiplier() : radius;
             }
         };
     }

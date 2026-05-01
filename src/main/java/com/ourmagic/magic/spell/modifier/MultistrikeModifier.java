@@ -46,8 +46,8 @@ public class MultistrikeModifier implements SpellModifier {
     }
 
     private static boolean castRepeated(SpellContext context, SpellEffect effect) {
-            int casts = 1 + context.data().activeUpgradeLevel(Spell.UPGRADE_MULTISTRIKE) + context.data().activeUpgradeLevel(Spell.UPGRADE_MULTISTRIKE_CASTS);
-            float power = 1.0F + context.data().activeUpgradeLevel(Spell.UPGRADE_MULTISTRIKE_POWER) * 0.08F;
+            int casts = 1 + context.data().activeUpgradeLevel(Spell.UPGRADE_MULTISTRIKE) + context.data().activeUpgradeLevel(Spell.UPGRADE_CASTS);
+            float power = 1.0F + context.data().activeUpgradeLevel(Spell.UPGRADE_DAMAGE) * 0.08F;
             boolean cast = false;
             for (int i = 0; i < casts; i++) {
                 cast |= effect.cast(context.withCastIteration(i, casts, power));

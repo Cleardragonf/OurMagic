@@ -39,6 +39,10 @@ public final class SpellShapes {
         return new SpellShape(TargetSelectors.self(), AreaSelectors.playersAroundTarget(radius, 0, true), areaRingParticle);
     }
 
+    public static SpellShape livingAroundSelf(double radius, int maxExtraTargets, ParticleOptions areaRingParticle) {
+        return new SpellShape(TargetSelectors.self(), AreaSelectors.livingAroundTarget(radius, false, maxExtraTargets, true), areaRingParticle);
+    }
+
     public static SpellShape playersAroundLookedLivingOrSelf(double range, double radius, ParticleOptions areaRingParticle) {
         return new SpellShape(TargetSelectors.lookedLivingOrSelf(range), AreaSelectors.playersAroundTarget(radius, 0, true), areaRingParticle);
     }
