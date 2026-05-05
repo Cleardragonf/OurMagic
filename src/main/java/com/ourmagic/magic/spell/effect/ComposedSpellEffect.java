@@ -41,13 +41,17 @@ public class ComposedSpellEffect implements ChainableEffect {
                 .map(origin -> {
                     double radius = areaSelector.radius(context);
                     if (radius > 0.0D) {
+                        if (origin.entity().map(entity -> entity != context.player()).orElse(true)) {
+                            context.beam(origin.position(), chainParticle);
+                        }
                         areaRingParticle.ifPresent(particle -> context.ring(origin.position(), particle, radius, 36));
                     }
 
                     List<SpellTarget> targets = areaSelector.select(context, origin);
+                    SpellContext payloadContext = radius > 0.0D ? context.withoutBeams().asAreaCast() : context;
                     boolean applied = false;
                     for (SpellTarget target : targets) {
-                        applied |= payload.apply(context, target);
+                        applied |= payload.apply(payloadContext, target);
                     }
                     return applied;
                 })

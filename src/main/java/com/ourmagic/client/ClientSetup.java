@@ -1,7 +1,10 @@
 package com.ourmagic.client;
 
 import com.ourmagic.OurMagic;
+import com.ourmagic.registry.ModBlocks;
 import com.ourmagic.registry.ModMenus;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.common.Mod;
@@ -15,6 +18,10 @@ public final class ClientSetup {
 
     @SubscribeEvent
     public static void setup(FMLClientSetupEvent event) {
-        event.enqueueWork(() -> MenuScreens.register(ModMenus.WAND.get(), WandScreen::new));
+        event.enqueueWork(() -> {
+            MenuScreens.register(ModMenus.WAND.get(), WandScreen::new);
+            MenuScreens.register(ModMenus.SPELLCRAFT.get(), SpellcraftScreen::new);
+            ItemBlockRenderTypes.setRenderLayer(ModBlocks.TEMPORARY_SHIELD.get(), RenderType.translucent());
+        });
     }
 }

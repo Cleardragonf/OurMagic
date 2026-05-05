@@ -8,19 +8,19 @@ admin:
     protected: true
     effect_color: '888888'
     effect_bubbles: true
-    active_spell: levitate
+    active_spell: levitate@target
     spells:
-        - levitate
+        - levitate@target
         - superbroom
-        - blink|4
-        - missile|4
+        - blink@point
+        - missile@self
         - cloak
         - time
-        - heal
+        - heal@ally_self_aoe
         - phase
-        - gather
+        - gather@items_self_aoe
         - supergather
-        - regenerate
+        - regenerate@ally_self_aoe
         - superregenerate
         - pickpocket
         - backup
@@ -250,19 +250,19 @@ apprentice:
     level_spells_to_path: apprentice
     spells:
       # Hotbar 1
-      - missile
-      - push
-      - arrow
-      - blast
-      - frost
-      - bubble
-      - fireball
-      - blind
+      - missile@self
+      - push@target
+      - arrow@self
+      - blast@point
+      - frost@water_target_aoe
+      - bubble@self
+      - fireball@self
+      - blind@target
 
       # Hotbar 2
 
       - fling
-      - blink
+      - blink@point
       - arrowrain
       - stream
       - wither
@@ -281,13 +281,13 @@ apprentice:
       - pull
       - reflect
       - poison
-      - fire
+      - fire_place@block
 
       # Student
       - newpage
 
       - boom
-      - lightning
+      - lightning@target
       - lava
       - flamethrower
       - mine
@@ -296,7 +296,7 @@ apprentice:
       - entangle
       - curse
       - vengeance
-      - heal
+      - heal@ally_self_aoe
 
       # Apprentice
       - newpage
@@ -324,7 +324,7 @@ apprentice:
       - chainlightning
       - airscooter
       - growth
-      - gather
+      - gather@items_self_aoe
 
       # Extra spells
       - newpage
@@ -428,7 +428,7 @@ battle:
 #
 beginner:
   inherit: base_wand
-  active_spell: missile
+  active_spell: missile@self
   legacy_icon: wand_icon:1
   icon: stick{CustomModelData:18001}
   migrate_icon: wand_icon
@@ -442,14 +442,14 @@ beginner:
   tags: tweakable
   spells:
     # Hotbar
-    - missile
-    - push
-    - arrow
-    - blast
-    - frost
-    - bubble
-    - fireball
-    - blind
+    - missile@self
+    - push@target
+    - arrow@self
+    - blast@point
+    - frost@water_target_aoe
+    - bubble@self
+    - fireball@self
+    - blind@target
 
     # Inventory
     - peek
@@ -462,7 +462,7 @@ beginner:
     - pull
     - reflect
     - poison
-    - fire
+    - fire_place@block
 
     # Extra spells
     - newpage
@@ -479,24 +479,24 @@ borealis:
     quiet: 2
     effect_color: '00AACC'
     mode: chest
-    active_spell: levitate
+    active_spell: levitate@target
     cost_reduction: 2
     cooldown_reduction: 2
     consume_reduction: 1
     protected: true
     spells:
-        - levitate
+        - levitate@target
         - fling|2
-        - blink|3
-        - missile|4
+        - blink@point
+        - missile@self
         - boon|2
-        - push
-        - heal
+        - push@target
+        - heal@ally_self_aoe
         - pull
         - day
         - shell
         - blob
-        - blast|4
+        - blast@point
         - curse
         - collapse|2
         - recall
@@ -865,19 +865,19 @@ developer:
     protected: true
     effect_color: 'FFAA00'
     effect_bubbles: true
-    active_spell: levitate
+    active_spell: levitate@target
     spells:
-        - levitate
+        - levitate@target
         - superbroom
-        - blink|4
-        - missile|4
+        - blink@point
+        - missile@self
         - projectile
         - debugger
         - testdummy
         - time
-        - heal
+        - heal@ally_self_aoe
         - phase
-        - gather
+        - gather@items_self_aoe
         - supergather
         - phasebackup
         - backup
@@ -1190,10 +1190,10 @@ learnspell:
   uses: 1
 
   # Change the icon to use your spell, it will automatically make a book describing the spell
-  icon: book:blast
+  icon: book:blast@point
   overrides:
     # Change this to the spell you want the player to learn
-    spell: blast
+    spell: blast@point
 ledger:
   active_spell: ledger
   migrate_icon: paper
@@ -1221,7 +1221,7 @@ magicbow:
     "bow_icon:2": bow{CustomModelData:18002}
     "bow_icon:3": bow{CustomModelData:18003}
     "bow_icon:4": bow{CustomModelData:18004}
-  # This can be used to force the bow to always cast a normal arrow under some amount of pull
+  # This can be used to force the bow to always cast a normal arrow@self under some amount of pull
   # cast_min_bowpull: 0.5
   tags:
     - transformablebow
@@ -1265,7 +1265,7 @@ magicsword:
     icon: netherite_sword{CustomModelData:18009}
     legacy_icon: sword_icon:8
     effect_color: '11FF11'
-    active_spell: missile
+    active_spell: missile@self
     limit_spells_to_path: true
     limit_brushes_to_path: true
     item_attribute_slot: mainhand
@@ -1308,19 +1308,19 @@ master:
 
     spells:
       # Hotbar 1
-      - missile
-      - push
-      - arrow
-      - blast
-      - frost
-      - bubble
-      - fireball
-      - blind
+      - missile@self
+      - push@target
+      - arrow@self
+      - blast@point
+      - frost@water_target_aoe
+      - bubble@self
+      - fireball@self
+      - blind@target
 
       # Hotbar 2
 
       - fling
-      - blink
+      - blink@point
       - arrowrain
       - stream
       - wither
@@ -1330,7 +1330,7 @@ master:
 
       # Hotbar 3
 
-      - levitate
+      - levitate@target
       - petrify
       - railgun
       - cloak
@@ -1347,14 +1347,14 @@ master:
       - cure
       - pull
       - poison
-      - fire
+      - fire_place@block
 
       # Student
       - newpage
 
       - boom
       - grenade
-      - lightning
+      - lightning@target
       - lava
       - flamethrower
       - mine
@@ -1363,7 +1363,7 @@ master:
       - entangle
       - curse
       - vengeance
-      - heal
+      - heal@ally_self_aoe
 
       # Apprentice
       - newpage
@@ -1391,7 +1391,7 @@ master:
       - chainlightning
       - airscooter
       - growth
-      - gather
+      - gather@items_self_aoe
 
       # Master
       - fury
@@ -1507,40 +1507,40 @@ miniwolf:
     hotbar_count: 2
     effect_color: '00AACC'
     mode: inventory
-    active_spell: levitate
+    active_spell: levitate@target
     mana_max: 250
     mana_regeneration: 50
     spells:
-        - blast|3@0
+        - blast@point
         - collapse|2@1
         - harden|2@2
-        - missile|4@3
-        - levitate|5@4
+        - missile@self
+        - levitate@target
         - fling|4@5
-        - blink|6@6
+        - blink@point
         - counterspell|2@7
         - reflect|3@8
         - day@9
-        - arrow|4@10
+        - arrow@self
         - boom|2@11
         - disarm@12
         - push@13
         - grenade@14
         - curse@15
         - boon|2
-        - lightning
+        - lightning@target
         - stash
         - emp
         - force
-        - fireball
+        - fireball@self
         - torch
-        - fire
+        - fire_place@block
         - pull
         - shell
         - shrink
         - blob
         - blessing
-        - heal
+        - heal@ally_self_aoe
         - wither
         - recall
         - phase
@@ -1648,40 +1648,40 @@ purger:
   icon: stick{CustomModelData:18003}
   path: apprentice
   spell_levels:
-    missile: 3
-    blink: 3
+    missile@self: 3
+    blink@point: 3
     fling: 3
-    blast: 2
+    blast@point: 2
   mana: 200.0
   mana_regeneration: 40.0
   effect_color: e7af8f15e46d,a2d692205c9e,375aa4521cf2
   mana_max: 200.0
   spells:
-  - blink
+  - blink@point
   - fling
   - disintegrate
-  - missile
-  - blast
+  - missile@self
+  - blast@point
   - collapse
   - boom
   - grenade
-  - heal
+  - heal@ally_self_aoe
   - boon
   - cure
   - rubberize
   - harden
   - smite
-  - fireball
+  - fireball@self
   - shell
   - blob
   - breach
-  - bubble
-  - push
+  - bubble@self
+  - push@target
   - pull
   - peek
   - recall
   - reflect
-  - frost
+  - frost@water_target_aoe
   - lava
   - stream
   - sandblast
@@ -1690,7 +1690,7 @@ purger:
   - wound
   - walls
   hotbar_count: 2
-  active_spell: blast
+  active_spell: blast@point
 # Quests integration
 questscompass:
   active_spell: quests
@@ -1724,14 +1724,14 @@ rage:
     mana_per_damage: 5
     glow: true
     spells:
-      - missile
-      - arrow
+      - missile@self
+      - arrow@self
       - boom
       - curse
-      - fire
-      - fireball
+      - fire_place@block
+      - fireball@self
       - grenade
-      - push
+      - push@target
 
 rainbowboots:
     icon: "leather_boots:#random"
@@ -1900,10 +1900,10 @@ spleef:
     indestructible: false
     mana_max: 100
     mana_regeneration: 10
-    active_spell: blast
+    active_spell: blast@point
     modifiable: false
     spells:
-      - blast
+      - blast@point
       - collapse
       - harden
 
@@ -1914,18 +1914,18 @@ staff:
   inherit: base_wand
   path: staff
   hotbar_count: 2
-  active_spell: levitate|4
+  active_spell: levitate@target
   cost_reduction: 2
   effect_color: 00FFAA
   protected: true
   sp_multiplier: 0
   spells:
-    - blink|6
+    - blink@point
     - cloak
-    - gather
-    - heal
-    - levitate|4
-    - missile|4
+    - gather@items_self_aoe
+    - heal@ally_self_aoe
+    - levitate@target
+    - missile@self
     - pickpocket
     - lockpick
     - snoop
@@ -1955,19 +1955,19 @@ student:
     level_spells_to_path: student
     spells:
       # Hotbar 1
-      - missile
-      - push
-      - arrow
-      - blast
-      - frost
-      - bubble
-      - fireball
-      - blind
+      - missile@self
+      - push@target
+      - arrow@self
+      - blast@point
+      - frost@water_target_aoe
+      - bubble@self
+      - fireball@self
+      - blind@target
 
       # Hotbar 2
 
       - fling
-      - blink
+      - blink@point
       - arrowrain
       - stream
       - wither
@@ -1986,13 +1986,13 @@ student:
       - pull
       - reflect
       - poison
-      - fire
+      - fire_place@block
 
       # Student
       - newpage
 
       - boom
-      - lightning
+      - lightning@target
       - lava
       - flamethrower
       - mine
@@ -2001,7 +2001,7 @@ student:
       - entangle
       - curse
       - vengeance
-      - heal
+      - heal@ally_self_aoe
 
       # Extra spells
       - newpage
@@ -2215,12 +2215,12 @@ uberwand:
     - SATURATION
     - REGENERATION
     - SPEED
-  active_spell: missile|4
+  active_spell: missile@self
   spells:
     - levitate@0
-    - blink|3@1
+    - blink@point
     - fling|2@2
-    - missile|4@3
+    - missile@self
     - day@4
     - superkill@5
     - testdummy@6
@@ -2277,7 +2277,7 @@ wand:
         "wand_icon:41": stick{CustomModelData:18041}
         "wand_icon:44": stick{CustomModelData:18044}
     effect_color: random
-    active_spell: missile
+    active_spell: missile@self
     slots: gui,controls,spellmode,swappable
     tags:
     - buffable

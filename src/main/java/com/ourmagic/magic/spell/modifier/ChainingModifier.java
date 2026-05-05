@@ -37,8 +37,8 @@ public class ChainingModifier implements SpellModifier {
                 hitEntities.add(start.get().excludedEntityId());
             }
 
-            double radius = (4.0D + chainLevel) * context.radiusMultiplier();
-            float chainPower = 1.0F + (1 + context.data().activeUpgradeLevel(Spell.UPGRADE_DAMAGE)) * 0.10F;
+            double radius = 4.0D + context.data().activeUpgradeLevel(Spell.UPGRADE_CHAIN_RADIUS);
+            float chainPower = 1.0F + context.data().activeUpgradeLevel(Spell.UPGRADE_CHAIN_DAMAGE) * 0.10F;
 
             for (int i = 0; i < chainLevel; i++) {
                 Optional<LivingEntity> next = context.nearestLiving(origin, radius, hitEntities);

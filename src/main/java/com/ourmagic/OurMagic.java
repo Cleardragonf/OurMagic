@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.ourmagic.command.OurMagicCommands;
 import com.ourmagic.network.ModNetwork;
 import com.ourmagic.recipe.ModRecipeSerializers;
+import com.ourmagic.registry.ModBlocks;
 import com.ourmagic.registry.ModCreativeTabs;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.registry.ModMenus;
@@ -21,6 +22,7 @@ public class OurMagic {
 
     public OurMagic() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        ModBlocks.register(modBus);
         ModItems.register(modBus);
         ModCreativeTabs.register(modBus);
         ModMenus.register(modBus);

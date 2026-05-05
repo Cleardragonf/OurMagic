@@ -1,6 +1,7 @@
 package com.ourmagic.magic.spell.effect;
 
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.wand.WandData;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -20,13 +21,21 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-public record SpellContext(Level level, ServerPlayer player, ItemStack wand, WandData data, Spell spell, int castIndex, int castCount, float modifierPower) {
+public record SpellContext(Level level, ServerPlayer player, ItemStack wand, WandData data, Spell spell, int castIndex, int castCount, float modifierPower, boolean beamsEnabled, boolean areaCast) {
     public SpellContext(Level level, ServerPlayer player, ItemStack wand, WandData data, Spell spell) {
-        this(level, player, wand, data, spell, 0, 1, 1.0F);
+        this(level, player, wand, data, spell, 0, 1, 1.0F, true, false);
     }
 
     public SpellContext withCastIteration(int castIndex, int castCount, float modifierPower) {
-        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower);
+        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower, beamsEnabled, areaCast);
+    }
+
+    public SpellContext withoutBeams() {
+        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower, false, areaCast);
+    }
+
+    public SpellContext asAreaCast() {
+        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower, beamsEnabled, true);
     }
 
     public float damagePower() {
@@ -47,6 +56,10 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
 
     public float durationMultiplier() {
         return 1.0F + data.activeUpgradeLevel(Spell.UPGRADE_DURATION) * 0.20F;
+    }
+
+    public boolean selfShape() {
+        return SpellRegistry.shapeKey(spell.key()).contains("self");
     }
 
     public HitResult raycast(double distance) {
@@ -93,6 +106,9 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
     }
 
     public void beam(Vec3 end, ParticleOptions particle) {
+        if (!beamsEnabled) {
+            return;
+        }
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }

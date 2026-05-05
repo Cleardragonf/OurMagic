@@ -3,6 +3,7 @@ package com.ourmagic.item;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.mana.PlayerMana;
+import com.ourmagic.network.CraftSpellPacket;
 import com.ourmagic.network.ModNetwork;
 import com.ourmagic.wand.WandData;
 import com.ourmagic.wand.WandTemplates;
@@ -19,6 +20,7 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
@@ -45,6 +47,10 @@ public class WandItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
         WandTemplates.ensureInitialized(stack, admin);
         WandData data = WandData.read(stack);
+
+        if (tryAddSpellSource(level, player, hand, stack, data)) {
+            return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
+        }
 
         if (player.isShiftKeyDown()) {
             if (!level.isClientSide) {
@@ -93,6 +99,45 @@ public class WandItem extends Item {
         }
 
         return cast ? InteractionResultHolder.success(stack) : InteractionResultHolder.fail(stack);
+    }
+
+    private static boolean tryAddSpellSource(Level level, Player player, InteractionHand wandHand, ItemStack wand, WandData data) {
+        InteractionHand sourceHand = wandHand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+        ItemStack source = player.getItemInHand(sourceHand);
+        boolean grimoire = source.is(com.ourmagic.registry.ModItems.GRIMOIRE.get()) && GrimoireItem.hasSelectedSpell(source);
+        if (!grimoire && !isSpellPaper(source)) {
+            return false;
+        }
+
+        if (level.isClientSide) {
+            return true;
+        }
+
+        String spellKey = grimoire ? GrimoireItem.selectedSpell(source) : source.getOrCreateTag().getString(CraftSpellPacket.TAG_SPELL_KEY);
+        Spell spell = SpellRegistry.get(spellKey);
+        if (spell == null) {
+            player.displayClientMessage(Component.literal("That spell source does not contain a valid spell.").withStyle(ChatFormatting.RED), false);
+            return true;
+        }
+
+        if (!data.addRolledSpell(spellKey, player.getRandom())) {
+            player.displayClientMessage(Component.literal("That wand already knows " + spellKey).withStyle(ChatFormatting.YELLOW), false);
+            return true;
+        }
+
+        data.save(wand);
+        if (!grimoire && !player.getAbilities().instabuild) {
+            source.shrink(1);
+        }
+        player.getInventory().setChanged();
+        player.displayClientMessage(Component.literal("Added " + spellKey + " to wand").withStyle(ChatFormatting.AQUA), false);
+        return true;
+    }
+
+    private static boolean isSpellPaper(ItemStack stack) {
+        return stack.is(Items.PAPER)
+                && stack.hasTag()
+                && stack.getOrCreateTag().contains(CraftSpellPacket.TAG_SPELL_KEY);
     }
 
     @Override

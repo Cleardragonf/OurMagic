@@ -34,6 +34,11 @@ public final class ModNetwork {
                 .decoder(UpgradeSpellPacket::decode)
                 .consumerMainThread(UpgradeSpellPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(CraftSpellPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(CraftSpellPacket::encode)
+                .decoder(CraftSpellPacket::decode)
+                .consumerMainThread(CraftSpellPacket::handle)
+                .add();
     }
 
     public static void syncMana(ServerPlayer player, PlayerMana mana) {

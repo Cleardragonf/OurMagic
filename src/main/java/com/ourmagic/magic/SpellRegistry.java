@@ -17,6 +17,7 @@ import com.ourmagic.magic.spell.effect.LevitatePayload;
 import com.ourmagic.magic.spell.effect.LightningPayload;
 import com.ourmagic.magic.spell.effect.MissilePayload;
 import com.ourmagic.magic.spell.effect.PayloadEffect;
+import com.ourmagic.magic.spell.effect.PhysicalShieldPayload;
 import com.ourmagic.magic.spell.effect.PushPayload;
 import com.ourmagic.magic.spell.effect.RegeneratePayload;
 import com.ourmagic.magic.spell.effect.SpellShape;
@@ -56,6 +57,8 @@ public final class SpellRegistry {
             random("fire", "point", 2),
             random("blind", "target", 4),
             random("blind", "target_aoe", 2),
+            random("shield", "self", 3),
+            random("shield", "block", 1),
             random("heal", "ally_self_aoe", 5),
             random("heal", "target", 3),
             random("heal", "ally_target_aoe", 3),
@@ -101,6 +104,43 @@ public final class SpellRegistry {
         return SPELLS.values();
     }
 
+    public static List<String> payloadKeys() {
+        return List.copyOf(PARTS.keySet());
+    }
+
+    public static List<String> shapeKeys() {
+        return List.copyOf(SHAPES.keySet());
+    }
+
+    public static String payloadKey(String spellKey) {
+        Recipe recipe = Recipe.parse(spellKey);
+        return recipe == null ? "" : String.join("+", recipe.payloads());
+    }
+
+    public static List<String> payloadParts(String spellKey) {
+        Recipe recipe = Recipe.parse(spellKey);
+        return recipe == null ? List.of() : recipe.payloads();
+    }
+
+    public static String shapeKey(String spellKey) {
+        Recipe recipe = Recipe.parse(spellKey);
+        return recipe == null ? "" : recipe.shape();
+    }
+
+    public static String withShape(String spellKey, String shape) {
+        Recipe recipe = Recipe.parse(spellKey);
+        if (recipe == null || !SHAPES.containsKey(shape)) {
+            return "";
+        }
+
+        String key = String.join("+", recipe.payloads()) + "@" + shape;
+        return get(key) == null ? "" : key;
+    }
+
+    public static boolean isValidRecipe(String spellKey) {
+        return Recipe.parse(spellKey) != null && !hasInvalidCombination(spellKey) && get(spellKey) != null;
+    }
+
     public static Spell randomSpell(RandomSource random) {
         int totalWeight = 0;
         for (RandomSpellRecipe recipe : RANDOM_RECIPES) {
@@ -120,7 +160,7 @@ public final class SpellRegistry {
 
     private static void registerParts() {
         part("arrow", ArrowPayload::new, 10, 14, ParticleTypes.ENCHANTED_HIT, Spell.UPGRADE_MULTISTRIKE);
-        part("blast", BlastPayload::new, 24, 50, ParticleTypes.EXPLOSION, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
+        part("blast", BlastPayload::new, 24, 50, ParticleTypes.EXPLOSION, Spell.UPGRADE_MULTISTRIKE);
         part("blind", BlindPayload::new, 15, 35, ParticleTypes.SQUID_INK, Spell.UPGRADE_DURATION, Spell.UPGRADE_CHAINING);
         part("blink", BlinkPayload::new, 28, 70, ParticleTypes.PORTAL, Spell.UPGRADE_RANGE);
         part("bubble", BubblePayload::new, 10, 30, ParticleTypes.BUBBLE, Spell.UPGRADE_DURATION);
@@ -133,9 +173,10 @@ public final class SpellRegistry {
         part("heal", () -> new HealPayload(6.0F, 4.0F, 8), 20, 60, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE);
         part("levitate", LevitatePayload::new, 22, 45, ParticleTypes.END_ROD, Spell.UPGRADE_DURATION);
         part("lightning", LightningPayload::new, 35, 90, ParticleTypes.ELECTRIC_SPARK, Spell.UPGRADE_CHAINING, Spell.UPGRADE_MULTISTRIKE);
-        part("missile", MissilePayload::new, 8, 12, ParticleTypes.CRIT, Spell.UPGRADE_MULTISTRIKE);
+        part("missile", MissilePayload::new, 8, 12, MissilePayload.PURPLE_PARTICLE, Spell.UPGRADE_MULTISTRIKE);
         part("push", PushPayload::new, 12, 18, ParticleTypes.CLOUD, Spell.UPGRADE_MULTISTRIKE);
         part("regenerate", RegeneratePayload::new, 35, 100, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE, Spell.UPGRADE_DURATION);
+        part("shield", PhysicalShieldPayload::new, 18, 80, ParticleTypes.ENCHANT, Spell.UPGRADE_DURATION);
     }
 
     private static void registerShapes() {
@@ -163,6 +204,7 @@ public final class SpellRegistry {
         registerRecipe("bubble@self");
         registerRecipe("fireball@self");
         registerRecipe("blind@target");
+        registerRecipe("shield@self");
         registerRecipe("heal@ally_self_aoe");
         registerRecipe("blink@point");
         registerRecipe("levitate@target");
@@ -191,6 +233,9 @@ public final class SpellRegistry {
         if (parsed == null) {
             return null;
         }
+        if (hasInvalidCombination(parsed)) {
+            return null;
+        }
 
         ShapePart shape = SHAPES.get(parsed.shape());
         if (shape == null) {
@@ -216,11 +261,8 @@ public final class SpellRegistry {
             particle = part.particle();
         }
 
-        if (parsed.shape().contains("aoe") || parsed.shape().contains("area") || upgrades.contains(Spell.UPGRADE_CHAINING)) {
+        if (parsed.shape().contains("aoe") || parsed.shape().contains("area")) {
             upgrades.add(Spell.UPGRADE_RADIUS);
-        }
-        if (upgrades.contains(Spell.UPGRADE_CHAINING) || upgrades.contains(Spell.UPGRADE_MULTISTRIKE)) {
-            upgrades.add(Spell.UPGRADE_DAMAGE);
         }
 
         PayloadEffect payload = payloads.size() == 1 ? payloads.get(0) : new CompositePayload(payloads.toArray(PayloadEffect[]::new));
@@ -238,6 +280,15 @@ public final class SpellRegistry {
 
     private static RandomSpellRecipe random(String payloads, String shape, int weight) {
         return new RandomSpellRecipe(payloads + "@" + shape, weight);
+    }
+
+    private static boolean hasInvalidCombination(String spellKey) {
+        Recipe recipe = Recipe.parse(spellKey);
+        return recipe == null || hasInvalidCombination(recipe);
+    }
+
+    private static boolean hasInvalidCombination(Recipe recipe) {
+        return recipe.payloads().contains("arrow") && recipe.shape().equals("self");
     }
 
     private record SpellPart(Supplier<PayloadEffect> payload, int manaCost, int cooldownTicks, ParticleOptions particle, Set<String> upgrades) {

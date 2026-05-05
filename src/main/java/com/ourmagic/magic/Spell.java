@@ -12,8 +12,11 @@ public interface Spell {
     String UPGRADE_RANGE = "range";
     String UPGRADE_RADIUS = "radius";
     String UPGRADE_DURATION = "duration";
-    String UPGRADE_ENTITIES = "entities";
-    String UPGRADE_CASTS = "casts";
+    String UPGRADE_TARGETING = "targeting";
+    String UPGRADE_ENTITIES = "chaining.entities";
+    String UPGRADE_CHAIN_RADIUS = "chaining.radius";
+    String UPGRADE_CHAIN_DAMAGE = "chaining.damage";
+    String UPGRADE_CASTS = "multistrike.casts";
 
     String key();
 

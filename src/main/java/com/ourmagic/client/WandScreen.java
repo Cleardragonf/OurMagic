@@ -20,7 +20,7 @@ import java.util.List;
 public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private static final int WIDTH = 326;
     private static final int HEIGHT = 236;
-    private static final int SPELL_SLOT_COUNT = 7;
+    private static final int SPELL_SLOT_COUNT = 6;
     private static final int SPELL_BUTTON_X = 18;
     private static final int SPELL_BUTTON_Y = 42;
     private static final int SPELL_BUTTON_WIDTH = 128;
@@ -28,7 +28,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private static final int SPELL_BUTTON_GAP = 7;
     private static final int DETAIL_X = 174;
     private static final int SPELL_UPGRADE_BUTTON_X = 252;
+    private static final int SPELL_UPGRADE_BUTTON_Y = 175;
     private static final int SPELL_UPGRADE_BUTTON_WIDTH = 52;
+    private static final int SPELL_UPGRADE_VISIBLE_COUNT = 4;
     private static final int UPGRADE_BUTTON_X = 16;
     private static final int UPGRADE_BUTTON_Y = 207;
     private static final int UPGRADE_BUTTON_WIDTH = 94;
@@ -46,6 +48,8 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private static final int COLOR_PURPLE = 0xFFC66CFF;
 
     private int selectedSpell;
+    private int spellScrollOffset;
+    private int upgradeScrollOffset;
     private String selectedUpgrade;
     private View view = View.SPELL_DETAILS;
 
@@ -80,20 +84,17 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         upgradeButtons.clear();
         statButtons.clear();
 
-        WandData data = menu.wandData();
-        List<WandData.WandSpellData> spells = data.spells();
-
-        selectedSpell = Math.max(0, Math.min(selectedSpell, Math.max(0, spells.size() - 1)));
-
-        int count = Math.min(spells.size(), SPELL_SLOT_COUNT);
-
-        for (int i = 0; i < count; i++) {
-            int spellIndex = i;
-            WandData.WandSpellData spell = spells.get(i);
-
-            Button button = addRenderableWidget(Button.builder(Component.literal(titleCase(spell.key())), b -> {
+        for (int i = 0; i < SPELL_SLOT_COUNT; i++) {
+            int buttonIndex = i;
+            Button button = addRenderableWidget(Button.builder(Component.empty(), b -> {
+                        int spellIndex = spellScrollOffset + buttonIndex;
+                        List<WandData.WandSpellData> spells = menu.wandData().spells();
+                        if (spellIndex < 0 || spellIndex >= spells.size()) {
+                            return;
+                        }
                         selectedSpell = spellIndex;
                         selectedUpgrade = null;
+                        upgradeScrollOffset = 0;
                         view = View.SPELL_DETAILS;
                     })
                     .bounds(leftPos + SPELL_BUTTON_X, topPos + SPELL_BUTTON_Y + i * (SPELL_BUTTON_HEIGHT + SPELL_BUTTON_GAP), SPELL_BUTTON_WIDTH, SPELL_BUTTON_HEIGHT)
@@ -102,7 +103,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             spellButtons.add(button);
         }
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < SPELL_UPGRADE_VISIBLE_COUNT; i++) {
             addUpgradeButton(i);
         }
 
@@ -125,8 +126,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private void addUpgradeButton(int index) {
         Button button = addRenderableWidget(Button.builder(yellow("Upgrade"), b -> {
                     List<String> upgrades = supportedUpgradeKeys(currentRegisteredSpell());
-                    if (index < upgrades.size()) {
-                        openUpgradeView(upgrades.get(index));
+                    int upgradeIndex = upgradeScrollOffset + index;
+                    if (upgradeIndex < upgrades.size()) {
+                        openUpgradeView(upgrades.get(upgradeIndex));
                     }
                 })
                 .bounds(buttonX(index), buttonY(index), UPGRADE_BUTTON_WIDTH, UPGRADE_BUTTON_HEIGHT)
@@ -148,6 +150,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
 
     private void openUpgradeView(String upgrade) {
         selectedUpgrade = upgrade;
+        upgradeScrollOffset = 0;
         view = View.UPGRADE_DETAILS;
     }
 
@@ -183,6 +186,38 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (view == View.SPELL_DETAILS && isInSpellList(mouseX, mouseY)) {
+            int previous = spellScrollOffset;
+            spellScrollOffset -= (int) Math.signum(delta);
+            clampSpellScroll(menu.wandData().spells().size());
+            return previous != spellScrollOffset || super.mouseScrolled(mouseX, mouseY, delta);
+        }
+
+        if (view == View.SPELL_DETAILS && isInUpgradeList(mouseX, mouseY)) {
+            int previous = upgradeScrollOffset;
+            upgradeScrollOffset -= (int) Math.signum(delta);
+            clampUpgradeScroll(supportedUpgradeKeys(currentRegisteredSpell()).size());
+            return previous != upgradeScrollOffset || super.mouseScrolled(mouseX, mouseY, delta);
+        }
+
+        return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+    private boolean isInSpellList(double mouseX, double mouseY) {
+        int x = leftPos + SPELL_BUTTON_X;
+        int y = topPos + SPELL_BUTTON_Y;
+        int height = SPELL_SLOT_COUNT * SPELL_BUTTON_HEIGHT + (SPELL_SLOT_COUNT - 1) * SPELL_BUTTON_GAP;
+        return mouseX >= x && mouseX < x + SPELL_BUTTON_WIDTH && mouseY >= y && mouseY < y + height;
+    }
+
+    private boolean isInUpgradeList(double mouseX, double mouseY) {
+        int x = leftPos + DETAIL_X;
+        int y = topPos + 160;
+        return mouseX >= x && mouseX < leftPos + imageWidth - 16 && mouseY >= y && mouseY < topPos + imageHeight - 12;
+    }
+
+    @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         WandData data = menu.wandData();
         List<WandData.WandSpellData> spells = data.spells();
@@ -194,6 +229,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         }
 
         selectedSpell = Math.max(0, Math.min(selectedSpell, spells.size() - 1));
+        clampSpellScroll(spells.size());
 
         WandData.WandSpellData spell = spells.get(selectedSpell);
         Spell registeredSpell = SpellRegistry.get(spell.key());
@@ -217,9 +253,10 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         graphics.drawCenteredString(font, "*", imageWidth / 2, 17, COLOR_PURPLE);
         graphics.drawString(font, "Spells", 18, 32, COLOR_CYAN, false);
         renderSpellSlots(graphics);
+        renderSpellScrollBar(graphics, menu.wandData().spells().size());
 
         int x = DETAIL_X;
-        int y = 47;
+        int y = 35;
 
         graphics.drawString(font, titleCase(spell.key()), x, y, 0xFFFFFFFF, false);
         y += 16;
@@ -278,6 +315,8 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         if (supports(registeredSpell, Spell.UPGRADE_DURATION)) {
             graphics.drawString(font, "Duration: " + spell.duration(), x, y, upgradeColor(Spell.UPGRADE_DURATION), false);
         }
+
+        renderUpgradeScrollBar(graphics, supportedUpgradeKeys(registeredSpell).size());
     }
 
     private void renderUpgradeView(GuiGraphics graphics, WandData.WandSpellData spell) {
@@ -304,15 +343,40 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
 
     private void renderSpellSlots(GuiGraphics graphics) {
         List<WandData.WandSpellData> spells = menu.wandData().spells();
-        int count = Math.min(spells.size(), SPELL_SLOT_COUNT);
+        int count = Math.min(spells.size() - spellScrollOffset, SPELL_SLOT_COUNT);
         for (int i = 0; i < count; i++) {
+            int spellIndex = spellScrollOffset + i;
             int x = SPELL_BUTTON_X;
             int y = SPELL_BUTTON_Y + i * (SPELL_BUTTON_HEIGHT + SPELL_BUTTON_GAP);
-            int border = i == selectedSpell ? 0xFFB45CFF : 0xFF343846;
+            int border = spellIndex == selectedSpell ? 0xFFB45CFF : 0xFF343846;
 
             graphics.fill(x, y, x + SPELL_BUTTON_WIDTH, y + SPELL_BUTTON_HEIGHT, 0xAA11131B);
             drawBorder(graphics, x, y, SPELL_BUTTON_WIDTH, SPELL_BUTTON_HEIGHT, border);
         }
+    }
+
+    private void renderSpellScrollBar(GuiGraphics graphics, int totalSpells) {
+        renderScrollBar(graphics, SPELL_BUTTON_X + SPELL_BUTTON_WIDTH + 4, SPELL_BUTTON_Y, 4,
+                SPELL_SLOT_COUNT * SPELL_BUTTON_HEIGHT + (SPELL_SLOT_COUNT - 1) * SPELL_BUTTON_GAP,
+                spellScrollOffset, totalSpells, SPELL_SLOT_COUNT);
+    }
+
+    private void renderUpgradeScrollBar(GuiGraphics graphics, int totalUpgrades) {
+        renderScrollBar(graphics, SPELL_UPGRADE_BUTTON_X + SPELL_UPGRADE_BUTTON_WIDTH + 4, SPELL_UPGRADE_BUTTON_Y, 3,
+                (SPELL_UPGRADE_VISIBLE_COUNT - 1) * 13 + UPGRADE_BUTTON_HEIGHT,
+                upgradeScrollOffset, totalUpgrades, SPELL_UPGRADE_VISIBLE_COUNT);
+    }
+
+    private void renderScrollBar(GuiGraphics graphics, int x, int y, int width, int height, int offset, int total, int visible) {
+        if (total <= visible) {
+            return;
+        }
+
+        graphics.fill(x, y, x + width, y + height, 0x552A3040);
+        int thumbHeight = Math.max(12, height * visible / total);
+        int maxOffset = Math.max(1, total - visible);
+        int thumbY = y + (height - thumbHeight) * offset / maxOffset;
+        graphics.fill(x, thumbY, x + width, thumbY + thumbHeight, 0xFFB45CFF);
     }
 
     private void renderUpgradeIcon(GuiGraphics graphics, String upgrade, int rank) {
@@ -374,17 +438,34 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     }
 
     private void showSpellViewButtons(WandData.WandSpellData spellData, Spell registeredSpell) {
-        for (Button button : spellButtons) {
-            button.visible = true;
-            button.active = true;
-        }
-
+        updateSpellButtons();
         updateUpgradeButtons(spellData, registeredSpell);
 
         if (backButton != null) backButton.visible = false;
         if (mainUpgradeButton != null) mainUpgradeButton.visible = false;
         for (Button button : statButtons) {
             button.visible = false;
+        }
+    }
+
+    private void updateSpellButtons() {
+        List<WandData.WandSpellData> spells = menu.wandData().spells();
+        clampSpellScroll(spells.size());
+
+        for (int i = 0; i < spellButtons.size(); i++) {
+            Button button = spellButtons.get(i);
+            int spellIndex = spellScrollOffset + i;
+            if (spellIndex >= spells.size()) {
+                button.visible = false;
+                continue;
+            }
+
+            button.visible = true;
+            button.active = true;
+            button.setMessage(Component.literal(titleCase(spells.get(spellIndex).key())));
+            button.setX(leftPos + SPELL_BUTTON_X);
+            button.setY(topPos + SPELL_BUTTON_Y + i * (SPELL_BUTTON_HEIGHT + SPELL_BUTTON_GAP));
+            button.setWidth(SPELL_BUTTON_WIDTH);
         }
     }
 
@@ -416,6 +497,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             mainUpgradeButton.setMessage(yellow(rank <= 0
                     ? "Enable " + titleCase(selectedUpgrade)
                     : "Upgrade"));
+            mainUpgradeButton.setTooltip(Tooltip.create(Component.literal(upgradeTooltip(spell, selectedUpgrade))));
         }
 
         updateStatButtons(spell, rank);
@@ -436,19 +518,28 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         }
     }
 
+    private void clampSpellScroll(int totalSpells) {
+        spellScrollOffset = Math.max(0, Math.min(spellScrollOffset, Math.max(0, totalSpells - SPELL_SLOT_COUNT)));
+    }
+
+    private void clampUpgradeScroll(int totalUpgrades) {
+        upgradeScrollOffset = Math.max(0, Math.min(upgradeScrollOffset, Math.max(0, totalUpgrades - SPELL_UPGRADE_VISIBLE_COUNT)));
+    }
+
     private void updateUpgradeButtons(WandData.WandSpellData spellData, Spell spell) {
         List<String> upgrades = supportedUpgradeKeys(spell);
+        clampUpgradeScroll(upgrades.size());
         for (int i = 0; i < upgradeButtons.size(); i++) {
             Button button = upgradeButtons.get(i);
-            if (i >= upgrades.size()) {
+            int upgradeIndex = upgradeScrollOffset + i;
+            if (upgradeIndex >= upgrades.size()) {
                 button.visible = false;
                 continue;
             }
 
-            String upgrade = upgrades.get(i);
-            String label = upgradeLabel(upgrade);
+            String upgrade = upgrades.get(upgradeIndex);
             button.setX(leftPos + SPELL_UPGRADE_BUTTON_X);
-            button.setY(topPos + 175 + i * 13);
+            button.setY(topPos + SPELL_UPGRADE_BUTTON_Y + i * 13);
             button.setWidth(SPELL_UPGRADE_BUTTON_WIDTH);
             button.setMessage(yellow(getUpgradeRank(spellData, upgrade) <= 0 ? "Add" : "View"));
             button.visible = true;
@@ -462,6 +553,8 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
 
         return switch (upgrade) {
             case Spell.UPGRADE_CHAINING -> spell.chaining();
+            case Spell.UPGRADE_CHAIN_RADIUS -> spell.chainingRadius();
+            case Spell.UPGRADE_CHAIN_DAMAGE -> spell.chainingDamage();
             case Spell.UPGRADE_MULTISTRIKE -> spell.multistrike();
             case Spell.UPGRADE_DAMAGE -> spell.damage();
             case Spell.UPGRADE_RANGE -> spell.range();
@@ -487,7 +580,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             button.setY(buttonY(i));
             button.setWidth(UPGRADE_BUTTON_WIDTH);
             button.setMessage(Component.literal("Upgrade " + label).withStyle(colorStyle(upgrade)));
-            button.setTooltip(Tooltip.create(Component.literal(statTooltip(upgrade))));
+            button.setTooltip(Tooltip.create(Component.literal(upgradeTooltip(spell, upgrade))));
         }
     }
 
@@ -498,7 +591,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
 
         return switch (selectedUpgrade) {
             case Spell.UPGRADE_CHAINING -> switch (index) {
-                case 0 -> Spell.UPGRADE_ENTITIES;
+                case 0 -> Spell.UPGRADE_CHAIN_RADIUS;
+                case 1 -> Spell.UPGRADE_ENTITIES;
+                case 2 -> Spell.UPGRADE_CHAIN_DAMAGE;
                 default -> null;
             };
             case Spell.UPGRADE_MULTISTRIKE -> switch (index) {
@@ -516,7 +611,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private String statLabel(int index) {
         return switch (selectedUpgrade) {
             case Spell.UPGRADE_CHAINING -> switch (index) {
-                case 0 -> "Entities";
+                case 0 -> "Radius";
+                case 1 -> "Entities";
+                case 2 -> "Damage";
                 default -> "Stat";
             };
             case Spell.UPGRADE_MULTISTRIKE -> switch (index) {
@@ -531,21 +628,11 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         };
     }
 
-    private static String statTooltip(String upgrade) {
-        return switch (upgrade) {
-            case Spell.UPGRADE_ENTITIES -> "Cost: 1 point, +mana";
-            case Spell.UPGRADE_RADIUS -> "Cost: 1 point, +mana and +cooldown";
-            case Spell.UPGRADE_CASTS -> "Cost: 1 point, +mana and +cooldown";
-            case Spell.UPGRADE_DAMAGE -> "Cost: 1 point, +mana";
-            case Spell.UPGRADE_RANGE -> "Cost: 1 point, +mana and +cooldown";
-            case Spell.UPGRADE_DURATION -> "Cost: 1 point, +mana and +cooldown";
-            default -> "Cost: 1 point";
-        };
-    }
-
     private static String cardLabel(String upgrade) {
         return switch (upgrade) {
             case Spell.UPGRADE_ENTITIES -> "Targets";
+            case Spell.UPGRADE_CHAIN_RADIUS -> "Radius";
+            case Spell.UPGRADE_CHAIN_DAMAGE -> "Damage";
             case Spell.UPGRADE_RADIUS -> "Radius";
             case Spell.UPGRADE_CASTS -> "Casts";
             case Spell.UPGRADE_DAMAGE -> "Damage";
@@ -558,8 +645,8 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private static String statIcon(String upgrade) {
         return switch (upgrade) {
             case Spell.UPGRADE_ENTITIES, Spell.UPGRADE_CASTS -> "*";
-            case Spell.UPGRADE_RADIUS, Spell.UPGRADE_RANGE -> "O";
-            case Spell.UPGRADE_DAMAGE -> "+";
+            case Spell.UPGRADE_CHAIN_RADIUS, Spell.UPGRADE_RADIUS, Spell.UPGRADE_RANGE -> "O";
+            case Spell.UPGRADE_CHAIN_DAMAGE, Spell.UPGRADE_DAMAGE -> "+";
             case Spell.UPGRADE_DURATION -> "||";
             default -> "*";
         };
@@ -568,7 +655,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private static String statDescription(String upgrade) {
         return switch (upgrade) {
             case Spell.UPGRADE_ENTITIES -> "Maximum targets hit.";
-            case Spell.UPGRADE_RADIUS -> "Area and chain radius.";
+            case Spell.UPGRADE_CHAIN_RADIUS -> "New target search radius.";
+            case Spell.UPGRADE_CHAIN_DAMAGE -> "Chain damage bonus.";
+            case Spell.UPGRADE_RADIUS -> "Area search radius.";
             case Spell.UPGRADE_CASTS -> "Additional casts.";
             case Spell.UPGRADE_DAMAGE -> "Damage bonus.";
             case Spell.UPGRADE_RANGE -> "Spell reach.";
@@ -580,7 +669,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private static String statValue(WandData.WandSpellData spell, String upgrade, int rank, int nextRank) {
         boolean showNext = rank > 0 && spell.canUpgrade(upgrade);
         return switch (upgrade) {
-            case Spell.UPGRADE_ENTITIES -> arrowValue(1 + spell.chainingEntities(), showNext ? 2 + spell.chainingEntities() : null);
+            case Spell.UPGRADE_ENTITIES -> arrowValue(rank + spell.chainingEntities(), showNext ? rank + spell.chainingEntities() + 1 : null);
+            case Spell.UPGRADE_CHAIN_RADIUS -> arrowValue((4 + spell.chainingRadius()) + " blocks", showNext ? (5 + spell.chainingRadius()) + " blocks" : null);
+            case Spell.UPGRADE_CHAIN_DAMAGE -> arrowValue("+" + (spell.chainingDamage() * 10) + "%", showNext ? "+" + ((spell.chainingDamage() + 1) * 10) + "%" : null);
             case Spell.UPGRADE_RADIUS -> arrowValue("+" + (spell.radius() * 20) + "%", showNext ? "+" + ((spell.radius() + 1) * 20) + "%" : null);
             case Spell.UPGRADE_CASTS -> arrowValue(1 + rank + spell.multistrikeCasts(), showNext ? 2 + rank + spell.multistrikeCasts() : null);
             case Spell.UPGRADE_DAMAGE -> arrowValue("+" + (spell.damage() * 10) + "%", showNext ? "+" + ((spell.damage() + 1) * 10) + "%" : null);
@@ -652,7 +743,52 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     }
 
     private static String upgradeTooltip(WandData.WandSpellData spell, String upgrade) {
-        return titleCase(upgrade) + " " + getUpgradeRank(spell, upgrade) + " | Cost: 1 point";
+        return titleCase(upgrade) + " " + getUpgradeRank(spell, upgrade) + " | Cost: 1 point | " + upgradeCostDetails(spell, upgrade);
+    }
+
+    private static String upgradeCostDetails(WandData.WandSpellData spell, String upgrade) {
+        int manaIncrease = manaIncrease(spell, upgrade);
+        int cooldownIncrease = cooldownIncrease(spell, upgrade);
+        List<String> costs = new ArrayList<>();
+
+        if (manaIncrease > 0) {
+            costs.add("Mana +" + manaIncrease + " (" + spell.manaCost() + " -> " + (spell.manaCost() + manaIncrease) + ")");
+        }
+        if (cooldownIncrease > 0) {
+            costs.add("Cooldown +" + formatTicks(cooldownIncrease) + " (" + formatTicks(spell.cooldownTicks()) + " -> " + formatTicks(spell.cooldownTicks() + cooldownIncrease) + ")");
+        }
+
+        return costs.isEmpty() ? "No mana/cooldown increase" : String.join(" | ", costs);
+    }
+
+    private static int manaIncrease(WandData.WandSpellData spell, String upgrade) {
+        float multiplier = switch (upgrade) {
+            case Spell.UPGRADE_CHAINING, Spell.UPGRADE_ENTITIES, Spell.UPGRADE_CHAIN_DAMAGE, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_DURATION -> 0.15F;
+            case Spell.UPGRADE_CHAIN_RADIUS, Spell.UPGRADE_RADIUS -> 0.10F;
+            case Spell.UPGRADE_MULTISTRIKE -> 0.35F;
+            case Spell.UPGRADE_CASTS -> 0.25F;
+            case Spell.UPGRADE_RANGE -> 0.20F;
+            default -> 0.0F;
+        };
+        return increase(spell.manaCost(), multiplier);
+    }
+
+    private static int cooldownIncrease(WandData.WandSpellData spell, String upgrade) {
+        float multiplier = switch (upgrade) {
+            case Spell.UPGRADE_MULTISTRIKE -> 0.10F;
+            case Spell.UPGRADE_CASTS -> 0.08F;
+            case Spell.UPGRADE_CHAIN_RADIUS, Spell.UPGRADE_RADIUS, Spell.UPGRADE_RANGE, Spell.UPGRADE_DURATION -> 0.05F;
+            default -> 0.0F;
+        };
+        return increase(spell.cooldownTicks(), multiplier);
+    }
+
+    private static int increase(int base, float multiplier) {
+        return multiplier <= 0.0F ? 0 : Math.max(1, Math.round(base * multiplier));
+    }
+
+    private static String formatTicks(int ticks) {
+        return String.format("%.2fs", ticks / 20.0F);
     }
 
     private int buttonX(int index) {
@@ -670,6 +806,8 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private static ChatFormatting colorStyle(String upgrade) {
         return switch (upgrade) {
             case Spell.UPGRADE_CHAINING, Spell.UPGRADE_ENTITIES -> ChatFormatting.AQUA;
+            case Spell.UPGRADE_CHAIN_RADIUS -> ChatFormatting.GREEN;
+            case Spell.UPGRADE_CHAIN_DAMAGE -> ChatFormatting.LIGHT_PURPLE;
             case Spell.UPGRADE_RANGE, Spell.UPGRADE_RADIUS -> ChatFormatting.GREEN;
             case Spell.UPGRADE_DURATION -> ChatFormatting.YELLOW;
             case Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CASTS, Spell.UPGRADE_DAMAGE -> ChatFormatting.LIGHT_PURPLE;
@@ -692,6 +830,8 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private static int statColor(String upgrade) {
         return switch (upgrade) {
             case Spell.UPGRADE_ENTITIES -> COLOR_CYAN;
+            case Spell.UPGRADE_CHAIN_RADIUS -> COLOR_GREEN;
+            case Spell.UPGRADE_CHAIN_DAMAGE -> COLOR_PURPLE;
             case Spell.UPGRADE_RADIUS, Spell.UPGRADE_RANGE -> COLOR_GREEN;
             case Spell.UPGRADE_DAMAGE, Spell.UPGRADE_CASTS -> COLOR_PURPLE;
             case Spell.UPGRADE_DURATION -> COLOR_GOLD;

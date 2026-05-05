@@ -21,6 +21,9 @@ public final class ModCreativeTabs {
                 output.accept(WandTemplates.applyRandom(new ItemStack(ModItems.WAND.get()), RandomSource.create(2L)));
                 output.accept(WandTemplates.applyAdmin(new ItemStack(ModItems.ADMIN_WAND.get())));
                 output.accept(ModItems.SPELL_FOCUS.get());
+                output.accept(ModItems.GRIMOIRE.get());
+                output.accept(ModItems.LIGHTNING_TALISMAN.get());
+                output.accept(ModItems.TEMPORARY_SHIELD.get());
             })
             .build());
 

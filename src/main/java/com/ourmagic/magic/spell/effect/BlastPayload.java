@@ -1,17 +1,32 @@
 package com.ourmagic.magic.spell.effect;
 
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.world.level.Level.ExplosionInteraction;
+import net.minecraft.world.entity.projectile.LargeFireball;
+import net.minecraft.world.phys.Vec3;
 
 public class BlastPayload implements PayloadEffect {
-    private final ExplosionPayload explosion = new ExplosionPayload(1.5F, ExplosionInteraction.NONE);
+    private static final double BLAST_SPEED = 0.85D;
 
     @Override
     public boolean apply(SpellContext context, SpellTarget target) {
-        if (context.castIndex() == 0) {
-            context.sparkleBeam(target.position());
+        Vec3 targetPos = target.entity().filter(entity -> entity == context.player()).isPresent()
+                ? context.player().getEyePosition().add(context.player().getLookAngle().scale(8.0D))
+                : target.position();
+        Vec3 start = context.selfShape() ? targetPos.add(0.0D, 8.0D, 0.0D) : context.player().getEyePosition();
+        Vec3 direction = targetPos.subtract(start);
+        if (direction.lengthSqr() < 0.001D) {
+            direction = context.player().getLookAngle();
         }
-        context.burst(target.position(), ParticleTypes.EXPLOSION, 3, 0.25D, 0.0D);
-        return explosion.apply(context, target);
+        direction = direction.normalize();
+
+        LargeFireball blast = new LargeFireball(context.level(), context.player(), direction.x, direction.y, direction.z, 1);
+        blast.setPos(start.x, start.y, start.z);
+        blast.setDeltaMovement(direction.scale(BLAST_SPEED));
+        context.level().addFreshEntity(blast);
+
+        if (context.castIndex() == 0) {
+            context.burst(start, ParticleTypes.EXPLOSION, 4, 0.18D, 0.02D);
+        }
+        return true;
     }
 }
