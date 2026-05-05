@@ -32,12 +32,20 @@ public final class GrimoireLecternEvents {
 
     @SubscribeEvent
     public static void rightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        ItemStack held = event.getItemStack();
-        if (!held.is(ModItems.GRIMOIRE.get()) || !event.getLevel().getBlockState(event.getPos()).is(Blocks.LECTERN)) {
+        if (!event.getLevel().getBlockState(event.getPos()).is(Blocks.LECTERN)) {
             return;
         }
 
+        ItemStack held = event.getItemStack();
         BlockState state = event.getLevel().getBlockState(event.getPos());
+        if (held.isEmpty() && state.getValue(LecternBlock.HAS_BOOK) && removeGrimoire(event, state)) {
+            return;
+        }
+
+        if (!held.is(ModItems.GRIMOIRE.get())) {
+            return;
+        }
+
         if (state.getValue(LecternBlock.HAS_BOOK)) {
             return;
         }
@@ -57,6 +65,31 @@ public final class GrimoireLecternEvents {
                 lectern.setChanged();
             }
         }
+    }
+
+    private static boolean removeGrimoire(PlayerInteractEvent.RightClickBlock event, BlockState state) {
+        Level level = event.getLevel();
+        BlockEntity blockEntity = level.getBlockEntity(event.getPos());
+        if (!(blockEntity instanceof LecternBlockEntity lectern) || !lectern.getBook().is(ModItems.GRIMOIRE.get())) {
+            return false;
+        }
+
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide));
+
+        if (level.isClientSide) {
+            return true;
+        }
+
+        ItemStack book = lectern.getBook().copy();
+        lectern.setBook(ItemStack.EMPTY);
+        lectern.setChanged();
+        LecternBlock.resetBookState(event.getEntity(), level, event.getPos(), state, false);
+
+        if (!event.getEntity().getInventory().add(book)) {
+            event.getEntity().drop(book, false);
+        }
+        return true;
     }
 
     @SubscribeEvent
