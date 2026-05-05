@@ -6,6 +6,7 @@ import com.ourmagic.mana.PlayerMana;
 import com.ourmagic.network.CraftSpellPacket;
 import com.ourmagic.network.ModNetwork;
 import com.ourmagic.wand.WandData;
+import com.ourmagic.wand.WandModifier;
 import com.ourmagic.wand.WandTemplates;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
@@ -89,9 +90,14 @@ public class WandItem extends Item {
                 mana.spend(manaCost);
                 ModNetwork.syncMana((ServerPlayer) player, mana);
             }
-            int levelsGained = data.addActiveSpellXp(5);
+            int xp = Math.max(1, Math.round(5 * data.xpMultiplier()));
+            int levelsGained = data.addActiveSpellXp(xp);
             if (levelsGained > 0) {
                 celebrateSpellLevelUp((ServerPlayer) player, data.activeSpellName());
+            }
+            int wandLevelsGained = data.addWandXp(xp);
+            if (wandLevelsGained > 0) {
+                player.displayClientMessage(Component.literal("Your wand reached level " + data.wandLevel() + ".").withStyle(ChatFormatting.GOLD), true);
             }
             data.setCooldownUntil(level.getGameTime() + cooldownTicks);
             data.save(stack);
@@ -146,6 +152,14 @@ public class WandItem extends Item {
         WandData data = WandData.read(stack);
         int spellCount = data.spells().size();
         tooltip.add(Component.literal(data.displayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
+        tooltip.add(Component.literal("Wand Level: " + data.wandLevel() + " XP " + data.wandXp() + "/" + data.wandXpToNextLevel()).withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.literal("Modifiers: " + data.usedWandModifierSlots() + "/" + data.wandModifierSlots()).withStyle(ChatFormatting.GRAY));
+        if (!data.modifiers().isEmpty()) {
+            data.modifiers().forEach((key, levelValue) -> {
+                String name = WandModifier.byKey(key).map(WandModifier::displayName).orElse(key);
+                tooltip.add(Component.literal("  " + name + " " + levelValue).withStyle(ChatFormatting.DARK_AQUA));
+            });
+        }
 
         if (spellCount > 1) {
             tooltip.add(Component.literal("Number of spells: " + spellCount).withStyle(ChatFormatting.AQUA));

@@ -2,6 +2,8 @@ package com.ourmagic.recipe;
 
 import com.google.gson.JsonObject;
 import com.ourmagic.registry.ModItems;
+import com.ourmagic.wand.WandData;
+import com.ourmagic.wand.WandModifier;
 import com.ourmagic.wand.WandTemplates;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.RegistryAccess;
@@ -24,6 +26,10 @@ public class WandCraftingRecipe extends CustomRecipe {
 
     @Override
     public boolean matches(CraftingContainer container, Level level) {
+        if (matchesUpgrade(container)) {
+            return true;
+        }
+
         int sticks = 0;
         int crystals = 0;
         int dust = 0;
@@ -49,6 +55,11 @@ public class WandCraftingRecipe extends CustomRecipe {
 
     @Override
     public ItemStack assemble(CraftingContainer container, RegistryAccess registryAccess) {
+        ItemStack upgrade = assembleUpgrade(container);
+        if (!upgrade.isEmpty()) {
+            return upgrade;
+        }
+
         return WandTemplates.applyRandom(new ItemStack(ModItems.WAND.get()), RandomSource.create());
     }
 
@@ -75,6 +86,63 @@ public class WandCraftingRecipe extends CustomRecipe {
     @Override
     public RecipeSerializer<?> getSerializer() {
         return ModRecipeSerializers.WAND.get();
+    }
+
+    private static boolean matchesUpgrade(CraftingContainer container) {
+        ItemStack wand = ItemStack.EMPTY;
+        WandModifier modifier = null;
+        int itemCount = 0;
+
+        for (int i = 0; i < container.getContainerSize(); i++) {
+            ItemStack stack = container.getItem(i);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            itemCount++;
+            if (isWand(stack) && wand.isEmpty()) {
+                wand = stack;
+            } else if (modifier == null && WandModifier.fromItem(stack).isPresent()) {
+                modifier = WandModifier.fromItem(stack).get();
+            } else {
+                return false;
+            }
+        }
+
+        return itemCount == 2 && !wand.isEmpty() && modifier != null && WandData.read(wand).canAddWandModifier(modifier.key());
+    }
+
+    private static ItemStack assembleUpgrade(CraftingContainer container) {
+        ItemStack wand = ItemStack.EMPTY;
+        WandModifier modifier = null;
+
+        for (int i = 0; i < container.getContainerSize(); i++) {
+            ItemStack stack = container.getItem(i);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            if (isWand(stack)) {
+                wand = stack;
+            } else {
+                modifier = WandModifier.fromItem(stack).orElse(null);
+            }
+        }
+
+        if (wand.isEmpty() || modifier == null) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack result = wand.copy();
+        result.setCount(1);
+        WandData data = WandData.read(result);
+        if (!data.addWandModifier(modifier.key())) {
+            return ItemStack.EMPTY;
+        }
+        data.save(result);
+        return result;
+    }
+
+    private static boolean isWand(ItemStack stack) {
+        return stack.is(ModItems.WAND.get()) || stack.is(ModItems.ADMIN_WAND.get());
     }
 
     public static class Serializer implements RecipeSerializer<WandCraftingRecipe> {

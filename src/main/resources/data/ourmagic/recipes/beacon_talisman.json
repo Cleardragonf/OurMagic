@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " G ",
+    "CAC",
+    " R "
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "C": { "item": "minecraft:compass" },
+    "G": { "item": "minecraft:glowstone_dust" },
+    "R": { "item": "minecraft:redstone" }
+  },
+  "result": { "item": "ourmagic:beacon_talisman", "count": 1 }
+}

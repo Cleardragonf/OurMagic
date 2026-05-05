@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " H ",
+    "GAG",
+    " H "
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "G": { "item": "minecraft:gold_ingot" },
+    "H": { "item": "minecraft:honeycomb" }
+  },
+  "result": { "item": "ourmagic:sanctuary_talisman", "count": 1 }
+}

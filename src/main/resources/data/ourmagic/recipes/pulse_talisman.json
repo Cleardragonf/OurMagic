@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " R ",
+    "SAS",
+    " R "
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "R": { "item": "minecraft:redstone" },
+    "S": { "item": "minecraft:sculk" }
+  },
+  "result": { "item": "ourmagic:pulse_talisman", "count": 1 }
+}

@@ -23,10 +23,12 @@ public class MissilePayload implements PayloadEffect {
         }
 
         Vec3 targetPos = overheadTarget(context, target);
-        Vec3 start = context.selfShape() || context.areaCast() && target.entity().isPresent() && target.entity().get() != context.player()
+        Vec3 start = context.areaCast()
+                ? context.areaOrigin().orElse(context.player().getEyePosition()).add(0.0D, 0.35D, 0.0D)
+                : context.selfShape()
                 ? targetPos.add(0.0D, 7.5D, 0.0D)
                 : context.player().getEyePosition().add(context.player().getLookAngle().scale(0.65D));
-        Vec3 fallbackEnd = targetPos;
+        Vec3 fallbackEnd = context.areaCast() ? target.position() : targetPos;
         if (fallbackEnd.distanceToSqr(start) < 0.001D) {
             fallbackEnd = start.add(context.player().getLookAngle().scale(18.0D));
         }

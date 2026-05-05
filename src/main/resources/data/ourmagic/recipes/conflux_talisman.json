@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " E ",
+    "RAR",
+    " E "
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "E": { "item": "minecraft:ender_pearl" },
+    "R": { "item": "minecraft:redstone" }
+  },
+  "result": { "item": "ourmagic:conflux_talisman", "count": 1 }
+}

@@ -23,6 +23,17 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.SPELL_FOCUS.get());
                 output.accept(ModItems.GRIMOIRE.get());
                 output.accept(ModItems.LIGHTNING_TALISMAN.get());
+                output.accept(ModItems.ANCHOR_TALISMAN.get());
+                output.accept(ModItems.SEEKER_TALISMAN.get());
+                output.accept(ModItems.WAYPOINT_TALISMAN.get());
+                output.accept(ModItems.MASON_TALISMAN.get());
+                output.accept(ModItems.PULSE_TALISMAN.get());
+                output.accept(ModItems.STORMCALL_TALISMAN.get());
+                output.accept(ModItems.CONFLUX_TALISMAN.get());
+                output.accept(ModItems.SANCTUARY_TALISMAN.get());
+                output.accept(ModItems.BEACON_TALISMAN.get());
+                output.accept(ModItems.MAGNET_TALISMAN.get());
+                output.accept(ModItems.TIDE_TALISMAN.get());
                 output.accept(ModItems.TEMPORARY_SHIELD.get());
             })
             .build());

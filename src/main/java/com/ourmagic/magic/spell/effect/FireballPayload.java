@@ -8,16 +8,18 @@ public class FireballPayload implements PayloadEffect {
     @Override
     public boolean apply(SpellContext context, SpellTarget target) {
         int i = context.castIndex();
-        Vec3 start = context.player().getEyePosition();
+        Vec3 start = context.areaCast()
+                ? context.areaOrigin().orElse(context.player().getEyePosition()).add(0.0D, 0.35D, 0.0D)
+                : context.player().getEyePosition();
         Vec3 targetPos = target.position();
-        if (context.selfShape()) {
+        if (!context.areaCast() && context.selfShape()) {
             targetPos = target.entity().filter(entity -> entity == context.player()).isPresent()
                     ? context.player().getEyePosition().add(context.player().getLookAngle().scale(8.0D))
                     : target.position();
             start = targetPos.add(0.0D, 7.5D, 0.0D);
         }
 
-        Vec3 direction = context.selfShape()
+        Vec3 direction = context.areaCast() || context.selfShape()
                 ? targetPos.subtract(start).normalize()
                 : target.entity().filter(entity -> entity == context.player()).isPresent()
                         ? context.player().getLookAngle()
@@ -31,7 +33,7 @@ public class FireballPayload implements PayloadEffect {
         fireball.setDeltaMovement(fireball.getDeltaMovement().scale(context.data().activeDamageMultiplier() * context.modifierPower()));
         context.level().addFreshEntity(fireball);
         if (i == 0) {
-            if (!context.selfShape()) {
+            if (!context.selfShape() && !context.areaCast()) {
                 context.beam(context.player().getEyePosition().add(context.player().getLookAngle().scale(8)), ParticleTypes.FLAME);
             }
             context.burst(start, ParticleTypes.LAVA, 8, 0.12D, 0.04D);

@@ -129,7 +129,7 @@ public final class SpellRegistry {
 
     public static String withShape(String spellKey, String shape) {
         Recipe recipe = Recipe.parse(spellKey);
-        if (recipe == null || !SHAPES.containsKey(shape)) {
+        if (recipe == null || !isShapeAllowed(recipe.payloads(), shape)) {
             return "";
         }
 
@@ -138,7 +138,19 @@ public final class SpellRegistry {
     }
 
     public static boolean isValidRecipe(String spellKey) {
-        return Recipe.parse(spellKey) != null && !hasInvalidCombination(spellKey) && get(spellKey) != null;
+        Recipe recipe = Recipe.parse(spellKey);
+        return recipe != null && isShapeAllowed(recipe.payloads(), recipe.shape()) && get(spellKey) != null;
+    }
+
+    public static List<String> allowedShapes(String spellKey) {
+        Recipe recipe = Recipe.parse(spellKey);
+        return recipe == null ? List.of() : allowedShapesForPayloads(recipe.payloads());
+    }
+
+    public static List<String> allowedShapesForPayloads(List<String> payloads) {
+        return SHAPES.keySet().stream()
+                .filter(shape -> isShapeAllowed(payloads, shape))
+                .toList();
     }
 
     public static Spell randomSpell(RandomSource random) {
@@ -159,24 +171,24 @@ public final class SpellRegistry {
     }
 
     private static void registerParts() {
-        part("arrow", ArrowPayload::new, 10, 14, ParticleTypes.ENCHANTED_HIT, Spell.UPGRADE_MULTISTRIKE);
-        part("blast", BlastPayload::new, 24, 50, ParticleTypes.EXPLOSION, Spell.UPGRADE_MULTISTRIKE);
-        part("blind", BlindPayload::new, 15, 35, ParticleTypes.SQUID_INK, Spell.UPGRADE_DURATION, Spell.UPGRADE_CHAINING);
-        part("blink", BlinkPayload::new, 28, 70, ParticleTypes.PORTAL, Spell.UPGRADE_RANGE);
-        part("bubble", BubblePayload::new, 10, 30, ParticleTypes.BUBBLE, Spell.UPGRADE_DURATION);
-        part("explode", ExplosionPayload::new, 30, 70, ParticleTypes.EXPLOSION, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
-        part("fire", FireballPayload::new, 18, 30, ParticleTypes.FLAME, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
-        part("fire_place", FirePlacementPayload::new, 12, 20, ParticleTypes.FLAME);
-        part("fireball", FireballPayload::new, 18, 30, ParticleTypes.FLAME, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
-        part("frost", FreezePayload::new, 14, 24, ParticleTypes.SNOWFLAKE, Spell.UPGRADE_DURATION);
-        part("gather", GatherPayload::new, 15, 30, ParticleTypes.ENCHANT);
-        part("heal", () -> new HealPayload(6.0F, 4.0F, 8), 20, 60, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE);
-        part("levitate", LevitatePayload::new, 22, 45, ParticleTypes.END_ROD, Spell.UPGRADE_DURATION);
-        part("lightning", LightningPayload::new, 35, 90, ParticleTypes.ELECTRIC_SPARK, Spell.UPGRADE_CHAINING, Spell.UPGRADE_MULTISTRIKE);
-        part("missile", MissilePayload::new, 8, 12, MissilePayload.PURPLE_PARTICLE, Spell.UPGRADE_MULTISTRIKE);
-        part("push", PushPayload::new, 12, 18, ParticleTypes.CLOUD, Spell.UPGRADE_MULTISTRIKE);
-        part("regenerate", RegeneratePayload::new, 35, 100, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE, Spell.UPGRADE_DURATION);
-        part("shield", PhysicalShieldPayload::new, 18, 80, ParticleTypes.ENCHANT, Spell.UPGRADE_DURATION);
+        part("arrow", ArrowPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 10, 14, ParticleTypes.ENCHANTED_HIT, Spell.UPGRADE_MULTISTRIKE);
+        part("blast", BlastPayload::new, shapes("target", "point", "target_aoe", "target_area", "aoe"), 24, 50, ParticleTypes.EXPLOSION, Spell.UPGRADE_MULTISTRIKE);
+        part("blind", BlindPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 15, 35, ParticleTypes.SQUID_INK, Spell.UPGRADE_DURATION, Spell.UPGRADE_CHAINING);
+        part("blink", BlinkPayload::new, shapes("self", "point"), 28, 70, ParticleTypes.PORTAL, Spell.UPGRADE_RANGE);
+        part("bubble", BubblePayload::new, shapes("self", "ally_self_aoe"), 10, 30, ParticleTypes.BUBBLE, Spell.UPGRADE_DURATION);
+        part("explode", ExplosionPayload::new, shapes("self","target", "point", "target_aoe", "target_area", "aoe"), 30, 70, ParticleTypes.EXPLOSION, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
+        part("fire", FireballPayload::new, shapes("target", "point", "target_aoe", "target_area", "aoe"), 18, 30, ParticleTypes.FLAME, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
+        part("fire_place", FirePlacementPayload::new, shapes("block"), 12, 20, ParticleTypes.FLAME);
+        part("fireball", FireballPayload::new, shapes( "target", "point", "target_aoe", "target_area", "aoe"), 18, 30, ParticleTypes.FLAME, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
+        part("frost", FreezePayload::new, shapes("target_aoe", "target_area", "aoe", "water_target_aoe"), 14, 24, ParticleTypes.SNOWFLAKE, Spell.UPGRADE_DURATION);
+        part("gather", GatherPayload::new, shapes("items_self_aoe"), 15, 30, ParticleTypes.ENCHANT);
+        part("heal", () -> new HealPayload(6.0F, 4.0F, 8), shapes("self", "target", "ally_self_aoe", "ally_target_aoe"), 20, 60, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE);
+        part("levitate", LevitatePayload::new, shapes("self", "target"), 22, 45, ParticleTypes.END_ROD, Spell.UPGRADE_DURATION);
+        part("lightning", LightningPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 35, 90, ParticleTypes.ELECTRIC_SPARK, Spell.UPGRADE_CHAINING, Spell.UPGRADE_MULTISTRIKE);
+        part("missile", MissilePayload::new, shapes("self", "target", "target_aoe", "target_area", "aoe"), 8, 12, MissilePayload.PURPLE_PARTICLE, Spell.UPGRADE_MULTISTRIKE);
+        part("push", PushPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 12, 18, ParticleTypes.CLOUD, Spell.UPGRADE_MULTISTRIKE);
+        part("regenerate", RegeneratePayload::new, shapes("target", "ally_self_aoe", "ally_target_aoe"), 35, 100, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE, Spell.UPGRADE_DURATION);
+        part("shield", PhysicalShieldPayload::new, shapes("self", "block"), 18, 80, ParticleTypes.ENCHANT, Spell.UPGRADE_DURATION);
     }
 
     private static void registerShapes() {
@@ -233,7 +245,7 @@ public final class SpellRegistry {
         if (parsed == null) {
             return null;
         }
-        if (hasInvalidCombination(parsed)) {
+        if (!isShapeAllowed(parsed.payloads(), parsed.shape())) {
             return null;
         }
 
@@ -270,8 +282,8 @@ public final class SpellRegistry {
         return new PayloadSpell(key, Math.max(1, manaCost), Math.max(1, cooldownTicks), spellShape, payload, particle, upgrades.toArray(String[]::new));
     }
 
-    private static void part(String key, Supplier<PayloadEffect> payload, int manaCost, int cooldownTicks, ParticleOptions particle, String... upgrades) {
-        PARTS.put(key, new SpellPart(payload, manaCost, cooldownTicks, particle, Set.of(upgrades)));
+    private static void part(String key, Supplier<PayloadEffect> payload, ShapeCompatibility shapes, int manaCost, int cooldownTicks, ParticleOptions particle, String... upgrades) {
+        PARTS.put(key, new SpellPart(payload, shapes, manaCost, cooldownTicks, particle, Set.of(upgrades)));
     }
 
     private static void shape(String key, Function<ParticleOptions, SpellShape> factory) {
@@ -282,16 +294,30 @@ public final class SpellRegistry {
         return new RandomSpellRecipe(payloads + "@" + shape, weight);
     }
 
-    private static boolean hasInvalidCombination(String spellKey) {
-        Recipe recipe = Recipe.parse(spellKey);
-        return recipe == null || hasInvalidCombination(recipe);
+    private static ShapeCompatibility shapes(String... shapes) {
+        Set<String> allowedShapes = Set.of(shapes);
+        return allowedShapes::contains;
     }
 
-    private static boolean hasInvalidCombination(Recipe recipe) {
-        return recipe.payloads().contains("arrow") && recipe.shape().equals("self");
+    private static boolean isShapeAllowed(List<String> payloads, String shape) {
+        if (payloads.isEmpty() || !SHAPES.containsKey(shape)) {
+            return false;
+        }
+
+        for (String payload : payloads) {
+            SpellPart part = PARTS.get(payload);
+            if (part == null || !part.shapes().allows(shape)) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    private record SpellPart(Supplier<PayloadEffect> payload, int manaCost, int cooldownTicks, ParticleOptions particle, Set<String> upgrades) {
+    private interface ShapeCompatibility {
+        boolean allows(String shape);
+    }
+
+    private record SpellPart(Supplier<PayloadEffect> payload, ShapeCompatibility shapes, int manaCost, int cooldownTicks, ParticleOptions particle, Set<String> upgrades) {
     }
 
     private record ShapePart(Function<ParticleOptions, SpellShape> factory) {

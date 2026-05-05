@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " C ",
+    "RAR",
+    " G "
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "C": { "item": "minecraft:copper_ingot" },
+    "G": { "item": "minecraft:gunpowder" },
+    "R": { "item": "minecraft:redstone" }
+  },
+  "result": { "item": "ourmagic:stormcall_talisman", "count": 1 }
+}

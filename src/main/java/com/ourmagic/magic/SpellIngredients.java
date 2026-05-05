@@ -24,6 +24,17 @@ public final class SpellIngredients {
 
     public static List<Requirement> requirementsFor(String spellKey) {
         Map<String, Requirement> merged = new LinkedHashMap<>();
+        for (Requirement requirement : payloadRequirementsFor(spellKey)) {
+            merged.merge(requirement.key(), requirement, Requirement::merge);
+        }
+        for (Requirement requirement : shapeRequirements(SpellRegistry.shapeKey(spellKey))) {
+            merged.merge(requirement.key(), requirement, Requirement::merge);
+        }
+        return List.copyOf(merged.values());
+    }
+
+    public static List<Requirement> payloadRequirementsFor(String spellKey) {
+        Map<String, Requirement> merged = new LinkedHashMap<>();
         for (String payload : SpellRegistry.payloadParts(spellKey)) {
             for (Requirement requirement : baseRequirements(payload)) {
                 merged.merge(requirement.key(), requirement, Requirement::merge);
@@ -41,19 +52,40 @@ public final class SpellIngredients {
         return true;
     }
 
+    public static boolean hasPayloadRequirements(Container inventory, String spellKey) {
+        for (Requirement requirement : payloadRequirementsFor(spellKey)) {
+            if (count(inventory, requirement) < requirement.count()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static boolean isUnlocked(Container inventory, String spellKey) {
         List<String> requestedPayloads = SpellRegistry.payloadParts(spellKey);
         if (requestedPayloads.isEmpty()) {
             return false;
         }
-        return has(inventory, spellKey) || grimoirePayloads(inventory).containsAll(requestedPayloads);
+        return has(inventory, spellKey)
+                || hasGrimoireSpell(inventory, spellKey)
+                || grimoirePayloads(inventory).containsAll(requestedPayloads) && hasShapeRequirements(inventory, spellKey);
+    }
+
+    public static boolean hasGrimoireSpell(Container inventory, String spellKey) {
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack.is(ModItems.GRIMOIRE.get()) && GrimoireItem.hasMagicCharge(stack) && GrimoireItem.containsSpell(stack, spellKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static Set<String> grimoirePayloads(Container inventory) {
         Set<String> payloads = new LinkedHashSet<>();
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
             ItemStack stack = inventory.getItem(slot);
-            if (stack.is(ModItems.GRIMOIRE.get())) {
+            if (stack.is(ModItems.GRIMOIRE.get()) && GrimoireItem.hasMagicCharge(stack)) {
                 GrimoireItem.spellKeys(stack).forEach(spell -> payloads.addAll(SpellRegistry.payloadParts(spell)));
             }
         }
@@ -62,6 +94,26 @@ public final class SpellIngredients {
 
     public static void consume(Container inventory, String spellKey) {
         for (Requirement requirement : requirementsFor(spellKey)) {
+            consume(inventory, requirement);
+        }
+    }
+
+    public static void consumeShapeRequirements(Container inventory, String spellKey) {
+        for (Requirement requirement : shapeRequirements(SpellRegistry.shapeKey(spellKey))) {
+            consume(inventory, requirement);
+        }
+    }
+
+    public static boolean hasShapeRequirements(Container inventory, String spellKey) {
+        for (Requirement requirement : shapeRequirements(SpellRegistry.shapeKey(spellKey))) {
+            if (count(inventory, requirement) < requirement.count()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void consume(Container inventory, Requirement requirement) {
             int remaining = requirement.count();
             for (int slot = 0; slot < inventory.getContainerSize() && remaining > 0; slot++) {
                 ItemStack stack = inventory.getItem(slot);
@@ -72,7 +124,6 @@ public final class SpellIngredients {
                     inventory.setChanged();
                 }
             }
-        }
     }
 
     public static int count(Container inventory, Requirement requirement) {
@@ -106,6 +157,23 @@ public final class SpellIngredients {
             case "regenerate" -> List.of(potion("regeneration_potion", Potions.REGENERATION, Items.POTION, 1), item("golden_apple", Items.GOLDEN_APPLE, 1));
             case "shield" -> List.of(item("temporary_shield", ModItems.TEMPORARY_SHIELD.get(), 1), item("amethyst_shard", Items.AMETHYST_SHARD, 1));
             default -> List.of(item("amethyst_shard", Items.AMETHYST_SHARD, 1));
+        };
+    }
+
+    private static List<Requirement> shapeRequirements(String shape) {
+        return switch (shape) {
+            case "self" -> List.of(item("anchor_talisman", ModItems.ANCHOR_TALISMAN.get(), 1));
+            case "target" -> List.of(item("seeker_talisman", ModItems.SEEKER_TALISMAN.get(), 1));
+            case "point" -> List.of(item("waypoint_talisman", ModItems.WAYPOINT_TALISMAN.get(), 1));
+            case "block" -> List.of(item("mason_talisman", ModItems.MASON_TALISMAN.get(), 1));
+            case "self_aoe", "self_area" -> List.of(item("pulse_talisman", ModItems.PULSE_TALISMAN.get(), 2));
+            case "target_aoe", "target_area" -> List.of(item("stormcall_talisman", ModItems.STORMCALL_TALISMAN.get(), 2));
+            case "aoe" -> List.of(item("conflux_talisman", ModItems.CONFLUX_TALISMAN.get(), 2));
+            case "ally_self_aoe" -> List.of(item("sanctuary_talisman", ModItems.SANCTUARY_TALISMAN.get(), 2));
+            case "ally_target_aoe" -> List.of(item("beacon_talisman", ModItems.BEACON_TALISMAN.get(), 2));
+            case "items_self_aoe" -> List.of(item("magnet_talisman", ModItems.MAGNET_TALISMAN.get(), 2));
+            case "water_target_aoe" -> List.of(item("tide_talisman", ModItems.TIDE_TALISMAN.get(), 2));
+            default -> List.of();
         };
     }
 

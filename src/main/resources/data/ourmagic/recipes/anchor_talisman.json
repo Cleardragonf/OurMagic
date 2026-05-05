@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " S ",
+    "CAC",
+    " S "
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "C": { "item": "minecraft:compass" },
+    "S": { "item": "minecraft:string" }
+  },
+  "result": { "item": "ourmagic:anchor_talisman", "count": 1 }
+}

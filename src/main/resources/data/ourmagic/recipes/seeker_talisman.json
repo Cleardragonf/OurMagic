@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " R ",
+    "EAE",
+    " R "
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "E": { "item": "minecraft:ender_eye" },
+    "R": { "item": "minecraft:redstone" }
+  },
+  "result": { "item": "ourmagic:seeker_talisman", "count": 1 }
+}

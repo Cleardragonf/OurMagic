@@ -263,19 +263,17 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
 
     private List<String> craftableEffects() {
         return SpellRegistry.payloadKeys().stream()
-                .filter(effect -> SpellRegistry.shapeKeys().stream().anyMatch(shape -> SpellRegistry.isValidRecipe(effect + "@" + shape)))
-                .filter(effect -> isUnlocked(effect + "@self"))
+                .filter(effect -> !SpellRegistry.allowedShapesForPayloads(List.of(effect)).isEmpty())
+                .filter(effect -> hasPayloadIngredients(effect) || hasGrimoirePayload(effect))
                 .toList();
     }
 
     private List<String> craftableShapes(List<String> effects) {
         if (selectedEffects.isEmpty() && !effects.isEmpty()) {
-            return SpellRegistry.shapeKeys();
+            return SpellRegistry.allowedShapesForPayloads(List.of(effects.get(0)));
         }
-        return SpellRegistry.shapeKeys().stream()
-                .filter(shape -> !selectedEffects.isEmpty()
-                        && SpellRegistry.isValidRecipe(String.join("+", selectedEffects) + "@" + shape)
-                        && isUnlocked(String.join("+", selectedEffects) + "@" + shape))
+        return SpellRegistry.allowedShapesForPayloads(selectedEffects).stream()
+                .filter(shape -> !selectedEffects.isEmpty())
                 .toList();
     }
 
@@ -285,6 +283,14 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
 
     private boolean isUnlocked(String key) {
         return minecraft != null && minecraft.player != null && SpellIngredients.isUnlocked(minecraft.player.getInventory(), key);
+    }
+
+    private boolean hasPayloadIngredients(String payload) {
+        return minecraft != null && minecraft.player != null && SpellIngredients.hasPayloadRequirements(minecraft.player.getInventory(), payload + "@self");
+    }
+
+    private boolean hasGrimoirePayload(String payload) {
+        return minecraft != null && minecraft.player != null && SpellIngredients.grimoirePayloads(minecraft.player.getInventory()).contains(payload);
     }
 
     private void renderRequirements(GuiGraphics graphics, String key) {

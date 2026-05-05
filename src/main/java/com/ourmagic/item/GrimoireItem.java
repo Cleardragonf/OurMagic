@@ -21,6 +21,9 @@ import java.util.List;
 public class GrimoireItem extends Item {
     private static final String TAG_SPELLS = "OurMagicSpells";
     private static final String TAG_SELECTED = "OurMagicSelected";
+    private static final String TAG_MAGIC_CHARGE = "OurMagicCharge";
+    private static final int MAX_MAGIC_CHARGE = 1000;
+    private static final int SPELLCRAFT_CHARGE_COST = 25;
 
     public GrimoireItem(Properties properties) {
         super(properties);
@@ -58,6 +61,7 @@ public class GrimoireItem extends Item {
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         int count = spellCount(stack);
         tooltip.add(Component.literal("Stored spells: " + count).withStyle(ChatFormatting.AQUA));
+        tooltip.add(Component.literal("Magic: " + magicCharge(stack) + "/" + MAX_MAGIC_CHARGE).withStyle(magicCharge(stack) > 0 ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.RED));
         if (count > 0) {
             tooltip.add(Component.literal("Selected: " + selectedSpell(stack)).withStyle(ChatFormatting.LIGHT_PURPLE));
             tooltip.add(Component.literal("Right click cycles spells").withStyle(ChatFormatting.DARK_GRAY));
@@ -101,16 +105,7 @@ public class GrimoireItem extends Item {
         return List.copyOf(keys);
     }
 
-    private static String spellPaperKey(ItemStack stack) {
-        if (!stack.is(Items.PAPER) || !stack.hasTag()) {
-            return "";
-        }
-
-        String key = stack.getOrCreateTag().getString(CraftSpellPacket.TAG_SPELL_KEY);
-        return SpellRegistry.get(key) == null ? "" : key;
-    }
-
-    private static boolean containsSpell(ItemStack stack, String spellKey) {
+    public static boolean containsSpell(ItemStack stack, String spellKey) {
         ListTag spells = spells(stack);
         for (int i = 0; i < spells.size(); i++) {
             if (spells.getString(i).equals(spellKey)) {
@@ -118,6 +113,44 @@ public class GrimoireItem extends Item {
             }
         }
         return false;
+    }
+
+    public static int magicCharge(ItemStack stack) {
+        if (!stack.hasTag() || !stack.getOrCreateTag().contains(TAG_MAGIC_CHARGE)) {
+            return MAX_MAGIC_CHARGE;
+        }
+        return Math.max(0, Math.min(MAX_MAGIC_CHARGE, stack.getOrCreateTag().getInt(TAG_MAGIC_CHARGE)));
+    }
+
+    public static boolean hasMagicCharge(ItemStack stack) {
+        return magicCharge(stack) > 0;
+    }
+
+    public static boolean consumeMagicCharge(ItemStack stack) {
+        int charge = magicCharge(stack);
+        if (charge <= 0) {
+            return false;
+        }
+        stack.getOrCreateTag().putInt(TAG_MAGIC_CHARGE, Math.max(0, charge - SPELLCRAFT_CHARGE_COST));
+        return true;
+    }
+
+    public static boolean addMagicCharge(ItemStack stack, int amount) {
+        int charge = magicCharge(stack);
+        if (charge >= MAX_MAGIC_CHARGE || amount <= 0) {
+            return false;
+        }
+        stack.getOrCreateTag().putInt(TAG_MAGIC_CHARGE, Math.min(MAX_MAGIC_CHARGE, charge + amount));
+        return true;
+    }
+
+    private static String spellPaperKey(ItemStack stack) {
+        if (!stack.is(Items.PAPER) || !stack.hasTag()) {
+            return "";
+        }
+
+        String key = stack.getOrCreateTag().getString(CraftSpellPacket.TAG_SPELL_KEY);
+        return SpellRegistry.get(key) == null ? "" : key;
     }
 
     private static void cycle(ItemStack stack, int offset) {

@@ -51,7 +51,7 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
             WandData data = WandData.read(wand);
             CraftCheck craftCheck = canCraftRecipe(packet.spellKey);
             if (!craftCheck.allowed()) {
-                context.getSender().displayClientMessage(Component.literal("Unknown spell effect recipe.").withStyle(ChatFormatting.RED), false);
+                context.getSender().displayClientMessage(Component.literal("Unsupported spell effect and shape recipe.").withStyle(ChatFormatting.RED), false);
                 return;
             }
             if (craftCheck.effectCount() > maxCraftEffects(data)) {
@@ -66,9 +66,7 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
 
             if (packet.target == Target.WAND) {
                 if (data.addRolledSpell(packet.spellKey, context.getSender().getRandom())) {
-                    if (hasIngredients) {
-                        SpellIngredients.consume(context.getSender().getInventory(), packet.spellKey);
-                    }
+                    consumeSpellcraftCost(context.getSender().getInventory(), packet.spellKey, hasIngredients);
                     data.save(wand);
                     context.getSender().getInventory().setChanged();
                     context.getSender().displayClientMessage(Component.literal("Added " + packet.spellKey + " to wand").withStyle(ChatFormatting.AQUA), false);
@@ -86,9 +84,7 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
                     return;
                 }
                 if (GrimoireItem.addSpell(grimoire, packet.spellKey)) {
-                    if (hasIngredients) {
-                        SpellIngredients.consume(context.getSender().getInventory(), packet.spellKey);
-                    }
+                    consumeSpellcraftCost(context.getSender().getInventory(), packet.spellKey, hasIngredients);
                     context.getSender().getInventory().setChanged();
                     context.getSender().displayClientMessage(Component.literal("Added " + packet.spellKey + " to grimoire").withStyle(ChatFormatting.AQUA), false);
                 } else {
@@ -97,9 +93,7 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
                 return;
             }
 
-            if (hasIngredients) {
-                SpellIngredients.consume(context.getSender().getInventory(), packet.spellKey);
-            }
+            consumeSpellcraftCost(context.getSender().getInventory(), packet.spellKey, hasIngredients);
             ItemStack paper = new ItemStack(Items.PAPER);
             CompoundTag tag = paper.getOrCreateTag();
             tag.putString(TAG_SPELL_KEY, packet.spellKey);
@@ -123,7 +117,7 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
             return new CraftCheck(false, 0);
         }
 
-        return new CraftCheck(SpellRegistry.payloadKeys().containsAll(requestedPayloads), requestedPayloads.size());
+        return new CraftCheck(SpellRegistry.isValidRecipe(spellKey), requestedPayloads.size());
     }
 
     private static int maxCraftEffects(WandData data) {
@@ -135,6 +129,28 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
             return 2;
         }
         return 1;
+    }
+
+    private static void consumeSpellcraftCost(net.minecraft.world.Container inventory, String spellKey, boolean hasIngredients) {
+        if (consumeGrimoireCharge(inventory, spellKey)) {
+            return;
+        }
+        if (hasIngredients) {
+            SpellIngredients.consume(inventory, spellKey);
+        } else {
+            SpellIngredients.consumeShapeRequirements(inventory, spellKey);
+        }
+    }
+
+    private static boolean consumeGrimoireCharge(net.minecraft.world.Container inventory, String spellKey) {
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack.is(ModItems.GRIMOIRE.get()) && GrimoireItem.containsSpell(stack, spellKey) && GrimoireItem.consumeMagicCharge(stack)) {
+                inventory.setChanged();
+                return true;
+            }
+        }
+        return false;
     }
 
     private record CraftCheck(boolean allowed, int effectCount) {

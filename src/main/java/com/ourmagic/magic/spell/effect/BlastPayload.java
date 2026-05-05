@@ -12,7 +12,9 @@ public class BlastPayload implements PayloadEffect {
         Vec3 targetPos = target.entity().filter(entity -> entity == context.player()).isPresent()
                 ? context.player().getEyePosition().add(context.player().getLookAngle().scale(8.0D))
                 : target.position();
-        Vec3 start = context.selfShape() ? targetPos.add(0.0D, 8.0D, 0.0D) : context.player().getEyePosition();
+        Vec3 start = context.areaCast()
+                ? context.areaOrigin().orElse(context.player().getEyePosition()).add(0.0D, 0.35D, 0.0D)
+                : context.selfShape() ? targetPos.add(0.0D, 8.0D, 0.0D) : context.player().getEyePosition();
         Vec3 direction = targetPos.subtract(start);
         if (direction.lengthSqr() < 0.001D) {
             direction = context.player().getLookAngle();

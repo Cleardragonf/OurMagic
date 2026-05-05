@@ -48,7 +48,7 @@ public class ComposedSpellEffect implements ChainableEffect {
                     }
 
                     List<SpellTarget> targets = areaSelector.select(context, origin);
-                    SpellContext payloadContext = radius > 0.0D ? context.withoutBeams().asAreaCast() : context;
+                    SpellContext payloadContext = radius > 0.0D ? context.withoutBeams().asAreaCast(origin.position()) : context;
                     boolean applied = false;
                     for (SpellTarget target : targets) {
                         applied |= payload.apply(payloadContext, target);

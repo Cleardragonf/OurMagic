@@ -20,6 +20,9 @@ public final class WandData {
     private static final String TAG_SPELLS = "OurMagicSpells";
     private static final String TAG_ACTIVE = "OurMagicActive";
     private static final String TAG_COOLDOWN = "OurMagicCooldown";
+    private static final String TAG_WAND_LEVEL = "OurMagicWandLevel";
+    private static final String TAG_WAND_XP = "OurMagicWandXp";
+    private static final String TAG_WAND_MODIFIERS = "OurMagicWandModifiers";
     private static final String TAG_SPELL_KEY = "Key";
     private static final String TAG_SPELL_COST = "Cost";
     private static final String TAG_SPELL_COOLDOWN = "Cooldown";
@@ -34,14 +37,24 @@ public final class WandData {
     private final String displayName;
     private final float power;
     private final List<WandSpellData> spells;
+    private final Map<String, Integer> modifiers;
+    private int wandLevel;
+    private int wandXp;
     private int activeIndex;
     private long cooldownUntil;
 
     public WandData(String template, String displayName, float power, List<WandSpellData> spells, int activeIndex, long cooldownUntil) {
+        this(template, displayName, power, spells, activeIndex, cooldownUntil, 1, 0, Map.of());
+    }
+
+    public WandData(String template, String displayName, float power, List<WandSpellData> spells, int activeIndex, long cooldownUntil, int wandLevel, int wandXp, Map<String, Integer> modifiers) {
         this.template = template;
         this.displayName = displayName;
         this.power = power;
         this.spells = new ArrayList<>(spells);
+        this.wandLevel = Math.max(1, Math.min(MAX_SPELL_LEVEL, wandLevel));
+        this.wandXp = Math.max(0, wandXp);
+        this.modifiers = new LinkedHashMap<>(modifiers);
         this.activeIndex = Math.max(0, Math.min(activeIndex, Math.max(0, spells.size() - 1)));
         this.cooldownUntil = cooldownUntil;
     }
@@ -63,7 +76,9 @@ public final class WandData {
                 .limit(Math.max(1, maxSpells))
                 .toList();
         float power = Math.min(2.0F, Math.max(primary.power, secondary.power) + Math.min(primary.power, secondary.power) * 0.10F);
-        return new WandData(primary.template, "Combined Wand", power, spells, 0, 0);
+        Map<String, Integer> modifiers = new LinkedHashMap<>(primary.modifiers);
+        secondary.modifiers.forEach((key, level) -> modifiers.merge(key, level, Math::max));
+        return new WandData(primary.template, "Combined Wand", power, spells, 0, 0, Math.max(primary.wandLevel, secondary.wandLevel), Math.max(primary.wandXp, secondary.wandXp), modifiers);
     }
 
     public static WandData read(ItemStack stack) {
@@ -88,13 +103,25 @@ public final class WandData {
             spells.addAll(fallback.spells());
         }
 
+        Map<String, Integer> modifiers = new LinkedHashMap<>();
+        CompoundTag modifierTags = tag.getCompound(TAG_WAND_MODIFIERS);
+        for (String key : modifierTags.getAllKeys()) {
+            int level = modifierTags.getInt(key);
+            if (level > 0) {
+                modifiers.put(key, level);
+            }
+        }
+
         return new WandData(
                 tag.contains(TAG_TEMPLATE) ? templateKey : fallback.key(),
                 tag.contains(TAG_NAME) ? tag.getString(TAG_NAME) : fallback.displayName(),
                 tag.contains(TAG_POWER) ? tag.getFloat(TAG_POWER) : fallback.power(),
                 spells,
                 tag.getInt(TAG_ACTIVE),
-                tag.getLong(TAG_COOLDOWN)
+                tag.getLong(TAG_COOLDOWN),
+                tag.contains(TAG_WAND_LEVEL) ? tag.getInt(TAG_WAND_LEVEL) : 1,
+                tag.getInt(TAG_WAND_XP),
+                modifiers
         );
     }
 
@@ -105,6 +132,11 @@ public final class WandData {
         tag.putFloat(TAG_POWER, power);
         tag.putInt(TAG_ACTIVE, activeIndex);
         tag.putLong(TAG_COOLDOWN, cooldownUntil);
+        tag.putInt(TAG_WAND_LEVEL, wandLevel);
+        tag.putInt(TAG_WAND_XP, wandXp);
+        CompoundTag modifierTags = new CompoundTag();
+        modifiers.forEach(modifierTags::putInt);
+        tag.put(TAG_WAND_MODIFIERS, modifierTags);
 
         ListTag spellTags = new ListTag();
         for (WandSpellData spell : spells) {
@@ -144,6 +176,38 @@ public final class WandData {
         return power;
     }
 
+    public int wandLevel() {
+        return wandLevel;
+    }
+
+    public int wandXp() {
+        return wandXp;
+    }
+
+    public int wandXpToNextLevel() {
+        if (wandLevel >= MAX_SPELL_LEVEL) {
+            return 0;
+        }
+        return 80 + wandLevel * 20;
+    }
+
+    public int wandModifierSlots() {
+        int milestones = Math.max(0, wandLevel / 5);
+        return 1 + milestones * (milestones + 1) / 2;
+    }
+
+    public int usedWandModifierSlots() {
+        return modifiers.values().stream().mapToInt(Integer::intValue).sum();
+    }
+
+    public Map<String, Integer> modifiers() {
+        return Map.copyOf(modifiers);
+    }
+
+    public int modifierLevel(String key) {
+        return modifiers.getOrDefault(key, 0);
+    }
+
     public int activeIndex() {
         return activeIndex;
     }
@@ -158,11 +222,13 @@ public final class WandData {
     }
 
     public int activeManaCost() {
-        return activeSpellData().map(WandSpellData::manaCost).orElse(0);
+        int cost = activeSpellData().map(WandSpellData::manaCost).orElse(0);
+        return Math.max(0, Math.round(cost * manaCostMultiplier()));
     }
 
     public int activeCooldownTicks() {
-        return activeSpellData().map(WandSpellData::cooldownTicks).orElse(0);
+        int cooldown = activeSpellData().map(WandSpellData::cooldownTicks).orElse(0);
+        return Math.max(1, Math.round(cooldown * cooldownMultiplier()));
     }
 
     public int activeSpellLevel() {
@@ -178,11 +244,39 @@ public final class WandData {
     }
 
     public float activeDamageMultiplier() {
-        return damageMultiplier(activeSpellLevel());
+        return damageMultiplier(activeSpellLevel()) * damageMultiplier();
     }
 
     public float activeUtilityMultiplier() {
         return utilityMultiplier(activeSpellLevel());
+    }
+
+    public float manaCostMultiplier() {
+        return Math.max(0.35F, 1.0F - modifierLevel(WandModifier.FOCUS.key()) * 0.06F);
+    }
+
+    public float cooldownMultiplier() {
+        return Math.max(0.35F, 1.0F - modifierLevel(WandModifier.HASTE.key()) * 0.08F);
+    }
+
+    public float damageMultiplier() {
+        return 1.0F + modifierLevel(WandModifier.POTENCY.key()) * 0.12F;
+    }
+
+    public float durationMultiplier() {
+        return 1.0F + modifierLevel(WandModifier.HARDNESS.key()) * 0.10F;
+    }
+
+    public float radiusMultiplierFromWand() {
+        return 1.0F + modifierLevel(WandModifier.ELASTICITY.key()) * 0.10F;
+    }
+
+    public float rangeMultiplierFromWand() {
+        return 1.0F + modifierLevel(WandModifier.FOCUS.key()) * 0.05F;
+    }
+
+    public float xpMultiplier() {
+        return 1.0F + modifierLevel(WandModifier.WISDOM.key()) * 0.15F;
     }
 
     public int activeUpgradeLevel(String upgrade) {
@@ -237,6 +331,34 @@ public final class WandData {
         return spell != null
                 && spell.supportsUpgrade(upgrade)
                 && current.attributePoints() >= current.upgradeCost(upgrade);
+    }
+
+    public int addWandXp(int amount) {
+        if (amount <= 0 || wandLevel >= MAX_SPELL_LEVEL) {
+            return 0;
+        }
+        int oldLevel = wandLevel;
+        wandXp += amount;
+        while (wandLevel < MAX_SPELL_LEVEL && wandXp >= wandXpToNextLevel()) {
+            wandXp -= wandXpToNextLevel();
+            wandLevel++;
+        }
+        if (wandLevel >= MAX_SPELL_LEVEL) {
+            wandXp = 0;
+        }
+        return wandLevel - oldLevel;
+    }
+
+    public boolean canAddWandModifier(String key) {
+        return WandModifier.byKey(key).isPresent() && usedWandModifierSlots() < wandModifierSlots();
+    }
+
+    public boolean addWandModifier(String key) {
+        if (!canAddWandModifier(key)) {
+            return false;
+        }
+        modifiers.merge(key, 1, Integer::sum);
+        return true;
     }
 
     public boolean addSpell(String key) {

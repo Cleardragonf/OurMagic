@@ -21,21 +21,21 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-public record SpellContext(Level level, ServerPlayer player, ItemStack wand, WandData data, Spell spell, int castIndex, int castCount, float modifierPower, boolean beamsEnabled, boolean areaCast) {
+public record SpellContext(Level level, ServerPlayer player, ItemStack wand, WandData data, Spell spell, int castIndex, int castCount, float modifierPower, boolean beamsEnabled, boolean areaCast, Optional<Vec3> areaOrigin) {
     public SpellContext(Level level, ServerPlayer player, ItemStack wand, WandData data, Spell spell) {
-        this(level, player, wand, data, spell, 0, 1, 1.0F, true, false);
+        this(level, player, wand, data, spell, 0, 1, 1.0F, true, false, Optional.empty());
     }
 
     public SpellContext withCastIteration(int castIndex, int castCount, float modifierPower) {
-        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower, beamsEnabled, areaCast);
+        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower, beamsEnabled, areaCast, areaOrigin);
     }
 
     public SpellContext withoutBeams() {
-        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower, false, areaCast);
+        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower, false, areaCast, areaOrigin);
     }
 
-    public SpellContext asAreaCast() {
-        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower, beamsEnabled, true);
+    public SpellContext asAreaCast(Vec3 origin) {
+        return new SpellContext(level, player, wand, data, spell, castIndex, castCount, modifierPower, beamsEnabled, true, Optional.of(origin));
     }
 
     public float damagePower() {
@@ -47,15 +47,15 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
     }
 
     public float rangeMultiplier() {
-        return 1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RANGE) * 0.20F;
+        return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RANGE) * 0.20F) * data.rangeMultiplierFromWand();
     }
 
     public float radiusMultiplier() {
-        return 1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RADIUS) * 0.20F;
+        return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RADIUS) * 0.20F) * data.radiusMultiplierFromWand();
     }
 
     public float durationMultiplier() {
-        return 1.0F + data.activeUpgradeLevel(Spell.UPGRADE_DURATION) * 0.20F;
+        return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_DURATION) * 0.20F) * data.durationMultiplier();
     }
 
     public boolean selfShape() {
