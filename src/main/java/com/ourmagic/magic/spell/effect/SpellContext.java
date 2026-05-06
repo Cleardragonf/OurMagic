@@ -39,7 +39,7 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
     }
 
     public float damagePower() {
-        return data.power() * data.activeDamageMultiplier() * modifierPower;
+        return data.power() * data.activeDamageMultiplier() * (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_DAMAGE) * 0.10F) * modifierPower;
     }
 
     public float utilityPower() {

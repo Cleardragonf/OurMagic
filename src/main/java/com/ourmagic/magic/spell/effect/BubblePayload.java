@@ -12,7 +12,7 @@ public class BubblePayload implements PayloadEffect {
             return false;
         }
 
-        living.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, Math.round(20 * 20 * context.data().activeUtilityMultiplier() * context.durationMultiplier()), 0));
+        living.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, Math.round(20 * 20 * context.data().activeUtilityMultiplier() * context.durationMultiplier() * context.modifierPower()), 0));
         context.burst(living.position().add(0, 1.0D, 0), ParticleTypes.BUBBLE_POP, 45, 0.75D, 0.04D);
         context.ring(living.position().add(0, 0.2D, 0), ParticleTypes.BUBBLE, 1.0D, 24);
         return true;

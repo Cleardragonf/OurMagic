@@ -17,6 +17,8 @@ public interface Spell {
     String UPGRADE_CHAIN_RADIUS = "chaining.radius";
     String UPGRADE_CHAIN_DAMAGE = "chaining.damage";
     String UPGRADE_CASTS = "multistrike.casts";
+    String UPGRADE_EXPLOSION_POWER = "explosion.power";
+    String UPGRADE_EXPLOSION_RADIUS = "explosion.radius";
 
     String key();
 
@@ -25,6 +27,10 @@ public interface Spell {
     int cooldownTicks();
 
     boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data);
+
+    default boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data, float chantMultiplier) {
+        return cast(level, player, wand, data);
+    }
 
     default boolean supportsUpgrade(String upgrade) {
         return false;

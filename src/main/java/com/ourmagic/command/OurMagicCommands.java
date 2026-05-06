@@ -1,7 +1,9 @@
 package com.ourmagic.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.ourmagic.magic.ArcaneKnowledgeBook;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.registry.ModItems;
@@ -13,6 +15,7 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 
 public final class OurMagicCommands {
@@ -34,7 +37,12 @@ public final class OurMagicCommands {
                 .then(Commands.literal("spellwand")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.argument("spell", StringArgumentType.greedyString())
-                                .executes(context -> giveSpellWand(context.getSource(), context.getSource().getPlayerOrException(), StringArgumentType.getString(context, "spell"))))));
+                                .executes(context -> giveSpellWand(context.getSource(), context.getSource().getPlayerOrException(), StringArgumentType.getString(context, "spell")))))
+                .then(Commands.literal("arcane_book")
+                        .requires(source -> source.hasPermission(2))
+                        .executes(context -> dropArcaneKnowledgeBook(context.getSource(), context.getSource().getPlayerOrException(), false))
+                        .then(Commands.argument("strong", BoolArgumentType.bool())
+                                .executes(context -> dropArcaneKnowledgeBook(context.getSource(), context.getSource().getPlayerOrException(), BoolArgumentType.getBool(context, "strong"))))));
     }
 
     private static int giveWand(CommandSourceStack source, ServerPlayer target) {
@@ -64,6 +72,15 @@ public final class OurMagicCommands {
         new WandData("custom", "Custom Wand", 1.0F, java.util.List.of(new WandData.WandSpellData(spell.key(), spell.manaCost(), spell.cooldownTicks())), 0, 0).save(stack);
         target.getInventory().add(stack);
         source.sendSuccess(() -> Component.literal("Gave " + target.getGameProfile().getName() + " a wand with " + spell.key()), true);
+        return 1;
+    }
+
+    private static int dropArcaneKnowledgeBook(CommandSourceStack source, ServerPlayer target, boolean strong) {
+        ItemStack stack = ArcaneKnowledgeBook.create(target.getRandom(), strong);
+        ItemEntity item = new ItemEntity(target.level(), target.getX(), target.getY() + 0.25D, target.getZ(), stack);
+        item.setDefaultPickUpDelay();
+        target.level().addFreshEntity(item);
+        source.sendSuccess(() -> Component.literal("Dropped " + stack.getHoverName().getString() + " for " + target.getGameProfile().getName()), true);
         return 1;
     }
 }

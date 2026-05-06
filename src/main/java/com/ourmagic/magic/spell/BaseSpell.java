@@ -51,11 +51,17 @@ public class BaseSpell implements Spell {
 
     @Override
     public boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data) {
+        return cast(level, player, wand, data, 1.0F);
+    }
+
+    @Override
+    public boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data, float chantMultiplier) {
         SpellEffect castEffect = effect;
         for (SpellModifier modifier : MODIFIERS) {
             castEffect = modifier.wrap(this, castEffect);
         }
-        return castEffect.cast(new SpellContext(level, player, wand, data, this));
+        float multiplier = Math.max(1.0F, Math.min(100.0F, chantMultiplier));
+        return castEffect.cast(new SpellContext(level, player, wand, data, this, 0, 1, multiplier, true, false, java.util.Optional.empty()));
     }
 
     @Override

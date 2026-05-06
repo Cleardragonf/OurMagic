@@ -2,6 +2,7 @@ package com.ourmagic.magic;
 
 import com.ourmagic.magic.spell.PayloadSpell;
 import com.ourmagic.magic.spell.effect.ArrowPayload;
+import com.ourmagic.magic.spell.effect.BindPayload;
 import com.ourmagic.magic.spell.effect.BlindPayload;
 import com.ourmagic.magic.spell.effect.BlastPayload;
 import com.ourmagic.magic.spell.effect.BlinkPayload;
@@ -16,12 +17,15 @@ import com.ourmagic.magic.spell.effect.HealPayload;
 import com.ourmagic.magic.spell.effect.LevitatePayload;
 import com.ourmagic.magic.spell.effect.LightningPayload;
 import com.ourmagic.magic.spell.effect.MissilePayload;
+import com.ourmagic.magic.spell.effect.NullifyPayload;
 import com.ourmagic.magic.spell.effect.PayloadEffect;
 import com.ourmagic.magic.spell.effect.PhysicalShieldPayload;
 import com.ourmagic.magic.spell.effect.PushPayload;
 import com.ourmagic.magic.spell.effect.RegeneratePayload;
 import com.ourmagic.magic.spell.effect.SpellShape;
 import com.ourmagic.magic.spell.effect.SpellShapes;
+import com.ourmagic.magic.spell.effect.StunPayload;
+import com.ourmagic.magic.spell.effect.WarpPayload;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
@@ -75,7 +79,12 @@ public final class SpellRegistry {
             random("explode", "target_aoe", 1),
             random("explode", "point", 1),
             random("lightning+explode", "target", 1),
-            random("blind+explode", "target", 1)
+            random("blind+explode", "target", 1),
+            random("bind", "target", 2),
+            random("nullify", "self", 3),
+            random("nullify", "target", 2),
+            random("stun", "target", 1),
+            random("warp", "self", 1)
     );
 
     static {
@@ -171,12 +180,13 @@ public final class SpellRegistry {
     }
 
     private static void registerParts() {
-        part("arrow", ArrowPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 10, 14, ParticleTypes.ENCHANTED_HIT, Spell.UPGRADE_MULTISTRIKE);
+        part("arrow", ArrowPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 10, 14, ParticleTypes.ENCHANTED_HIT, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_MULTISTRIKE);
+        part("bind", BindPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 22, 55, ParticleTypes.ENCHANT, Spell.UPGRADE_DURATION);
         part("blast", BlastPayload::new, shapes("target", "point", "target_aoe", "target_area", "aoe"), 24, 50, ParticleTypes.EXPLOSION, Spell.UPGRADE_MULTISTRIKE);
         part("blind", BlindPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 15, 35, ParticleTypes.SQUID_INK, Spell.UPGRADE_DURATION, Spell.UPGRADE_CHAINING);
         part("blink", BlinkPayload::new, shapes("self", "point"), 28, 70, ParticleTypes.PORTAL, Spell.UPGRADE_RANGE);
         part("bubble", BubblePayload::new, shapes("self", "ally_self_aoe"), 10, 30, ParticleTypes.BUBBLE, Spell.UPGRADE_DURATION);
-        part("explode", ExplosionPayload::new, shapes("self","target", "point", "target_aoe", "target_area", "aoe"), 30, 70, ParticleTypes.EXPLOSION, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
+        part("explode", ExplosionPayload::new, shapes("self", "target", "point", "target_aoe", "target_area", "aoe"), 30, 70, ParticleTypes.EXPLOSION, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_RADIUS, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
         part("fire", FireballPayload::new, shapes("target", "point", "target_aoe", "target_area", "aoe"), 18, 30, ParticleTypes.FLAME, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
         part("fire_place", FirePlacementPayload::new, shapes("block"), 12, 20, ParticleTypes.FLAME);
         part("fireball", FireballPayload::new, shapes( "target", "point", "target_aoe", "target_area", "aoe"), 18, 30, ParticleTypes.FLAME, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
@@ -185,10 +195,13 @@ public final class SpellRegistry {
         part("heal", () -> new HealPayload(6.0F, 4.0F, 8), shapes("self", "target", "ally_self_aoe", "ally_target_aoe"), 20, 60, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE);
         part("levitate", LevitatePayload::new, shapes("self", "target"), 22, 45, ParticleTypes.END_ROD, Spell.UPGRADE_DURATION);
         part("lightning", LightningPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 35, 90, ParticleTypes.ELECTRIC_SPARK, Spell.UPGRADE_CHAINING, Spell.UPGRADE_MULTISTRIKE);
-        part("missile", MissilePayload::new, shapes("self", "target", "target_aoe", "target_area", "aoe"), 8, 12, MissilePayload.PURPLE_PARTICLE, Spell.UPGRADE_MULTISTRIKE);
+        part("missile", MissilePayload::new, shapes("self", "target", "target_aoe", "target_area", "aoe"), 8, 12, MissilePayload.PURPLE_PARTICLE, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_MULTISTRIKE);
+        part("nullify", NullifyPayload::new, shapes("self", "target", "ally_self_aoe", "ally_target_aoe"), 20, 60, ParticleTypes.REVERSE_PORTAL, Spell.UPGRADE_RANGE);
         part("push", PushPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 12, 18, ParticleTypes.CLOUD, Spell.UPGRADE_MULTISTRIKE);
         part("regenerate", RegeneratePayload::new, shapes("target", "ally_self_aoe", "ally_target_aoe"), 35, 100, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE, Spell.UPGRADE_DURATION);
         part("shield", PhysicalShieldPayload::new, shapes("self", "block"), 18, 80, ParticleTypes.ENCHANT, Spell.UPGRADE_DURATION);
+        part("stun", StunPayload::new, shapes("target"), 35, 90, ParticleTypes.WITCH, Spell.UPGRADE_DURATION);
+        part("warp", WarpPayload::new, shapes("self"), 40, 120, ParticleTypes.PORTAL, Spell.UPGRADE_DURATION);
     }
 
     private static void registerShapes() {
@@ -216,11 +229,15 @@ public final class SpellRegistry {
         registerRecipe("bubble@self");
         registerRecipe("fireball@self");
         registerRecipe("blind@target");
+        registerRecipe("bind@target");
         registerRecipe("shield@self");
         registerRecipe("heal@ally_self_aoe");
         registerRecipe("blink@point");
         registerRecipe("levitate@target");
         registerRecipe("lightning@target");
+        registerRecipe("nullify@self");
+        registerRecipe("stun@target");
+        registerRecipe("warp@self");
         registerRecipe("fire_place@block");
         registerRecipe("gather@items_self_aoe");
         registerRecipe("regenerate@ally_self_aoe");

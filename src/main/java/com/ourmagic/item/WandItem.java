@@ -5,6 +5,7 @@ import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.mana.PlayerMana;
 import com.ourmagic.network.CraftSpellPacket;
 import com.ourmagic.network.ModNetwork;
+import com.ourmagic.registry.ModItems;
 import com.ourmagic.wand.WandData;
 import com.ourmagic.wand.WandModifier;
 import com.ourmagic.wand.WandTemplates;
@@ -76,24 +77,43 @@ public class WandItem extends Item {
             return InteractionResultHolder.fail(stack);
         }
 
+        return castActiveSpell((ServerPlayer) player, stack, 1.0F)
+                ? InteractionResultHolder.success(stack)
+                : InteractionResultHolder.fail(stack);
+    }
+
+    public static boolean castActiveSpell(ServerPlayer player, ItemStack stack, float chantMultiplier) {
+        Level level = player.level();
+        WandTemplates.ensureInitialized(stack, stack.is(ModItems.ADMIN_WAND.get()));
+        WandData data = WandData.read(stack);
+        Spell spell = SpellRegistry.get(data.activeSpell());
+        if (spell == null) {
+            player.displayClientMessage(Component.translatable("message.ourmagic.unsupported_spell", data.activeSpell()).withStyle(ChatFormatting.RED), false);
+            return false;
+        }
+
+        if (data.cooldownUntil() > level.getGameTime()) {
+            return false;
+        }
+
         PlayerMana mana = PlayerMana.get(player);
         int manaCost = data.activeManaCost();
         int cooldownTicks = data.activeCooldownTicks();
         if (!player.getAbilities().instabuild && !mana.has(manaCost)) {
             player.displayClientMessage(Component.translatable("message.ourmagic.no_mana").withStyle(ChatFormatting.RED), true);
-            return InteractionResultHolder.fail(stack);
+            return false;
         }
 
-        boolean cast = spell.cast(level, (ServerPlayer) player, stack, data);
+        boolean cast = spell.cast(level, player, stack, data, chantMultiplier);
         if (cast) {
             if (!player.getAbilities().instabuild) {
                 mana.spend(manaCost);
-                ModNetwork.syncMana((ServerPlayer) player, mana);
+                ModNetwork.syncMana(player, mana);
             }
             int xp = Math.max(1, Math.round(5 * data.xpMultiplier()));
             int levelsGained = data.addActiveSpellXp(xp);
             if (levelsGained > 0) {
-                celebrateSpellLevelUp((ServerPlayer) player, data.activeSpellName());
+                celebrateSpellLevelUp(player, data.activeSpellName());
             }
             int wandLevelsGained = data.addWandXp(xp);
             if (wandLevelsGained > 0) {
@@ -104,7 +124,7 @@ public class WandItem extends Item {
             player.getInventory().setChanged();
         }
 
-        return cast ? InteractionResultHolder.success(stack) : InteractionResultHolder.fail(stack);
+        return cast;
     }
 
     private static boolean tryAddSpellSource(Level level, Player player, InteractionHand wandHand, ItemStack wand, WandData data) {

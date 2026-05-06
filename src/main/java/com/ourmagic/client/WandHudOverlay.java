@@ -55,6 +55,7 @@ public final class WandHudOverlay {
         graphics.drawString(minecraft.font, Component.literal("Mana " + ClientManaData.mana() + "/" + ClientManaData.maxMana() + "  +" + ClientManaData.regen() + "/s"), x + 3, manaY - 1, 0xFFFFFFFF, false);
 
         renderHotbarCooldowns(graphics, minecraft, screenWidth, screenHeight);
+        ClientChantMode.render(graphics, minecraft, screenWidth, screenHeight);
     }
 
     private static ItemStack activeWand(Minecraft minecraft) {

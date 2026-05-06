@@ -26,7 +26,7 @@ public class MobEffectPayload implements PayloadEffect {
             return false;
         }
 
-        living.addEffect(new MobEffectInstance(effect, Math.round(baseTicks * context.data().activeUtilityMultiplier() * context.durationMultiplier()), amplifier));
+        living.addEffect(new MobEffectInstance(effect, Math.round(baseTicks * context.data().activeUtilityMultiplier() * context.durationMultiplier() * context.modifierPower()), amplifier));
         context.burst(living.position().add(0, 1.0D, 0), particle, particleCount, 0.6D, 0.06D);
         return true;
     }

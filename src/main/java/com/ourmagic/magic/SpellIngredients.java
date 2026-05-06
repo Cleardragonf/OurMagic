@@ -140,6 +140,7 @@ public final class SpellIngredients {
     private static List<Requirement> baseRequirements(String payload) {
         return switch (payload) {
             case "arrow" -> List.of(item("arrow", Items.ARROW, 3), item("feather", Items.FEATHER, 1));
+            case "bind" -> List.of(item("lead", Items.LEAD, 1), item("ender_pearl", Items.ENDER_PEARL, 1), item("amethyst_shard", Items.AMETHYST_SHARD, 1));
             case "blast" -> List.of(item("fire_charge", Items.FIRE_CHARGE, 1), item("gunpowder", Items.GUNPOWDER, 2));
             case "blind" -> List.of(item("ink_sac", Items.INK_SAC, 1), item("fermented_spider_eye", Items.FERMENTED_SPIDER_EYE, 1));
             case "blink" -> List.of(item("ender_pearl", Items.ENDER_PEARL, 1), item("amethyst_shard", Items.AMETHYST_SHARD, 2));
@@ -153,9 +154,12 @@ public final class SpellIngredients {
             case "levitate" -> List.of(item("feather", Items.FEATHER, 2), item("phantom_membrane", Items.PHANTOM_MEMBRANE, 1));
             case "lightning" -> List.of(item("lightning_talisman", ModItems.LIGHTNING_TALISMAN.get(), 1));
             case "missile" -> List.of(item("amethyst_shard", Items.AMETHYST_SHARD, 1), item("gunpowder", Items.GUNPOWDER, 1));
+            case "nullify" -> List.of(item("milk_bucket", Items.MILK_BUCKET, 1), item("echo_shard", Items.ECHO_SHARD, 1), item("amethyst_shard", Items.AMETHYST_SHARD, 1));
             case "push" -> List.of(item("piston", Items.PISTON, 1), item("slime_ball", Items.SLIME_BALL, 1));
             case "regenerate" -> List.of(potion("regeneration_potion", Potions.REGENERATION, Items.POTION, 1), item("golden_apple", Items.GOLDEN_APPLE, 1));
             case "shield" -> List.of(item("temporary_shield", ModItems.TEMPORARY_SHIELD.get(), 1), item("amethyst_shard", Items.AMETHYST_SHARD, 1));
+            case "stun" -> List.of(item("phantom_membrane", Items.PHANTOM_MEMBRANE, 1), item("fermented_spider_eye", Items.FERMENTED_SPIDER_EYE, 1), item("amethyst_shard", Items.AMETHYST_SHARD, 1));
+            case "warp" -> List.of(item("ender_pearl", Items.ENDER_PEARL, 2), item("echo_shard", Items.ECHO_SHARD, 1), item("amethyst_shard", Items.AMETHYST_SHARD, 2));
             default -> List.of(item("amethyst_shard", Items.AMETHYST_SHARD, 1));
         };
     }

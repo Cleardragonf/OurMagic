@@ -20,9 +20,10 @@ public class ExplosionPayload implements PayloadEffect {
     @Override
     public boolean apply(SpellContext context, SpellTarget target) {
         Vec3 at = spreadTarget(context, target.position());
-        context.burst(at, ParticleTypes.EXPLOSION, 4, 0.35D, 0.0D);
+        float explosionStrength = strength * context.damagePower() * context.radiusMultiplier();
+        context.burst(at, ParticleTypes.EXPLOSION, Math.max(4, Math.round(explosionStrength)), 0.35D * context.radiusMultiplier(), 0.0D);
         context.burst(at, ParticleTypes.FLASH, 1, 0.0D, 0.0D);
-        context.level().explode(context.player(), at.x, at.y, at.z, strength * context.damagePower(), interaction);
+        context.level().explode(context.player(), at.x, at.y, at.z, explosionStrength, interaction);
         return true;
     }
 

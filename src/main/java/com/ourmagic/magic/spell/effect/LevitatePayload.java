@@ -19,7 +19,7 @@ public class LevitatePayload implements PayloadEffect {
             context.beam(target.position(), ParticleTypes.END_ROD);
             context.ring(living.position().add(0, 0.2D, 0), ParticleTypes.CLOUD, 0.8D, 20);
         }
-        living.addEffect(new MobEffectInstance(MobEffects.LEVITATION, Math.round((self ? 60 : 80) * context.data().activeUtilityMultiplier() * context.durationMultiplier()), 0));
+        living.addEffect(new MobEffectInstance(MobEffects.LEVITATION, Math.round((self ? 60 : 80) * context.data().activeUtilityMultiplier() * context.durationMultiplier() * context.modifierPower()), 0));
         return true;
     }
 }
