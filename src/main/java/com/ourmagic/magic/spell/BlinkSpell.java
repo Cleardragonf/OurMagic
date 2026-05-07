@@ -1,8 +1,9 @@
 package com.ourmagic.magic.spell;
 
-import com.ourmagic.magic.spell.effect.BlinkEffect;
-import com.ourmagic.magic.spell.effect.SpellShape;
-import com.ourmagic.magic.spell.effect.SpellShapes;
+import com.ourmagic.magic.spell.payloads.BlinkPayload;
+import com.ourmagic.magic.spell.runtime.ComposedSpellEffect;
+import com.ourmagic.magic.spell.shapes.SpellShape;
+import com.ourmagic.magic.spell.shapes.SpellShapes;
 
 public class BlinkSpell extends BaseSpell {
     public BlinkSpell() {
@@ -10,6 +11,6 @@ public class BlinkSpell extends BaseSpell {
     }
 
     public BlinkSpell(String key, SpellShape shape) {
-        super(key, 28, 70, new BlinkEffect(shape), UPGRADE_RANGE);
+        super(key, 28, 70, new ComposedSpellEffect(shape, new BlinkPayload()), UPGRADE_RANGE);
     }
 }

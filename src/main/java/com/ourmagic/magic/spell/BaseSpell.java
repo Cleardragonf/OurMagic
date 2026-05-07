@@ -1,8 +1,8 @@
 package com.ourmagic.magic.spell;
 
 import com.ourmagic.magic.Spell;
-import com.ourmagic.magic.spell.effect.SpellContext;
-import com.ourmagic.magic.spell.effect.SpellEffect;
+import com.ourmagic.magic.spell.runtime.SpellContext;
+import com.ourmagic.magic.spell.runtime.SpellEffect;
 import com.ourmagic.magic.spell.modifier.ChainingModifier;
 import com.ourmagic.magic.spell.modifier.MultistrikeModifier;
 import com.ourmagic.magic.spell.modifier.SpellModifier;
@@ -21,15 +21,23 @@ public class BaseSpell implements Spell {
     );
 
     private final String key;
-    private final int manaCost;
-    private final int cooldownTicks;
+    private final int minManaCost;
+    private final int maxManaCost;
+    private final int minCooldownTicks;
+    private final int maxCooldownTicks;
     private final SpellEffect effect;
     private final Set<String> supportedUpgrades;
 
     protected BaseSpell(String key, int manaCost, int cooldownTicks, SpellEffect effect, String... supportedUpgrades) {
+        this(key, manaCost, manaCost, cooldownTicks, cooldownTicks, effect, supportedUpgrades);
+    }
+
+    protected BaseSpell(String key, int minManaCost, int maxManaCost, int minCooldownTicks, int maxCooldownTicks, SpellEffect effect, String... supportedUpgrades) {
         this.key = key;
-        this.manaCost = manaCost;
-        this.cooldownTicks = cooldownTicks;
+        this.minManaCost = Math.max(0, Math.min(minManaCost, maxManaCost));
+        this.maxManaCost = Math.max(this.minManaCost, Math.max(minManaCost, maxManaCost));
+        this.minCooldownTicks = Math.max(1, Math.min(minCooldownTicks, maxCooldownTicks));
+        this.maxCooldownTicks = Math.max(this.minCooldownTicks, Math.max(minCooldownTicks, maxCooldownTicks));
         this.effect = effect;
         this.supportedUpgrades = Set.of(supportedUpgrades);
     }
@@ -41,12 +49,32 @@ public class BaseSpell implements Spell {
 
     @Override
     public int manaCost() {
-        return manaCost;
+        return Math.round((minManaCost + maxManaCost) / 2.0F);
+    }
+
+    @Override
+    public int minManaCost() {
+        return minManaCost;
+    }
+
+    @Override
+    public int maxManaCost() {
+        return maxManaCost;
     }
 
     @Override
     public int cooldownTicks() {
-        return cooldownTicks;
+        return Math.round((minCooldownTicks + maxCooldownTicks) / 2.0F);
+    }
+
+    @Override
+    public int minCooldownTicks() {
+        return minCooldownTicks;
+    }
+
+    @Override
+    public int maxCooldownTicks() {
+        return maxCooldownTicks;
     }
 
     @Override

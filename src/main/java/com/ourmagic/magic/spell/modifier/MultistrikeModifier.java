@@ -1,11 +1,11 @@
 package com.ourmagic.magic.spell.modifier;
 
 import com.ourmagic.magic.Spell;
-import com.ourmagic.magic.spell.effect.ChainStart;
-import com.ourmagic.magic.spell.effect.ChainableEffect;
-import com.ourmagic.magic.spell.effect.DelayedSpellCasts;
-import com.ourmagic.magic.spell.effect.SpellContext;
-import com.ourmagic.magic.spell.effect.SpellEffect;
+import com.ourmagic.magic.spell.runtime.ChainStart;
+import com.ourmagic.magic.spell.runtime.ChainableEffect;
+import com.ourmagic.magic.spell.runtime.DelayedSpellCasts;
+import com.ourmagic.magic.spell.runtime.SpellContext;
+import com.ourmagic.magic.spell.runtime.SpellEffect;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;

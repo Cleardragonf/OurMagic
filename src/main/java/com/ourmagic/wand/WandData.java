@@ -377,9 +377,7 @@ public final class WandData {
             return false;
         }
 
-        int cost = ranged(random, spell.manaCost(), 0.70F, 1.35F);
-        int cooldown = ranged(random, spell.cooldownTicks(), 0.70F, 1.40F);
-        spells.add(new WandSpellData(key, cost, cooldown));
+        spells.add(rolledSpell(spell, random));
         return true;
     }
 
@@ -416,9 +414,13 @@ public final class WandData {
         return 1.0F + (Math.max(1, Math.min(MAX_SPELL_LEVEL, level)) - 1) * 0.01F;
     }
 
-    private static int ranged(RandomSource random, int base, float minMultiplier, float maxMultiplier) {
-        int min = Math.max(0, Math.round(base * minMultiplier));
-        int max = Math.max(min, Math.round(base * maxMultiplier));
+    private static WandSpellData rolledSpell(Spell spell, RandomSource random) {
+        return new WandSpellData(spell.key(), ranged(random, spell.minManaCost(), spell.maxManaCost()), ranged(random, spell.minCooldownTicks(), spell.maxCooldownTicks()));
+    }
+
+    private static int ranged(RandomSource random, int min, int max) {
+        min = Math.max(0, min);
+        max = Math.max(min, max);
         return min + random.nextInt(max - min + 1);
     }
 
@@ -561,7 +563,7 @@ public final class WandData {
                 return this;
             }
 
-            return new WandSpellData(key, spell.manaCost(), spell.cooldownTicks(), level, xp, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, radius, multistrike, multistrikeCasts, range, duration);
+            return new WandSpellData(key, manaCost, cooldownTicks, level, xp, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, radius, multistrike, multistrikeCasts, range, duration);
         }
 
         private WandSpellData upgrade(String upgrade) {

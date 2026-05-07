@@ -1,31 +1,32 @@
 package com.ourmagic.magic;
 
 import com.ourmagic.magic.spell.PayloadSpell;
-import com.ourmagic.magic.spell.effect.ArrowPayload;
-import com.ourmagic.magic.spell.effect.BindPayload;
-import com.ourmagic.magic.spell.effect.BlindPayload;
-import com.ourmagic.magic.spell.effect.BlastPayload;
-import com.ourmagic.magic.spell.effect.BlinkPayload;
-import com.ourmagic.magic.spell.effect.BubblePayload;
-import com.ourmagic.magic.spell.effect.CompositePayload;
-import com.ourmagic.magic.spell.effect.ExplosionPayload;
-import com.ourmagic.magic.spell.effect.FirePlacementPayload;
-import com.ourmagic.magic.spell.effect.FireballPayload;
-import com.ourmagic.magic.spell.effect.FreezePayload;
-import com.ourmagic.magic.spell.effect.GatherPayload;
-import com.ourmagic.magic.spell.effect.HealPayload;
-import com.ourmagic.magic.spell.effect.LevitatePayload;
-import com.ourmagic.magic.spell.effect.LightningPayload;
-import com.ourmagic.magic.spell.effect.MissilePayload;
-import com.ourmagic.magic.spell.effect.NullifyPayload;
-import com.ourmagic.magic.spell.effect.PayloadEffect;
-import com.ourmagic.magic.spell.effect.PhysicalShieldPayload;
-import com.ourmagic.magic.spell.effect.PushPayload;
-import com.ourmagic.magic.spell.effect.RegeneratePayload;
-import com.ourmagic.magic.spell.effect.SpellShape;
-import com.ourmagic.magic.spell.effect.SpellShapes;
-import com.ourmagic.magic.spell.effect.StunPayload;
-import com.ourmagic.magic.spell.effect.WarpPayload;
+import com.ourmagic.magic.spell.payloads.ArrowPayload;
+import com.ourmagic.magic.spell.payloads.BindPayload;
+import com.ourmagic.magic.spell.payloads.BlindPayload;
+import com.ourmagic.magic.spell.payloads.BlastPayload;
+import com.ourmagic.magic.spell.payloads.BlinkPayload;
+import com.ourmagic.magic.spell.payloads.BubblePayload;
+import com.ourmagic.magic.spell.payloads.CompositePayload;
+import com.ourmagic.magic.spell.payloads.ExplosionPayload;
+import com.ourmagic.magic.spell.payloads.FirePlacementPayload;
+import com.ourmagic.magic.spell.payloads.FireballPayload;
+import com.ourmagic.magic.spell.payloads.FreezePayload;
+import com.ourmagic.magic.spell.payloads.GatherPayload;
+import com.ourmagic.magic.spell.payloads.HealPayload;
+import com.ourmagic.magic.spell.payloads.LevitatePayload;
+import com.ourmagic.magic.spell.payloads.LightningPayload;
+import com.ourmagic.magic.spell.payloads.MissilePayload;
+import com.ourmagic.magic.spell.payloads.NullifyPayload;
+import com.ourmagic.magic.spell.payloads.PayloadEffect;
+import com.ourmagic.magic.spell.payloads.PhysicalShieldPayload;
+import com.ourmagic.magic.spell.payloads.PushPayload;
+import com.ourmagic.magic.spell.payloads.RegeneratePayload;
+import com.ourmagic.magic.spell.runtime.SpellBuildContext;
+import com.ourmagic.magic.spell.shapes.SpellShape;
+import com.ourmagic.magic.spell.shapes.SpellShapes;
+import com.ourmagic.magic.spell.payloads.StunPayload;
+import com.ourmagic.magic.spell.payloads.WarpPayload;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
@@ -180,28 +181,28 @@ public final class SpellRegistry {
     }
 
     private static void registerParts() {
-        part("arrow", ArrowPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 10, 14, ParticleTypes.ENCHANTED_HIT, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_MULTISTRIKE);
-        part("bind", BindPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 22, 55, ParticleTypes.ENCHANT, Spell.UPGRADE_DURATION);
-        part("blast", BlastPayload::new, shapes("target", "point", "target_aoe", "target_area", "aoe"), 24, 50, ParticleTypes.EXPLOSION, Spell.UPGRADE_MULTISTRIKE);
-        part("blind", BlindPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 15, 35, ParticleTypes.SQUID_INK, Spell.UPGRADE_DURATION, Spell.UPGRADE_CHAINING);
-        part("blink", BlinkPayload::new, shapes("self", "point"), 28, 70, ParticleTypes.PORTAL, Spell.UPGRADE_RANGE);
-        part("bubble", BubblePayload::new, shapes("self", "ally_self_aoe"), 10, 30, ParticleTypes.BUBBLE, Spell.UPGRADE_DURATION);
-        part("explode", ExplosionPayload::new, shapes("self", "target", "point", "target_aoe", "target_area", "aoe"), 30, 70, ParticleTypes.EXPLOSION, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_RADIUS, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
-        part("fire", FireballPayload::new, shapes("target", "point", "target_aoe", "target_area", "aoe"), 18, 30, ParticleTypes.FLAME, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
-        part("fire_place", FirePlacementPayload::new, shapes("block"), 12, 20, ParticleTypes.FLAME);
-        part("fireball", FireballPayload::new, shapes( "target", "point", "target_aoe", "target_area", "aoe"), 18, 30, ParticleTypes.FLAME, Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_CHAINING);
-        part("frost", FreezePayload::new, shapes("target_aoe", "target_area", "aoe", "water_target_aoe"), 14, 24, ParticleTypes.SNOWFLAKE, Spell.UPGRADE_DURATION);
-        part("gather", GatherPayload::new, shapes("items_self_aoe"), 15, 30, ParticleTypes.ENCHANT);
-        part("heal", () -> new HealPayload(6.0F, 4.0F, 8), shapes("self", "target", "ally_self_aoe", "ally_target_aoe"), 20, 60, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE);
-        part("levitate", LevitatePayload::new, shapes("self", "target"), 22, 45, ParticleTypes.END_ROD, Spell.UPGRADE_DURATION);
-        part("lightning", LightningPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 35, 90, ParticleTypes.ELECTRIC_SPARK, Spell.UPGRADE_CHAINING, Spell.UPGRADE_MULTISTRIKE);
-        part("missile", MissilePayload::new, shapes("self", "target", "target_aoe", "target_area", "aoe"), 8, 12, MissilePayload.PURPLE_PARTICLE, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_MULTISTRIKE);
-        part("nullify", NullifyPayload::new, shapes("self", "target", "ally_self_aoe", "ally_target_aoe"), 20, 60, ParticleTypes.REVERSE_PORTAL, Spell.UPGRADE_RANGE);
-        part("push", PushPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), 12, 18, ParticleTypes.CLOUD, Spell.UPGRADE_MULTISTRIKE);
-        part("regenerate", RegeneratePayload::new, shapes("target", "ally_self_aoe", "ally_target_aoe"), 35, 100, ParticleTypes.HAPPY_VILLAGER, Spell.UPGRADE_RANGE, Spell.UPGRADE_DURATION);
-        part("shield", PhysicalShieldPayload::new, shapes("self", "block"), 18, 80, ParticleTypes.ENCHANT, Spell.UPGRADE_DURATION);
-        part("stun", StunPayload::new, shapes("target"), 35, 90, ParticleTypes.WITCH, Spell.UPGRADE_DURATION);
-        part("warp", WarpPayload::new, shapes("self"), 40, 120, ParticleTypes.PORTAL, Spell.UPGRADE_DURATION);
+        part("arrow", ArrowPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), mana(7, 14), cooldown(10, 20));
+        part("bind", BindPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), mana(15, 30), cooldown(39, 77));
+        part("blast", BlastPayload::new, shapes("target", "point", "target_aoe", "target_area", "aoe"), mana(17, 32), cooldown(35, 70));
+        part("blind", BlindPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), mana(11, 20), cooldown(25, 49));
+        part("blink", BlinkPayload::new, shapes("self", "point"), mana(20, 38), cooldown(49, 98));
+        part("bubble", BubblePayload::new, shapes("self", "ally_self_aoe"), mana(7, 14), cooldown(21, 42));
+        part("explode", ExplosionPayload::new, shapes("self", "target", "point", "target_aoe", "target_area", "aoe"), mana(21, 41), cooldown(49, 98));
+        part("fire", FireballPayload::new, shapes("target", "point", "target_aoe", "target_area", "aoe"), mana(13, 24), cooldown(21, 42));
+        part("fire_place", FirePlacementPayload::new, shapes("block"), mana(8, 16), cooldown(14, 28));
+        part("fireball", FireballPayload::new, shapes("target", "point", "target_aoe", "target_area", "aoe"), mana(13, 24), cooldown(21, 42));
+        part("frost", FreezePayload::new, shapes("target_aoe", "target_area", "aoe", "water_target_aoe"), mana(10, 19), cooldown(17, 34));
+        part("gather", GatherPayload::new, shapes("items_self_aoe"), mana(11, 20), cooldown(21, 42));
+        part("heal", () -> new HealPayload(6.0F, 4.0F, 8), shapes("self", "target", "ally_self_aoe", "ally_target_aoe"), mana(14, 27), cooldown(42, 84));
+        part("levitate", LevitatePayload::new, shapes("self", "target"), mana(15, 30), cooldown(32, 63));
+        part("lightning", LightningPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), mana(25, 47), cooldown(63, 126));
+        part("missile", MissilePayload::new, shapes("self", "target", "target_aoe", "target_area", "aoe"), mana(6, 11), cooldown(8, 17));
+        part("nullify", NullifyPayload::new, shapes("self", "target", "ally_self_aoe", "ally_target_aoe"), mana(14, 27), cooldown(42, 84));
+        part("push", PushPayload::new, shapes("target", "target_aoe", "target_area", "aoe"), mana(8, 16), cooldown(13, 25));
+        part("regenerate", RegeneratePayload::new, shapes("target", "ally_self_aoe", "ally_target_aoe"), mana(25, 47), cooldown(70, 140));
+        part("shield", PhysicalShieldPayload::new, shapes("self", "block"), mana(13, 24), cooldown(56, 112));
+        part("stun", StunPayload::new, shapes("target"), mana(25, 47), cooldown(63, 126));
+        part("warp", WarpPayload::new, shapes("self"), mana(28, 54), cooldown(84, 168));
     }
 
     private static void registerShapes() {
@@ -273,8 +274,10 @@ public final class SpellRegistry {
 
         List<PayloadEffect> payloads = new ArrayList<>();
         Set<String> upgrades = new LinkedHashSet<>();
-        int manaCost = 0;
-        int cooldownTicks = 0;
+        int minManaCost = 0;
+        int maxManaCost = 0;
+        int minCooldownTicks = 0;
+        int maxCooldownTicks = 0;
         ParticleOptions particle = ParticleTypes.ENCHANT;
 
         for (String payloadKey : parsed.payloads()) {
@@ -283,11 +286,15 @@ public final class SpellRegistry {
                 return null;
             }
 
-            payloads.add(part.payload().get());
-            upgrades.addAll(part.upgrades());
-            manaCost += part.manaCost();
-            cooldownTicks += part.cooldownTicks();
-            particle = part.particle();
+            PayloadEffect payload = part.payload().get();
+            SpellBuildContext buildContext = new SpellBuildContext(key, payloadKey, parsed.shape(), parsed.payloads(), payloads.size());
+            payloads.add(payload);
+            upgrades.addAll(payload.supportedUpgrades(buildContext));
+            minManaCost += part.manaCost().min();
+            maxManaCost += part.manaCost().max();
+            minCooldownTicks += part.cooldownTicks().min();
+            maxCooldownTicks += part.cooldownTicks().max();
+            particle = payload.particle(buildContext);
         }
 
         if (parsed.shape().contains("aoe") || parsed.shape().contains("area")) {
@@ -296,11 +303,19 @@ public final class SpellRegistry {
 
         PayloadEffect payload = payloads.size() == 1 ? payloads.get(0) : new CompositePayload(payloads.toArray(PayloadEffect[]::new));
         SpellShape spellShape = shape.factory().apply(particle);
-        return new PayloadSpell(key, Math.max(1, manaCost), Math.max(1, cooldownTicks), spellShape, payload, particle, upgrades.toArray(String[]::new));
+        return new PayloadSpell(key, Math.max(1, minManaCost), Math.max(1, maxManaCost), Math.max(1, minCooldownTicks), Math.max(1, maxCooldownTicks), spellShape, payload, particle, upgrades.toArray(String[]::new));
     }
 
-    private static void part(String key, Supplier<PayloadEffect> payload, ShapeCompatibility shapes, int manaCost, int cooldownTicks, ParticleOptions particle, String... upgrades) {
-        PARTS.put(key, new SpellPart(payload, shapes, manaCost, cooldownTicks, particle, Set.of(upgrades)));
+    private static void part(String key, Supplier<PayloadEffect> payload, ShapeCompatibility shapes, CostRange manaCost, CostRange cooldownTicks) {
+        PARTS.put(key, new SpellPart(payload, shapes, manaCost, cooldownTicks));
+    }
+
+    private static CostRange mana(int min, int max) {
+        return new CostRange(min, max);
+    }
+
+    private static CostRange cooldown(int min, int max) {
+        return new CostRange(min, max);
     }
 
     private static void shape(String key, Function<ParticleOptions, SpellShape> factory) {
@@ -334,7 +349,16 @@ public final class SpellRegistry {
         boolean allows(String shape);
     }
 
-    private record SpellPart(Supplier<PayloadEffect> payload, ShapeCompatibility shapes, int manaCost, int cooldownTicks, ParticleOptions particle, Set<String> upgrades) {
+    private record CostRange(int min, int max) {
+        private CostRange {
+            int normalizedMin = Math.min(min, max);
+            int normalizedMax = Math.max(min, max);
+            min = normalizedMin;
+            max = normalizedMax;
+        }
+    }
+
+    private record SpellPart(Supplier<PayloadEffect> payload, ShapeCompatibility shapes, CostRange manaCost, CostRange cooldownTicks) {
     }
 
     private record ShapePart(Function<ParticleOptions, SpellShape> factory) {

@@ -24,7 +24,23 @@ public interface Spell {
 
     int manaCost();
 
+    default int minManaCost() {
+        return manaCost();
+    }
+
+    default int maxManaCost() {
+        return manaCost();
+    }
+
     int cooldownTicks();
+
+    default int minCooldownTicks() {
+        return cooldownTicks();
+    }
+
+    default int maxCooldownTicks() {
+        return cooldownTicks();
+    }
 
     boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data);
 

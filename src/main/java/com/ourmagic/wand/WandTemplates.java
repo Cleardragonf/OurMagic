@@ -18,7 +18,7 @@ public final class WandTemplates {
     private static final Map<String, WandTemplate> TEMPLATES = new LinkedHashMap<>();
 
     static {
-        register(new WandTemplate(DEFAULT_TEMPLATE, "Wand", 1.0f, List.of(rolledSpell(SpellRegistry.get("missile@self"), 1.0F, 1.0F))));
+        register(new WandTemplate(DEFAULT_TEMPLATE, "Wand", 1.0f, List.of(fixedSpell(SpellRegistry.get("missile@self")))));
         register(new WandTemplate(ADMIN_TEMPLATE, "Admin Wand", 2.0f, adminSpells()));
     }
 
@@ -58,12 +58,10 @@ public final class WandTemplates {
             if (spell == null) {
                 continue;
             }
-            int cost = ranged(random, spell.manaCost(), 0.70F, 1.35F);
-            int cooldown = ranged(random, spell.cooldownTicks(), 0.70F, 1.40F);
-            spells.add(new WandData.WandSpellData(spell.key(), cost, cooldown));
+            spells.add(rolledSpell(spell, random));
         }
         if (spells.isEmpty()) {
-            spells.add(rolledSpell(SpellRegistry.get("missile@self"), 1.0F, 1.0F));
+            spells.add(fixedSpell(SpellRegistry.get("missile@self")));
         }
 
         new WandData(DEFAULT_TEMPLATE, "Wand", 0.85F + random.nextFloat() * 0.45F, spells, 0, 0).save(stack);
@@ -89,14 +87,18 @@ public final class WandTemplates {
         ensureInitialized(stack, false);
     }
 
-    private static int ranged(RandomSource random, int base, float minMultiplier, float maxMultiplier) {
-        int min = Math.max(0, Math.round(base * minMultiplier));
-        int max = Math.max(min, Math.round(base * maxMultiplier));
+    private static int ranged(RandomSource random, int min, int max) {
+        min = Math.max(0, min);
+        max = Math.max(min, max);
         return min + random.nextInt(max - min + 1);
     }
 
-    private static WandData.WandSpellData rolledSpell(Spell spell, float costMultiplier, float cooldownMultiplier) {
-        return new WandData.WandSpellData(spell.key(), Math.round(spell.manaCost() * costMultiplier), Math.round(spell.cooldownTicks() * cooldownMultiplier));
+    private static WandData.WandSpellData rolledSpell(Spell spell, RandomSource random) {
+        return new WandData.WandSpellData(spell.key(), ranged(random, spell.minManaCost(), spell.maxManaCost()), ranged(random, spell.minCooldownTicks(), spell.maxCooldownTicks()));
+    }
+
+    private static WandData.WandSpellData fixedSpell(Spell spell) {
+        return new WandData.WandSpellData(spell.key(), spell.manaCost(), spell.cooldownTicks());
     }
 
     private static List<WandData.WandSpellData> adminSpells() {

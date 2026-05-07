@@ -69,7 +69,9 @@ public final class OurMagicCommands {
         }
 
         ItemStack stack = new ItemStack(ModItems.WAND.get());
-        new WandData("custom", "Custom Wand", 1.0F, java.util.List.of(new WandData.WandSpellData(spell.key(), spell.manaCost(), spell.cooldownTicks())), 0, 0).save(stack);
+        int manaCost = ranged(target.getRandom(), spell.minManaCost(), spell.maxManaCost());
+        int cooldownTicks = ranged(target.getRandom(), spell.minCooldownTicks(), spell.maxCooldownTicks());
+        new WandData("custom", "Custom Wand", 1.0F, java.util.List.of(new WandData.WandSpellData(spell.key(), manaCost, cooldownTicks)), 0, 0).save(stack);
         target.getInventory().add(stack);
         source.sendSuccess(() -> Component.literal("Gave " + target.getGameProfile().getName() + " a wand with " + spell.key()), true);
         return 1;
@@ -82,5 +84,11 @@ public final class OurMagicCommands {
         target.level().addFreshEntity(item);
         source.sendSuccess(() -> Component.literal("Dropped " + stack.getHoverName().getString() + " for " + target.getGameProfile().getName()), true);
         return 1;
+    }
+
+    private static int ranged(RandomSource random, int min, int max) {
+        min = Math.max(0, min);
+        max = Math.max(min, max);
+        return min + random.nextInt(max - min + 1);
     }
 }

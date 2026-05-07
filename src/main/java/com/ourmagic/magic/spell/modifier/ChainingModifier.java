@@ -1,9 +1,9 @@
 package com.ourmagic.magic.spell.modifier;
 
 import com.ourmagic.magic.Spell;
-import com.ourmagic.magic.spell.effect.ChainStart;
-import com.ourmagic.magic.spell.effect.ChainableEffect;
-import com.ourmagic.magic.spell.effect.SpellEffect;
+import com.ourmagic.magic.spell.runtime.ChainStart;
+import com.ourmagic.magic.spell.runtime.ChainableEffect;
+import com.ourmagic.magic.spell.runtime.SpellEffect;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;

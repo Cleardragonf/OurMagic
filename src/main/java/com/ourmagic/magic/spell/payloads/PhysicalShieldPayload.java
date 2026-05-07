@@ -1,0 +1,136 @@
+package com.ourmagic.magic.spell.payloads;
+
+import com.ourmagic.magic.spell.runtime.SpellContext;
+import com.ourmagic.magic.spell.runtime.SpellBuildContext;
+import com.ourmagic.magic.spell.shapes.SpellTarget;
+
+import com.ourmagic.block.TemporaryShieldBlock;
+import com.ourmagic.magic.Spell;
+import com.ourmagic.registry.ModBlocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.HashSet;
+import java.util.Set;
+
+public class PhysicalShieldPayload implements PayloadEffect {
+    private static final int SELF_SIZE = 3;
+    private static final int TARGET_SIZE = 5;
+    private static final int LIFETIME_TICKS = 80;
+    private static final double UPWARD_SHIELD_THRESHOLD = 0.55D;
+    private static final double DIAGONAL_RATIO_THRESHOLD = 0.45D;
+
+    @Override
+    public ParticleOptions particle(SpellBuildContext context) {
+        return ParticleTypes.ENCHANT;
+    }
+
+    @Override
+    public Set<String> supportedUpgrades(SpellBuildContext context) {
+        return Set.of(Spell.UPGRADE_DURATION);
+    }
+
+    @Override
+    public boolean apply(SpellContext context, SpellTarget target) {
+        if (!(context.level() instanceof ServerLevel serverLevel)) {
+            return false;
+        }
+
+        Vec3 look = context.player().getLookAngle();
+        boolean selfCast = target.entity().filter(entity -> entity == context.player()).isPresent();
+        int size = selfCast ? SELF_SIZE : TARGET_SIZE;
+        BlockPos center;
+        Set<BlockPos> positions;
+
+        if (selfCast && look.y > UPWARD_SHIELD_THRESHOLD) {
+            center = context.player().blockPosition().above(3);
+            positions = horizontalCeiling(center, size);
+        } else if (isDiagonal(look)) {
+            center = selfCast
+                    ? context.player().blockPosition().offset(horizontalSign(look.x) * 2, 1, horizontalSign(look.z) * 2)
+                    : target.block().orElse(BlockPos.containing(target.position())).above(size / 2);
+            positions = cornerWalls(center, size, horizontalSign(look.x), horizontalSign(look.z));
+        } else {
+            Direction forward = horizontalFacing(look);
+            Direction right = forward.getClockWise();
+            center = selfCast
+                    ? context.player().blockPosition().relative(forward, 3).above(1)
+                    : target.block().orElse(BlockPos.containing(target.position())).above(size / 2);
+            positions = flatWall(center, size, right);
+        }
+
+        int placed = 0;
+        for (BlockPos pos : positions) {
+            if (placeShield(serverLevel, pos)) {
+                placed++;
+            }
+        }
+
+        if (placed > 0) {
+            context.ring(center.getCenter(), ParticleTypes.ENCHANT, size * 0.45D, 28);
+            context.burst(center.getCenter(), ParticleTypes.END_ROD, 18, size * 0.35D, 0.02D);
+        }
+        return placed > 0;
+    }
+
+    private static boolean placeShield(ServerLevel level, BlockPos pos) {
+        Block shield = ModBlocks.TEMPORARY_SHIELD.get();
+        return TemporaryShieldBlock.place(level, pos, shield.defaultBlockState(), LIFETIME_TICKS);
+    }
+
+    private static Set<BlockPos> flatWall(BlockPos center, int size, Direction right) {
+        Set<BlockPos> positions = new HashSet<>();
+        int half = size / 2;
+        for (int width = -half; width <= half; width++) {
+            for (int height = -half; height <= half; height++) {
+                positions.add(center.relative(right, width).above(height));
+            }
+        }
+        return positions;
+    }
+
+    private static Set<BlockPos> horizontalCeiling(BlockPos center, int size) {
+        Set<BlockPos> positions = new HashSet<>();
+        int half = size / 2;
+        for (int x = -half; x <= half; x++) {
+            for (int z = -half; z <= half; z++) {
+                positions.add(center.offset(x, 0, z));
+            }
+        }
+        return positions;
+    }
+
+    private static Set<BlockPos> cornerWalls(BlockPos center, int size, int xSign, int zSign) {
+        Set<BlockPos> positions = new HashSet<>();
+        int half = size / 2;
+        for (int run = 0; run < size; run++) {
+            for (int height = -half; height <= half; height++) {
+                positions.add(center.offset(-xSign * run, height, 0));
+                positions.add(center.offset(0, height, -zSign * run));
+            }
+        }
+        return positions;
+    }
+
+    private static Direction horizontalFacing(Vec3 look) {
+        Direction direction = Direction.getNearest(look.x, 0.0D, look.z);
+        return direction.getAxis().isHorizontal() ? direction : Direction.NORTH;
+    }
+
+    private static boolean isDiagonal(Vec3 look) {
+        double x = Math.abs(look.x);
+        double z = Math.abs(look.z);
+        double larger = Math.max(x, z);
+        return larger > 0.0D && Math.min(x, z) / larger >= DIAGONAL_RATIO_THRESHOLD;
+    }
+
+    private static int horizontalSign(double value) {
+        return value < 0.0D ? -1 : 1;
+    }
+}
