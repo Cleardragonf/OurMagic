@@ -72,12 +72,12 @@ public class SpellcraftMenu extends AbstractContainerMenu {
     private void addPlayerInventory(Inventory inventory) {
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9, 99 + column * 18, 190 + row * 18));
+                addSlot(new Slot(inventory, column + row * 9 + 9, 142 + column * 18, 238 + row * 18));
             }
         }
 
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, 99 + column * 18, 248));
+            addSlot(new Slot(inventory, column, 142 + column * 18, 296));
         }
     }
 }
