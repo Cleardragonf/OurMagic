@@ -60,6 +60,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
 
     private static final ResourceLocation FOREGROUND_FRAME = tex("foreground_frame.png");
     private static final ResourceLocation SPELLCRAFT_ATLAS = tex("spellcraft_atlas.png");
+    private static final ResourceLocation SHAPE_ICONS_ATLAS = tex("icons/shapes/shape_icons_atlas.png");
     private static final ResourceLocation BUTTON_NORMAL = tex("button_normal.png");
     private static final ResourceLocation BUTTON_SELECTED = tex("button_selected.png");
     private static final ResourceLocation BUTTON_DISABLED = tex("button_disabled.png");
@@ -248,7 +249,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
             boolean selected = shapeIndex == selectedShape;
             button.setMessage(Component.literal(shortLabel(shape, 8)).withStyle(selected ? ChatFormatting.GREEN : ChatFormatting.GRAY));
             button.setSelected(selected);
-            button.setIcon(shapeIcon(shape));
+            button.setShapeIcon(shape);
             button.setTooltip(Tooltip.create(Component.literal(titleCase(shape))));
         }
     }
@@ -289,7 +290,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
 
         String shape = SpellRegistry.shapeKey(key);
         if (!shape.isEmpty()) {
-            blit(graphics, shapeIcon(shape), shapeX, centerY - 8, 16, 16, 16, 16);
+            blitShapeIcon(graphics, shape, shapeX, centerY - 8, 16);
         }
 
         graphics.drawString(font, compact(key, 10), 334, 140, craftable ? COLOR_GOLD : 0xFFFF6666, false);
@@ -454,8 +455,30 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         return tex("icons/effects/" + normalize(effect) + ".png");
     }
 
-    private static ResourceLocation shapeIcon(String shape) {
-        return tex("icons/shapes/" + normalize(shape) + ".png");
+    private record AtlasIcon(int u, int v, int w, int h) {}
+
+    private static AtlasIcon shapeAtlasIcon(String shape) {
+        return switch (normalize(shape)) {
+            case "self" -> new AtlasIcon(62, 84, 212, 207);
+            case "target" -> new AtlasIcon(352, 84, 208, 207);
+            case "point" -> new AtlasIcon(640, 84, 209, 207);
+            case "block" -> new AtlasIcon(920, 84, 210, 207);
+            case "self_aoe" -> new AtlasIcon(1211, 84, 210, 207);
+            case "self_area" -> new AtlasIcon(62, 404, 212, 207);
+            case "target_aoe" -> new AtlasIcon(352, 404, 208, 207);
+            case "target_area" -> new AtlasIcon(640, 404, 209, 207);
+            case "ao" -> new AtlasIcon(920, 404, 210, 207);
+            case "ally_self_aoe" -> new AtlasIcon(1211, 404, 210, 207);
+            case "ally_target_aoe" -> new AtlasIcon(62, 724, 212, 208);
+            case "items_self_aoe" -> new AtlasIcon(352, 724, 208, 208);
+            case "water_target_aoe" -> new AtlasIcon(640, 724, 209, 208);
+            default -> new AtlasIcon(62, 84, 212, 207);
+        };
+    }
+
+    private static void blitShapeIcon(GuiGraphics graphics, String shape, int x, int y, int size) {
+        AtlasIcon icon = shapeAtlasIcon(shape);
+        graphics.blit(SHAPE_ICONS_ATLAS, x, y, size, size, icon.u(), icon.v(), icon.w(), icon.h(), 1536, 1024);
     }
 
     private static String normalize(String value) {
@@ -470,6 +493,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         private boolean selected;
         private boolean goldFrame;
         private ResourceLocation icon;
+        private String shapeIconKey;
         private int actionSpriteU = -1;
 
         MagicButton(int x, int y, int width, int height, OnPress onPress) {
@@ -486,6 +510,12 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
 
         void setIcon(ResourceLocation icon) {
             this.icon = icon;
+            this.shapeIconKey = null;
+        }
+
+        void setShapeIcon(String shapeIconKey) {
+            this.shapeIconKey = shapeIconKey;
+            this.icon = null;
         }
 
         void setActionSprite(int actionSpriteU) {
@@ -531,10 +561,14 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
                 return;
             }
             int color = active ? (goldFrame ? COLOR_GOLD : selected ? COLOR_TEXT : 0xFFD7C3E8) : 0xFF6A6375;
+            boolean hasAnyIcon = icon != null || shapeIconKey != null;
             if (icon != null) {
                 blit(graphics, icon, getX() + 12, getY() + (height - 16) / 2, 16, 16, 16, 16);
             }
-            int textX = icon == null ? getX() + width / 2 - font.width(text) / 2 : getX() + 35;
+            if (shapeIconKey != null) {
+                blitShapeIcon(graphics, shapeIconKey, getX() + 12, getY() + (height - 16) / 2, 16);
+            }
+            int textX = !hasAnyIcon ? getX() + width / 2 - font.width(text) / 2 : getX() + 35;
             int textY = getY() + (height - font.lineHeight) / 2;
             graphics.drawString(font, text, textX, textY, color, false);
         }
