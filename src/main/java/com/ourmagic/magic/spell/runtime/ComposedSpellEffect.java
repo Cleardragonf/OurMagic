@@ -55,6 +55,10 @@ public class ComposedSpellEffect implements ChainableEffect {
                     SpellContext payloadContext = radius > 0.0D ? context.withoutBeams().asAreaCast(origin.position()) : context;
                     boolean applied = false;
                     for (SpellTarget target : targets) {
+                        if (MagicStatusEffects.tryReflectSpell(payloadContext, target)) {
+                            applied = true;
+                            continue;
+                        }
                         applied |= payload.apply(payloadContext, target);
                     }
                     return applied;

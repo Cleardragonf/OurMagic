@@ -2,6 +2,7 @@ package com.ourmagic.magic.spell.runtime;
 
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellRegistry;
+import com.ourmagic.registry.ModBlocks;
 import com.ourmagic.wand.WandData;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -13,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -65,16 +67,26 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
     public HitResult raycast(double distance) {
         Vec3 eye = player.getEyePosition();
         Vec3 end = eye.add(player.getLookAngle().scale(distance));
+        if (!spell.isPhysical()) {
+            return raycastThroughTemporaryShields(eye, end);
+        }
         return level.clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
     }
 
     public Optional<EntityHitResult> raycastEntity(double distance, Predicate<Entity> filter) {
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle();
-        Vec3 end = eye.add(look.scale(distance));
-        AABB bounds = player.getBoundingBox().expandTowards(look.scale(distance)).inflate(1.0D);
+        double effectiveDistance = distance;
+        if (spell.isPhysical()) {
+            HitResult blockHit = raycast(distance);
+            if (blockHit.getType() != HitResult.Type.MISS) {
+                effectiveDistance = Math.min(distance, eye.distanceTo(blockHit.getLocation()));
+            }
+        }
+        Vec3 end = eye.add(look.scale(effectiveDistance));
+        AABB bounds = player.getBoundingBox().expandTowards(look.scale(effectiveDistance)).inflate(1.0D);
         EntityHitResult best = null;
-        double bestDistance = distance * distance;
+        double bestDistance = effectiveDistance * effectiveDistance;
 
         for (Entity entity : level.getEntities(player, bounds, entity -> entity.isPickable() && filter.test(entity))) {
             AABB box = entity.getBoundingBox().inflate(entity.getPickRadius() + 0.35D);
@@ -89,6 +101,26 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
         }
 
         return Optional.ofNullable(best);
+    }
+
+    private HitResult raycastThroughTemporaryShields(Vec3 start, Vec3 end) {
+        Vec3 currentStart = start;
+        for (int i = 0; i < 8; i++) {
+            HitResult hit = level.clip(new ClipContext(currentStart, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+            if (!(hit instanceof BlockHitResult blockHit) || hit.getType() == HitResult.Type.MISS) {
+                return hit;
+            }
+            if (!level.getBlockState(blockHit.getBlockPos()).is(ModBlocks.TEMPORARY_SHIELD.get())) {
+                return hit;
+            }
+
+            Vec3 direction = end.subtract(currentStart).normalize();
+            currentStart = hit.getLocation().add(direction.scale(0.08D));
+            if (currentStart.distanceToSqr(end) < 0.01D) {
+                return BlockHitResult.miss(end, blockHit.getDirection(), blockHit.getBlockPos());
+            }
+        }
+        return level.clip(new ClipContext(currentStart, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
     }
 
     public Optional<LivingEntity> nearestLiving(Vec3 origin, double radius, Set<Integer> excludedIds) {

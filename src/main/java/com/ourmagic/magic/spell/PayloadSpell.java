@@ -17,4 +17,8 @@ public class PayloadSpell extends BaseSpell {
     public PayloadSpell(String key, int minManaCost, int maxManaCost, int minCooldownTicks, int maxCooldownTicks, SpellShape shape, PayloadEffect payload, ParticleOptions chainParticle, String... supportedUpgrades) {
         super(key, minManaCost, maxManaCost, minCooldownTicks, maxCooldownTicks, new ComposedSpellEffect(shape, payload, chainParticle), supportedUpgrades);
     }
+
+    public PayloadSpell(String key, int minManaCost, int maxManaCost, int minCooldownTicks, int maxCooldownTicks, SpellShape shape, PayloadEffect payload, ParticleOptions chainParticle, boolean physical, String... supportedUpgrades) {
+        super(key, minManaCost, maxManaCost, minCooldownTicks, maxCooldownTicks, new ComposedSpellEffect(shape, payload, chainParticle), physical, supportedUpgrades);
+    }
 }

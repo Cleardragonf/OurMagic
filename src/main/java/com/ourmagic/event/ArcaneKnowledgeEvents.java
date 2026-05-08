@@ -2,13 +2,16 @@ package com.ourmagic.event;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.magic.ArcaneKnowledgeBook;
+import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellIngredients;
+import com.ourmagic.network.CraftSpellPacket;
 import com.ourmagic.registry.ModItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -43,6 +46,14 @@ public final class ArcaneKnowledgeEvents {
     @SubscribeEvent
     public static void itemTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
+        if (stack.is(Items.PAPER) && stack.hasTag() && stack.getOrCreateTag().contains(CraftSpellPacket.TAG_SPELL_KEY)) {
+            SpellInstance spell = SpellInstance.fromItem(stack);
+            event.getToolTip().add(Component.literal("Recipe: " + spell.key()).withStyle(ChatFormatting.DARK_GRAY));
+            event.getToolTip().add(Component.literal("Mana: " + spell.manaCost()).withStyle(ChatFormatting.BLUE));
+            event.getToolTip().add(Component.literal(String.format("Cooldown: %.1fs", spell.cooldownTicks() / 20.0F)).withStyle(ChatFormatting.GOLD));
+            return;
+        }
+
         if (!ArcaneKnowledgeBook.isKnowledgeBook(stack)) {
             return;
         }

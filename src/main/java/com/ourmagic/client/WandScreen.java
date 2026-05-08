@@ -258,7 +258,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         int x = DETAIL_X;
         int y = 35;
 
-        graphics.drawString(font, titleCase(spell.key()), x, y, 0xFFFFFFFF, false);
+        graphics.drawString(font, spell.displayName(), x, y, 0xFFFFFFFF, false);
         y += 16;
 
         graphics.drawString(font, "Level " + spell.level() + "/100", x, y, COLOR_GREEN, false);

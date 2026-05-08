@@ -1,13 +1,13 @@
 package com.ourmagic.network;
 
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellIngredients;
 import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.item.GrimoireItem;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.wand.WandData;
 import net.minecraft.ChatFormatting;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
@@ -64,14 +64,16 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
                 return;
             }
 
+            SpellInstance craftedSpell = SpellInstance.roll(packet.spellKey, context.getSender().getRandom());
+
             if (packet.target == Target.WAND) {
-                if (data.addRolledSpell(packet.spellKey, context.getSender().getRandom())) {
+                if (data.addSpell(craftedSpell)) {
                     consumeSpellcraftCost(context.getSender().getInventory(), packet.spellKey, hasIngredients);
                     data.save(wand);
                     context.getSender().getInventory().setChanged();
-                    context.getSender().displayClientMessage(Component.literal("Added " + packet.spellKey + " to wand").withStyle(ChatFormatting.AQUA), false);
+                    context.getSender().displayClientMessage(Component.literal("Added " + craftedSpell.displayName() + " to wand").withStyle(ChatFormatting.AQUA), false);
                 } else {
-                    context.getSender().displayClientMessage(Component.literal("That wand already knows " + packet.spellKey).withStyle(ChatFormatting.YELLOW), false);
+                    context.getSender().displayClientMessage(Component.literal("That wand already knows " + craftedSpell.displayName()).withStyle(ChatFormatting.YELLOW), false);
                 }
                 return;
             }
@@ -83,21 +85,19 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
                     context.getSender().displayClientMessage(Component.literal("Hold a grimoire in your other hand.").withStyle(ChatFormatting.RED), false);
                     return;
                 }
-                if (GrimoireItem.addSpell(grimoire, packet.spellKey)) {
+                if (GrimoireItem.addSpell(grimoire, craftedSpell)) {
                     consumeSpellcraftCost(context.getSender().getInventory(), packet.spellKey, hasIngredients);
                     context.getSender().getInventory().setChanged();
-                    context.getSender().displayClientMessage(Component.literal("Added " + packet.spellKey + " to grimoire").withStyle(ChatFormatting.AQUA), false);
+                    context.getSender().displayClientMessage(Component.literal("Added " + craftedSpell.displayName() + " to grimoire").withStyle(ChatFormatting.AQUA), false);
                 } else {
-                    context.getSender().displayClientMessage(Component.literal("That grimoire already contains " + packet.spellKey).withStyle(ChatFormatting.YELLOW), false);
+                    context.getSender().displayClientMessage(Component.literal("That grimoire already contains " + craftedSpell.displayName()).withStyle(ChatFormatting.YELLOW), false);
                 }
                 return;
             }
 
             consumeSpellcraftCost(context.getSender().getInventory(), packet.spellKey, hasIngredients);
             ItemStack paper = new ItemStack(Items.PAPER);
-            CompoundTag tag = paper.getOrCreateTag();
-            tag.putString(TAG_SPELL_KEY, packet.spellKey);
-            paper.setHoverName(Component.literal("Spell: " + packet.spellKey).withStyle(ChatFormatting.LIGHT_PURPLE));
+            craftedSpell.writeToItem(paper);
             if (!context.getSender().getInventory().add(paper)) {
                 context.getSender().drop(paper, false);
             }

@@ -42,6 +42,10 @@ public interface Spell {
         return cooldownTicks();
     }
 
+    default boolean isPhysical() {
+        return false;
+    }
+
     boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data);
 
     default boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data, float chantMultiplier) {

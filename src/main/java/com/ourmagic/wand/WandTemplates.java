@@ -1,6 +1,7 @@
 package com.ourmagic.wand;
 
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellRegistry;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.util.RandomSource;
@@ -87,14 +88,9 @@ public final class WandTemplates {
         ensureInitialized(stack, false);
     }
 
-    private static int ranged(RandomSource random, int min, int max) {
-        min = Math.max(0, min);
-        max = Math.max(min, max);
-        return min + random.nextInt(max - min + 1);
-    }
-
     private static WandData.WandSpellData rolledSpell(Spell spell, RandomSource random) {
-        return new WandData.WandSpellData(spell.key(), ranged(random, spell.minManaCost(), spell.maxManaCost()), ranged(random, spell.minCooldownTicks(), spell.maxCooldownTicks()));
+        SpellInstance instance = SpellInstance.roll(spell.key(), random);
+        return new WandData.WandSpellData(instance.key(), instance.displayName(), instance.manaCost(), instance.cooldownTicks());
     }
 
     private static WandData.WandSpellData fixedSpell(Spell spell) {

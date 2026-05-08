@@ -1,12 +1,15 @@
 package com.ourmagic.magic.spell.runtime;
 
 import com.ourmagic.OurMagic;
+import com.ourmagic.magic.spell.shapes.SpellTarget;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
@@ -14,6 +17,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityTeleportEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -29,6 +33,12 @@ public final class MagicStatusEffects {
     private static final Map<UUID, BoundState> BOUND = new HashMap<>();
     private static final Map<UUID, StunState> STUNNED = new HashMap<>();
     private static final Map<UUID, WarpState> WARPED = new HashMap<>();
+    private static final Map<UUID, TimedState> SILENCED = new HashMap<>();
+    private static final Map<UUID, WardState> WARDED = new HashMap<>();
+    private static final Map<UUID, CharmState> CHARMED = new HashMap<>();
+    private static final Map<UUID, TimedState> REFLECTING = new HashMap<>();
+    private static final Map<UUID, TimedState> ANCHORED = new HashMap<>();
+    private static final Map<UUID, HexState> HEXED = new HashMap<>();
 
     private MagicStatusEffects() {
     }
@@ -50,8 +60,65 @@ public final class MagicStatusEffects {
         player.setGameMode(GameType.SPECTATOR);
     }
 
+    public static void silence(LivingEntity entity, int ticks) {
+        SILENCED.put(entity.getUUID(), new TimedState(ticks));
+    }
+
+    public static boolean isSilenced(Entity entity) {
+        return SILENCED.containsKey(entity.getUUID());
+    }
+
+    public static void ward(LivingEntity entity, int ticks, float strength) {
+        WardState existing = WARDED.get(entity.getUUID());
+        WARDED.put(entity.getUUID(), new WardState(Math.max(ticks, existing == null ? 0 : existing.ticks()), Math.max(strength, existing == null ? 0.0F : existing.strength())));
+    }
+
+    public static void charm(Mob mob, LivingEntity caster, int ticks) {
+        CHARMED.put(mob.getUUID(), new CharmState(ticks, caster.getUUID()));
+        mob.setTarget(null);
+    }
+
+    public static void reflect(LivingEntity entity, int ticks) {
+        REFLECTING.put(entity.getUUID(), new TimedState(ticks));
+    }
+
+    public static boolean tryReflectSpell(SpellContext context, SpellTarget target) {
+        if (!context.spell().isPhysical() || target.entity().isEmpty() || !(target.entity().get() instanceof LivingEntity living)) {
+            return false;
+        }
+
+        TimedState reflect = REFLECTING.remove(living.getUUID());
+        if (reflect == null) {
+            return false;
+        }
+
+        Entity attacker = context.player();
+        attacker.hurt(attacker.level().damageSources().magic(), 4.0F);
+        if (living.level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(ParticleTypes.FLASH, living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
+            serverLevel.sendParticles(ParticleTypes.ENCHANT, living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(), 35, 0.55D, 0.55D, 0.55D, 0.06D);
+        }
+        return true;
+    }
+
+    public static void anchor(LivingEntity entity, int ticks) {
+        ANCHORED.put(entity.getUUID(), new TimedState(ticks));
+        entity.setDeltaMovement(Vec3.ZERO);
+    }
+
+    public static void hex(LivingEntity entity, int ticks, float damageMultiplier) {
+        HEXED.put(entity.getUUID(), new HexState(ticks, Math.max(1.0F, damageMultiplier)));
+    }
+
     public static void nullify(LivingEntity entity) {
         BOUND.remove(entity.getUUID());
+        SILENCED.remove(entity.getUUID());
+        WARDED.remove(entity.getUUID());
+        CHARMED.remove(entity.getUUID());
+        REFLECTING.remove(entity.getUUID());
+        ANCHORED.remove(entity.getUUID());
+        HEXED.remove(entity.getUUID());
+        Scrying.clearMarksOn(entity);
         wake(entity);
         WarpState warp = WARPED.remove(entity.getUUID());
         if (warp != null && entity instanceof ServerPlayer player) {
@@ -64,6 +131,10 @@ public final class MagicStatusEffects {
         entity.removeEffect(MobEffects.WATER_BREATHING);
         entity.removeEffect(MobEffects.REGENERATION);
         entity.removeEffect(MobEffects.DAMAGE_RESISTANCE);
+        entity.removeEffect(MobEffects.GLOWING);
+        entity.removeEffect(MobEffects.WEAKNESS);
+        entity.removeEffect(MobEffects.DIG_SLOWDOWN);
+        entity.removeEffect(MobEffects.CONFUSION);
     }
 
     public static boolean isBound(Entity entity) {
@@ -80,14 +151,25 @@ public final class MagicStatusEffects {
     public static void livingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
         BoundState bound = BOUND.get(entity.getUUID());
-        if (bound == null) {
-            return;
+        TimedState anchor = ANCHORED.get(entity.getUUID());
+        if (bound != null || anchor != null) {
+            entity.setDeltaMovement(Vec3.ZERO);
+            if (bound != null) {
+                entity.teleportTo(bound.anchor().x, bound.anchor().y, bound.anchor().z);
+            }
+            if (entity.level() instanceof ServerLevel serverLevel && entity.tickCount % 10 == 0) {
+                serverLevel.sendParticles(ParticleTypes.ENCHANT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 8, 0.35D, 0.35D, 0.35D, 0.01D);
+            }
         }
 
-        entity.setDeltaMovement(Vec3.ZERO);
-        entity.teleportTo(bound.anchor().x, bound.anchor().y, bound.anchor().z);
-        if (entity.level() instanceof ServerLevel serverLevel && entity.tickCount % 10 == 0) {
-            serverLevel.sendParticles(ParticleTypes.ENCHANT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 8, 0.35D, 0.35D, 0.35D, 0.01D);
+        if (entity instanceof Mob mob) {
+            CharmState charm = CHARMED.get(entity.getUUID());
+            if (charm != null) {
+                mob.setTarget(null);
+                if (entity.level() instanceof ServerLevel serverLevel && entity.tickCount % 12 == 0) {
+                    serverLevel.sendParticles(ParticleTypes.HEART, entity.getX(), entity.getY() + entity.getBbHeight() * 0.75D, entity.getZ(), 2, 0.25D, 0.2D, 0.25D, 0.01D);
+                }
+            }
         }
     }
 
@@ -126,6 +208,10 @@ public final class MagicStatusEffects {
                 WARPED.put(player.getUUID(), new WarpState(warp.ticks() - 1, warp.previousMode()));
             }
         }
+
+        if (SILENCED.containsKey(player.getUUID()) && player.level() instanceof ServerLevel serverLevel && player.tickCount % 10 == 0) {
+            serverLevel.sendParticles(ParticleTypes.SMOKE, player.getX(), player.getY() + 1.0D, player.getZ(), 5, 0.25D, 0.25D, 0.25D, 0.01D);
+        }
     }
 
     @SubscribeEvent
@@ -135,19 +221,69 @@ public final class MagicStatusEffects {
         }
 
         tickBound();
+        tickSimple(SILENCED);
+        tickSimple(WARDED);
+        tickSimple(CHARMED);
+        tickSimple(REFLECTING);
+        tickSimple(ANCHORED);
+        tickSimple(HEXED);
     }
 
     @SubscribeEvent
     public static void teleport(EntityTeleportEvent event) {
-        if (isBound(event.getEntity())) {
+        if (isBound(event.getEntity()) || ANCHORED.containsKey(event.getEntity().getUUID())) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     public static void livingAttack(LivingAttackEvent event) {
+        if (event.getSource().is(DamageTypes.MAGIC)) {
+            return;
+        }
+
+        TimedState reflect = REFLECTING.remove(event.getEntity().getUUID());
+        if (reflect != null) {
+            event.setCanceled(true);
+            Entity attacker = event.getSource().getEntity();
+            if (attacker instanceof LivingEntity livingAttacker) {
+                livingAttacker.hurt(livingAttacker.level().damageSources().magic(), 4.0F);
+            }
+            if (event.getEntity().level() instanceof ServerLevel serverLevel) {
+                LivingEntity entity = event.getEntity();
+                serverLevel.sendParticles(ParticleTypes.FLASH, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                serverLevel.sendParticles(ParticleTypes.ENCHANT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 35, 0.55D, 0.55D, 0.55D, 0.06D);
+            }
+            return;
+        }
+
+        WardState ward = WARDED.remove(event.getEntity().getUUID());
+        if (ward != null) {
+            event.setCanceled(true);
+            if (event.getEntity().level() instanceof ServerLevel serverLevel) {
+                LivingEntity entity = event.getEntity();
+                serverLevel.sendParticles(ParticleTypes.END_ROD, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), Math.max(18, Math.round(18 * ward.strength())), 0.45D, 0.45D, 0.45D, 0.05D);
+                serverLevel.sendParticles(ParticleTypes.FLASH, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
+            }
+            return;
+        }
+
         if (event.getSource().getEntity() != null) {
             wake(event.getEntity());
+        }
+    }
+
+    @SubscribeEvent
+    public static void livingHurt(LivingHurtEvent event) {
+        HexState hex = HEXED.remove(event.getEntity().getUUID());
+        if (hex == null) {
+            return;
+        }
+
+        event.setAmount(event.getAmount() * hex.damageMultiplier());
+        if (event.getEntity().level() instanceof ServerLevel serverLevel) {
+            LivingEntity entity = event.getEntity();
+            serverLevel.sendParticles(ParticleTypes.WITCH, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 28, 0.45D, 0.45D, 0.45D, 0.04D);
         }
     }
 
@@ -167,6 +303,12 @@ public final class MagicStatusEffects {
             if (warp != null) {
                 player.setGameMode(warp.previousMode());
             }
+            SILENCED.remove(player.getUUID());
+            WARDED.remove(player.getUUID());
+            CHARMED.remove(player.getUUID());
+            REFLECTING.remove(player.getUUID());
+            ANCHORED.remove(player.getUUID());
+            HEXED.remove(player.getUUID());
         }
     }
 
@@ -183,6 +325,25 @@ public final class MagicStatusEffects {
         }
     }
 
+    private static <T extends Timed<T>> void tickSimple(Map<UUID, T> states) {
+        Iterator<Map.Entry<UUID, T>> iterator = states.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, T> entry = iterator.next();
+            T state = entry.getValue();
+            if (state.ticks() <= 1) {
+                iterator.remove();
+            } else {
+                entry.setValue(state.withTicks(state.ticks() - 1));
+            }
+        }
+    }
+
+    private interface Timed<T> {
+        int ticks();
+
+        T withTicks(int ticks);
+    }
+
     private record BoundState(int ticks, Vec3 anchor) {
     }
 
@@ -190,5 +351,33 @@ public final class MagicStatusEffects {
     }
 
     private record WarpState(int ticks, GameType previousMode) {
+    }
+
+    private record TimedState(int ticks) implements Timed<TimedState> {
+        @Override
+        public TimedState withTicks(int ticks) {
+            return new TimedState(ticks);
+        }
+    }
+
+    private record WardState(int ticks, float strength) implements Timed<WardState> {
+        @Override
+        public WardState withTicks(int ticks) {
+            return new WardState(ticks, strength);
+        }
+    }
+
+    private record CharmState(int ticks, UUID caster) implements Timed<CharmState> {
+        @Override
+        public CharmState withTicks(int ticks) {
+            return new CharmState(ticks, caster);
+        }
+    }
+
+    private record HexState(int ticks, float damageMultiplier) implements Timed<HexState> {
+        @Override
+        public HexState withTicks(int ticks) {
+            return new HexState(ticks, damageMultiplier);
+        }
     }
 }

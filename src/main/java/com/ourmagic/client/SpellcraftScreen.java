@@ -222,15 +222,16 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
             }
             String effect = effects.get(effectIndex);
             boolean selected = selectedEffects.contains(effect);
+            boolean canSelect = selected || canAddEffect(effect);
             button.visible = true;
-            button.active = true;
+            button.active = canSelect;
             button.setX(leftPos + effectX(i));
             button.setY(topPos + effectY(i));
             button.setWidth(BUTTON_W);
-            button.setMessage(Component.literal(shortLabel(effect, 6)).withStyle(selected ? ChatFormatting.AQUA : ChatFormatting.GRAY));
+            button.setMessage(Component.literal(shortLabel(effect, 6)).withStyle(selected ? ChatFormatting.AQUA : canSelect ? ChatFormatting.GRAY : ChatFormatting.DARK_GRAY));
             button.setSelected(selected);
             button.setIcon(effectIcon(effect));
-            button.setTooltip(Tooltip.create(Component.literal(titleCase(effect))));
+            button.setTooltip(Tooltip.create(Component.literal(canSelect ? titleCase(effect) : titleCase(effect) + " cannot combine here")));
         }
 
         for (int i = 0; i < shapeButtons.size(); i++) {
@@ -328,9 +329,24 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
             shapeScrollOffset = 0;
             return;
         }
-        if (selectedEffects.size() < maxEffects()) {
+        if (selectedEffects.size() < maxEffects() && canAddEffect(effect)) {
             selectedEffects.add(effect);
         }
+    }
+
+    private boolean canAddEffect(String effect) {
+        if (selectedEffects.contains(effect)) {
+            return true;
+        }
+        if (maxEffects() == 1) {
+            return true;
+        }
+        if (selectedEffects.size() >= maxEffects()) {
+            return false;
+        }
+        List<String> candidate = new ArrayList<>(selectedEffects);
+        candidate.add(effect);
+        return !SpellRegistry.allowedShapesForPayloads(candidate).isEmpty();
     }
 
     private void craft(CraftSpellPacket.Target target) {

@@ -1,7 +1,9 @@
 package com.ourmagic.item;
 
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellRegistry;
+import com.ourmagic.magic.spell.runtime.MagicStatusEffects;
 import com.ourmagic.mana.PlayerMana;
 import com.ourmagic.network.CraftSpellPacket;
 import com.ourmagic.network.ModNetwork;
@@ -84,6 +86,11 @@ public class WandItem extends Item {
 
     public static boolean castActiveSpell(ServerPlayer player, ItemStack stack, float chantMultiplier) {
         Level level = player.level();
+        if (MagicStatusEffects.isSilenced(player)) {
+            player.displayClientMessage(Component.literal("Your magic is silenced.").withStyle(ChatFormatting.DARK_PURPLE), true);
+            return false;
+        }
+
         WandTemplates.ensureInitialized(stack, stack.is(ModItems.ADMIN_WAND.get()));
         WandData data = WandData.read(stack);
         Spell spell = SpellRegistry.get(data.activeSpell());
@@ -139,15 +146,20 @@ public class WandItem extends Item {
             return true;
         }
 
-        String spellKey = grimoire ? GrimoireItem.selectedSpell(source) : source.getOrCreateTag().getString(CraftSpellPacket.TAG_SPELL_KEY);
+        SpellInstance sourceSpell = grimoire ? GrimoireItem.selectedSpellInstance(source) : SpellInstance.fromItem(source);
+        if (sourceSpell == null) {
+            return true;
+        }
+
+        String spellKey = sourceSpell.key();
         Spell spell = SpellRegistry.get(spellKey);
         if (spell == null) {
             player.displayClientMessage(Component.literal("That spell source does not contain a valid spell.").withStyle(ChatFormatting.RED), false);
             return true;
         }
 
-        if (!data.addRolledSpell(spellKey, player.getRandom())) {
-            player.displayClientMessage(Component.literal("That wand already knows " + spellKey).withStyle(ChatFormatting.YELLOW), false);
+        if (!data.addSpell(sourceSpell)) {
+            player.displayClientMessage(Component.literal("That wand already knows " + sourceSpell.displayName()).withStyle(ChatFormatting.YELLOW), false);
             return true;
         }
 
@@ -156,7 +168,7 @@ public class WandItem extends Item {
             source.shrink(1);
         }
         player.getInventory().setChanged();
-        player.displayClientMessage(Component.literal("Added " + spellKey + " to wand").withStyle(ChatFormatting.AQUA), false);
+        player.displayClientMessage(Component.literal("Added " + sourceSpell.displayName() + " to wand").withStyle(ChatFormatting.AQUA), false);
         return true;
     }
 

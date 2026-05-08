@@ -27,18 +27,24 @@ public class BaseSpell implements Spell {
     private final int maxCooldownTicks;
     private final SpellEffect effect;
     private final Set<String> supportedUpgrades;
+    private final boolean physical;
 
     protected BaseSpell(String key, int manaCost, int cooldownTicks, SpellEffect effect, String... supportedUpgrades) {
-        this(key, manaCost, manaCost, cooldownTicks, cooldownTicks, effect, supportedUpgrades);
+        this(key, manaCost, manaCost, cooldownTicks, cooldownTicks, effect, false, supportedUpgrades);
     }
 
     protected BaseSpell(String key, int minManaCost, int maxManaCost, int minCooldownTicks, int maxCooldownTicks, SpellEffect effect, String... supportedUpgrades) {
+        this(key, minManaCost, maxManaCost, minCooldownTicks, maxCooldownTicks, effect, false, supportedUpgrades);
+    }
+
+    protected BaseSpell(String key, int minManaCost, int maxManaCost, int minCooldownTicks, int maxCooldownTicks, SpellEffect effect, boolean physical, String... supportedUpgrades) {
         this.key = key;
         this.minManaCost = Math.max(0, Math.min(minManaCost, maxManaCost));
         this.maxManaCost = Math.max(this.minManaCost, Math.max(minManaCost, maxManaCost));
         this.minCooldownTicks = Math.max(1, Math.min(minCooldownTicks, maxCooldownTicks));
         this.maxCooldownTicks = Math.max(this.minCooldownTicks, Math.max(minCooldownTicks, maxCooldownTicks));
         this.effect = effect;
+        this.physical = physical;
         this.supportedUpgrades = Set.of(supportedUpgrades);
     }
 
@@ -75,6 +81,11 @@ public class BaseSpell implements Spell {
     @Override
     public int maxCooldownTicks() {
         return maxCooldownTicks;
+    }
+
+    @Override
+    public boolean isPhysical() {
+        return physical;
     }
 
     @Override
