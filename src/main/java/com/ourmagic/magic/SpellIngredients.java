@@ -113,6 +113,15 @@ public final class SpellIngredients {
         return true;
     }
 
+    public static boolean hasAnyShapeRequirement(Container inventory, String shape) {
+        for (Requirement requirement : shapeRequirements(shape)) {
+            if (count(inventory, requirement) > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void consume(Container inventory, Requirement requirement) {
             int remaining = requirement.count();
             for (int slot = 0; slot < inventory.getContainerSize() && remaining > 0; slot++) {
