@@ -20,6 +20,7 @@ public final class WandData {
     private static final String TAG_POWER = "OurMagicPower";
     private static final String TAG_SPELLS = "OurMagicSpells";
     private static final String TAG_ACTIVE = "OurMagicActive";
+    private static final String TAG_ASSIGNED_SPELLS = "OurMagicAssignedSpells";
     private static final String TAG_COOLDOWN = "OurMagicCooldown";
     private static final String TAG_WAND_LEVEL = "OurMagicWandLevel";
     private static final String TAG_WAND_XP = "OurMagicWandXp";
@@ -33,6 +34,7 @@ public final class WandData {
     private static final String TAG_SPELL_POINTS = "AttributePoints";
     private static final String TAG_SPELL_UPGRADES = "Upgrades";
     private static final int MAX_SPELL_LEVEL = 100;
+    private static final int ASSIGNED_SLOTS = 6;
     private static final String SHAPE_UPGRADE_PREFIX = "shape:";
 
     private final String template;
@@ -43,13 +45,18 @@ public final class WandData {
     private int wandLevel;
     private int wandXp;
     private int activeIndex;
+    private final int[] assignedSpells;
     private long cooldownUntil;
 
     public WandData(String template, String displayName, float power, List<WandSpellData> spells, int activeIndex, long cooldownUntil) {
-        this(template, displayName, power, spells, activeIndex, cooldownUntil, 1, 0, Map.of());
+        this(template, displayName, power, spells, activeIndex, defaultAssignments(spells.size()), cooldownUntil, 1, 0, Map.of());
     }
 
     public WandData(String template, String displayName, float power, List<WandSpellData> spells, int activeIndex, long cooldownUntil, int wandLevel, int wandXp, Map<String, Integer> modifiers) {
+        this(template, displayName, power, spells, activeIndex, defaultAssignments(spells.size()), cooldownUntil, wandLevel, wandXp, modifiers);
+    }
+
+    public WandData(String template, String displayName, float power, List<WandSpellData> spells, int activeIndex, int[] assignedSpells, long cooldownUntil, int wandLevel, int wandXp, Map<String, Integer> modifiers) {
         this.template = template;
         this.displayName = displayName;
         this.power = power;
@@ -58,6 +65,7 @@ public final class WandData {
         this.wandXp = Math.max(0, wandXp);
         this.modifiers = new LinkedHashMap<>(modifiers);
         this.activeIndex = Math.max(0, Math.min(activeIndex, Math.max(0, spells.size() - 1)));
+        this.assignedSpells = normalizeAssignments(assignedSpells, spells.size());
         this.cooldownUntil = cooldownUntil;
     }
 
@@ -120,6 +128,7 @@ public final class WandData {
                 tag.contains(TAG_POWER) ? tag.getFloat(TAG_POWER) : fallback.power(),
                 spells,
                 tag.getInt(TAG_ACTIVE),
+                readAssignments(tag, spells.size()),
                 tag.getLong(TAG_COOLDOWN),
                 tag.contains(TAG_WAND_LEVEL) ? tag.getInt(TAG_WAND_LEVEL) : 1,
                 tag.getInt(TAG_WAND_XP),
@@ -133,6 +142,11 @@ public final class WandData {
         tag.putString(TAG_NAME, displayName);
         tag.putFloat(TAG_POWER, power);
         tag.putInt(TAG_ACTIVE, activeIndex);
+        ListTag assignedTags = new ListTag();
+        for (int assignedSpell : assignedSpells) {
+            assignedTags.add(net.minecraft.nbt.IntTag.valueOf(assignedSpell));
+        }
+        tag.put(TAG_ASSIGNED_SPELLS, assignedTags);
         tag.putLong(TAG_COOLDOWN, cooldownUntil);
         tag.putInt(TAG_WAND_LEVEL, wandLevel);
         tag.putInt(TAG_WAND_XP, wandXp);
@@ -213,6 +227,10 @@ public final class WandData {
 
     public int activeIndex() {
         return activeIndex;
+    }
+
+    public List<Integer> assignedSpells() {
+        return java.util.Arrays.stream(assignedSpells).boxed().toList();
     }
 
     public String activeSpell() {
@@ -404,11 +422,63 @@ public final class WandData {
         }
     }
 
+    public boolean setActiveSpellIndex(int spellIndex) {
+        if (spellIndex < 0 || spellIndex >= spells.size()) {
+            return false;
+        }
+        activeIndex = spellIndex;
+        return true;
+    }
+
+    public boolean selectAssignedSpell(int slot) {
+        if (slot < 0 || slot >= ASSIGNED_SLOTS) {
+            return false;
+        }
+        return setActiveSpellIndex(assignedSpells[slot]);
+    }
+
+    public boolean assignSpellSlot(int slot, int spellIndex) {
+        if (slot < 0 || slot >= ASSIGNED_SLOTS || spellIndex < 0 || spellIndex >= spells.size()) {
+            return false;
+        }
+        assignedSpells[slot] = spellIndex;
+        return true;
+    }
+
     private Optional<WandSpellData> activeSpellData() {
         if (spells.isEmpty()) {
             return Optional.empty();
         }
         return Optional.of(spells.get(activeIndex));
+    }
+
+    private static int[] defaultAssignments(int spellCount) {
+        int[] assignments = new int[ASSIGNED_SLOTS];
+        for (int i = 0; i < assignments.length; i++) {
+            assignments[i] = Math.max(0, Math.min(i, Math.max(0, spellCount - 1)));
+        }
+        return assignments;
+    }
+
+    private static int[] readAssignments(CompoundTag tag, int spellCount) {
+        if (!tag.contains(TAG_ASSIGNED_SPELLS, 9)) {
+            return defaultAssignments(spellCount);
+        }
+
+        ListTag assignedTags = tag.getList(TAG_ASSIGNED_SPELLS, 3);
+        int[] assignments = defaultAssignments(spellCount);
+        for (int i = 0; i < Math.min(assignments.length, assignedTags.size()); i++) {
+            assignments[i] = assignedTags.getInt(i);
+        }
+        return normalizeAssignments(assignments, spellCount);
+    }
+
+    private static int[] normalizeAssignments(int[] input, int spellCount) {
+        int[] assignments = defaultAssignments(spellCount);
+        for (int i = 0; i < assignments.length && i < input.length; i++) {
+            assignments[i] = Math.max(0, Math.min(input[i], Math.max(0, spellCount - 1)));
+        }
+        return assignments;
     }
 
     public static float damageMultiplier(int level) {

@@ -1,11 +1,14 @@
 package com.ourmagic.client;
 
 import com.ourmagic.OurMagic;
+import com.ourmagic.network.ModNetwork;
+import com.ourmagic.network.WandSelectSpellPacket;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.wand.WandData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
@@ -13,11 +16,22 @@ import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.List;
+
 @Mod.EventBusSubscriber(modid = OurMagic.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class WandHudOverlay {
     private static final int WIDTH = 144;
     private static final int BAR_HEIGHT = 7;
     private static final int PADDING = 5;
+    private static final int SPELL_COLUMNS = 3;
+    private static final int VISIBLE_ROWS = 4;
+    private static final int ASSIGNED_SLOTS = 6;
+    private static final int SLOT = 18;
+    private static final int GAP = 2;
+    private static final int LEFT_X = 8;
+    private static final int LEFT_Y = 88;
+    private static int spellScrollOffset;
+    private static int selectedForAssignment = -1;
 
     private WandHudOverlay() {
     }
@@ -33,16 +47,16 @@ public final class WandHudOverlay {
             return;
         }
 
-        ItemStack wand = activeWand(minecraft);
-        if (wand.isEmpty()) {
+        ActiveWand active = activeWand(minecraft);
+        if (active.stack().isEmpty()) {
             return;
         }
 
-        WandData data = WandData.read(wand);
+        WandData data = WandData.read(active.stack());
         int spellCost = data.activeManaCost();
 
         int x = (screenWidth - WIDTH) / 2;
-        int y = screenHeight - 61;
+        int y = screenHeight - 90;
         int panelHeight = 23;
         graphics.fill(x - PADDING, y - PADDING, x + WIDTH + PADDING, y + panelHeight, 0x99000000);
 
@@ -54,17 +68,199 @@ public final class WandHudOverlay {
         drawBar(graphics, x, manaY, WIDTH, BAR_HEIGHT, 0xFF172B45, 0xFF2D8CFF, manaWidth);
         graphics.drawString(minecraft.font, Component.literal("Mana " + ClientManaData.mana() + "/" + ClientManaData.maxMana() + "  +" + ClientManaData.regen() + "/s"), x + 3, manaY - 1, 0xFFFFFFFF, false);
 
+        renderSpellList(graphics, minecraft, data);
+        renderAssignedBar(graphics, minecraft, data, screenWidth, screenHeight);
+        renderHoverTooltip(graphics, minecraft, data, screenWidth, screenHeight);
         renderHotbarCooldowns(graphics, minecraft, screenWidth, screenHeight);
         ClientChantMode.render(graphics, minecraft, screenWidth, screenHeight);
     }
 
-    private static ItemStack activeWand(Minecraft minecraft) {
+    static boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button != 0) {
+            return false;
+        }
+        Minecraft minecraft = Minecraft.getInstance();
+        ActiveWand active = activeWand(minecraft);
+        if (active.stack().isEmpty()) {
+            return false;
+        }
+
+        WandData data = WandData.read(active.stack());
+        int spellIndex = spellListIndexAt(mouseX, mouseY, data.spells().size());
+        if (spellIndex >= 0) {
+            selectedForAssignment = spellIndex;
+            send(active.hand(), WandSelectSpellPacket.Mode.SELECT_INDEX, 0, spellIndex);
+            return true;
+        }
+
+        int assignedSlot = assignedSlotAt(mouseX, mouseY, minecraft.getWindow().getGuiScaledWidth(), minecraft.getWindow().getGuiScaledHeight());
+        if (assignedSlot >= 0) {
+            if (selectedForAssignment >= 0) {
+                send(active.hand(), WandSelectSpellPacket.Mode.ASSIGN, assignedSlot, selectedForAssignment);
+            } else {
+                send(active.hand(), WandSelectSpellPacket.Mode.SELECT_ASSIGNED, assignedSlot, -1);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    static boolean mouseScrolled(double delta) {
+        Minecraft minecraft = Minecraft.getInstance();
+        ActiveWand active = activeWand(minecraft);
+        if (active.stack().isEmpty()) {
+            return false;
+        }
+
+        int spellCount = WandData.read(active.stack()).spells().size();
+        int maxOffset = Math.max(0, rowsFor(spellCount) - VISIBLE_ROWS);
+        int previous = spellScrollOffset;
+        spellScrollOffset = Math.max(0, Math.min(maxOffset, spellScrollOffset - (int) Math.signum(delta)));
+        return previous != spellScrollOffset;
+    }
+
+    static boolean selectAssignedSlot(int slot) {
+        Minecraft minecraft = Minecraft.getInstance();
+        ActiveWand active = activeWand(minecraft);
+        if (active.stack().isEmpty()) {
+            return false;
+        }
+        send(active.hand(), WandSelectSpellPacket.Mode.SELECT_ASSIGNED, slot, -1);
+        return true;
+    }
+
+    private static ActiveWand activeWand(Minecraft minecraft) {
+        if (minecraft.player == null) {
+            return new ActiveWand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        }
         ItemStack mainHand = minecraft.player.getMainHandItem();
         if (isWand(mainHand)) {
-            return mainHand;
+            return new ActiveWand(InteractionHand.MAIN_HAND, mainHand);
         }
         ItemStack offHand = minecraft.player.getOffhandItem();
-        return isWand(offHand) ? offHand : ItemStack.EMPTY;
+        return isWand(offHand) ? new ActiveWand(InteractionHand.OFF_HAND, offHand) : new ActiveWand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+    }
+
+    private static void send(InteractionHand hand, WandSelectSpellPacket.Mode mode, int slot, int spellIndex) {
+        ModNetwork.CHANNEL.sendToServer(new WandSelectSpellPacket(hand, mode, slot, spellIndex));
+    }
+
+    private static void renderSpellList(GuiGraphics graphics, Minecraft minecraft, WandData data) {
+        List<WandData.WandSpellData> spells = data.spells();
+        int rows = VISIBLE_ROWS;
+        int width = SPELL_COLUMNS * SLOT + (SPELL_COLUMNS - 1) * GAP;
+        int height = rows * SLOT + (rows - 1) * GAP;
+        graphics.fill(LEFT_X - 4, LEFT_Y - 15, LEFT_X + width + 4, LEFT_Y + height + 4, 0x99000000);
+        graphics.drawString(minecraft.font, Component.literal("Spells"), LEFT_X, LEFT_Y - 12, 0xFFE6D6FF, false);
+
+        int maxOffset = Math.max(0, rowsFor(spells.size()) - VISIBLE_ROWS);
+        spellScrollOffset = Math.max(0, Math.min(spellScrollOffset, maxOffset));
+        int firstIndex = spellScrollOffset * SPELL_COLUMNS;
+        for (int i = 0; i < SPELL_COLUMNS * VISIBLE_ROWS; i++) {
+            int spellIndex = firstIndex + i;
+            int col = i % SPELL_COLUMNS;
+            int row = i / SPELL_COLUMNS;
+            int x = LEFT_X + col * (SLOT + GAP);
+            int y = LEFT_Y + row * (SLOT + GAP);
+            drawSpellSlot(graphics, minecraft, spells, data.activeIndex(), spellIndex, x, y, spellIndex == selectedForAssignment);
+        }
+    }
+
+    private static void renderAssignedBar(GuiGraphics graphics, Minecraft minecraft, WandData data, int screenWidth, int screenHeight) {
+        List<WandData.WandSpellData> spells = data.spells();
+        List<Integer> assigned = data.assignedSpells();
+        int totalWidth = ASSIGNED_SLOTS * SLOT + (ASSIGNED_SLOTS - 1) * GAP;
+        int startX = (screenWidth - totalWidth) / 2;
+        int y = screenHeight - 60;
+
+        graphics.fill(startX - 4, y - 4, startX + totalWidth + 4, y + SLOT + 14, 0x99000000);
+        for (int slot = 0; slot < ASSIGNED_SLOTS; slot++) {
+            int spellIndex = slot < assigned.size() ? assigned.get(slot) : 0;
+            int x = startX + slot * (SLOT + GAP);
+            drawSpellSlot(graphics, minecraft, spells, data.activeIndex(), spellIndex, x, y, false);
+            String key = String.valueOf(slot + 1);
+            graphics.drawString(minecraft.font, Component.literal(key), x + 7, y + SLOT + 2, 0xFFFFFFFF, false);
+        }
+    }
+
+    private static void drawSpellSlot(GuiGraphics graphics, Minecraft minecraft, List<WandData.WandSpellData> spells, int activeIndex, int spellIndex, int x, int y, boolean selected) {
+        int border = spellIndex == activeIndex ? 0xFF66FFAA : selected ? 0xFFFFD84D : 0xFF6A6078;
+        graphics.fill(x, y, x + SLOT, y + SLOT, 0xCC101018);
+        graphics.fill(x, y, x + SLOT, y + 1, border);
+        graphics.fill(x, y + SLOT - 1, x + SLOT, y + SLOT, border);
+        graphics.fill(x, y, x + 1, y + SLOT, border);
+        graphics.fill(x + SLOT - 1, y, x + SLOT, y + SLOT, border);
+        if (spellIndex < 0 || spellIndex >= spells.size()) {
+            return;
+        }
+
+        WandData.WandSpellData spell = spells.get(spellIndex);
+        int color = iconColor(spell.key());
+        graphics.fill(x + 3, y + 3, x + SLOT - 3, y + SLOT - 3, color);
+        String letter = spell.displayName().isBlank() ? "?" : spell.displayName().substring(0, 1);
+        graphics.drawString(minecraft.font, Component.literal(letter), x + 6, y + 5, 0xFFFFFFFF, true);
+    }
+
+    private static void renderHoverTooltip(GuiGraphics graphics, Minecraft minecraft, WandData data, int screenWidth, int screenHeight) {
+        double mouseX = minecraft.mouseHandler.xpos() * screenWidth / minecraft.getWindow().getScreenWidth();
+        double mouseY = minecraft.mouseHandler.ypos() * screenHeight / minecraft.getWindow().getScreenHeight();
+        int spellIndex = spellListIndexAt(mouseX, mouseY, data.spells().size());
+        if (spellIndex < 0) {
+            int assignedSlot = assignedSlotAt(mouseX, mouseY, screenWidth, screenHeight);
+            if (assignedSlot >= 0 && assignedSlot < data.assignedSpells().size()) {
+                spellIndex = data.assignedSpells().get(assignedSlot);
+            }
+        }
+        if (spellIndex < 0 || spellIndex >= data.spells().size()) {
+            return;
+        }
+
+        WandData.WandSpellData spell = data.spells().get(spellIndex);
+        graphics.renderTooltip(minecraft.font, List.of(
+                Component.literal(spell.displayName()),
+                Component.literal(spell.key()),
+                Component.literal("Mana " + spell.manaCost() + " | Cooldown " + String.format("%.1fs", spell.cooldownTicks() / 20.0F)),
+                Component.literal("Level " + spell.level() + " | Points " + spell.attributePoints())
+        ), java.util.Optional.empty(), (int) mouseX, (int) mouseY);
+    }
+
+    private static int spellListIndexAt(double mouseX, double mouseY, int spellCount) {
+        int width = SPELL_COLUMNS * SLOT + (SPELL_COLUMNS - 1) * GAP;
+        int height = VISIBLE_ROWS * SLOT + (VISIBLE_ROWS - 1) * GAP;
+        if (mouseX < LEFT_X || mouseX >= LEFT_X + width || mouseY < LEFT_Y || mouseY >= LEFT_Y + height) {
+            return -1;
+        }
+        int col = (int) ((mouseX - LEFT_X) / (SLOT + GAP));
+        int row = (int) ((mouseY - LEFT_Y) / (SLOT + GAP));
+        if (col < 0 || col >= SPELL_COLUMNS || row < 0 || row >= VISIBLE_ROWS) {
+            return -1;
+        }
+        int index = (spellScrollOffset + row) * SPELL_COLUMNS + col;
+        return index >= 0 && index < spellCount ? index : -1;
+    }
+
+    private static int assignedSlotAt(double mouseX, double mouseY, int screenWidth, int screenHeight) {
+        int totalWidth = ASSIGNED_SLOTS * SLOT + (ASSIGNED_SLOTS - 1) * GAP;
+        int startX = (screenWidth - totalWidth) / 2;
+        int y = screenHeight - 60;
+        if (mouseY < y || mouseY >= y + SLOT) {
+            return -1;
+        }
+        int slot = (int) ((mouseX - startX) / (SLOT + GAP));
+        int slotX = startX + slot * (SLOT + GAP);
+        return slot >= 0 && slot < ASSIGNED_SLOTS && mouseX >= slotX && mouseX < slotX + SLOT ? slot : -1;
+    }
+
+    private static int rowsFor(int spellCount) {
+        return Math.max(1, (spellCount + SPELL_COLUMNS - 1) / SPELL_COLUMNS);
+    }
+
+    private static int iconColor(String key) {
+        int hash = key.hashCode();
+        int r = 80 + Math.abs(hash & 0x7F);
+        int g = 80 + Math.abs(hash >> 8 & 0x7F);
+        int b = 80 + Math.abs(hash >> 16 & 0x7F);
+        return 0xFF000000 | r << 16 | g << 8 | b;
     }
 
     private static int fillWidth(int value, int max) {
@@ -125,5 +321,8 @@ public final class WandHudOverlay {
 
     private static boolean isWand(ItemStack stack) {
         return stack.is(ModItems.WAND.get()) || stack.is(ModItems.ADMIN_WAND.get());
+    }
+
+    private record ActiveWand(InteractionHand hand, ItemStack stack) {
     }
 }

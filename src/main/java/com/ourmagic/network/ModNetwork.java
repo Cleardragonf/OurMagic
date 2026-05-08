@@ -44,6 +44,11 @@ public final class ModNetwork {
                 .decoder(ChantCastPacket::decode)
                 .consumerMainThread(ChantCastPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(WandSelectSpellPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(WandSelectSpellPacket::encode)
+                .decoder(WandSelectSpellPacket::decode)
+                .consumerMainThread(WandSelectSpellPacket::handle)
+                .add();
     }
 
     public static void syncMana(ServerPlayer player, PlayerMana mana) {
