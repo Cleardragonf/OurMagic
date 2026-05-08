@@ -12,6 +12,10 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 public class SpellcraftMenu extends AbstractContainerMenu {
+    private static final int INVENTORY_X = 124;
+    private static final int INVENTORY_Y = 310;
+    private static final int HOTBAR_Y = 364;
+
     private final Player player;
     private final InteractionHand hand;
 
@@ -72,12 +76,12 @@ public class SpellcraftMenu extends AbstractContainerMenu {
     private void addPlayerInventory(Inventory inventory) {
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9, 142 + column * 18, 238 + row * 18));
+                addSlot(new Slot(inventory, column + row * 9 + 9, INVENTORY_X + column * 18, INVENTORY_Y + row * 18));
             }
         }
 
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, 142 + column * 18, 296));
+            addSlot(new Slot(inventory, column, INVENTORY_X + column * 18, HOTBAR_Y));
         }
     }
 }

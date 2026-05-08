@@ -14,6 +14,8 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,32 +23,36 @@ import java.util.List;
 public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     private static final String MOD_ID = "ourmagic";
     private static final int WIDTH = 512;
-    private static final int HEIGHT = 348;
+    private static final int HEIGHT = 410;
     private static final int EFFECT_X = 30;
     private static final int EFFECT_Y = 94;
     private static final int EFFECT_COLUMNS = 1;
-    private static final int EFFECT_VISIBLE = 3;
+    private static final int EFFECT_VISIBLE = 4;
     private static final int SHAPE_X = 174;
     private static final int SHAPE_Y = 94;
-    private static final int SHAPE_VISIBLE = 3;
+    private static final int SHAPE_VISIBLE = 4;
     private static final int SHAPE_BUTTON_W = 124;
     private static final int BUTTON_W = 112;
-    private static final int BUTTON_H = 32;
+    private static final int BUTTON_H = 34;
     private static final int GAP = 7;
-    private static final int ACTION_SIZE = 24;
-    private static final int LOWER_OFFSET = 28;
+    private static final int ACTION_SIZE = 28;
+    private static final int LOWER_OFFSET = 44;
     private static final int EFFECT_PANEL_X = 18;
     private static final int EFFECT_PANEL_Y = 61;
     private static final int EFFECT_PANEL_W = 142;
-    private static final int EFFECT_PANEL_H = 166;
+    private static final int EFFECT_PANEL_H = 206;
     private static final int SHAPE_PANEL_X = 170;
     private static final int SHAPE_PANEL_Y = 61;
     private static final int SHAPE_PANEL_W = 144;
-    private static final int SHAPE_PANEL_H = 166;
+    private static final int SHAPE_PANEL_H = 206;
     private static final int SPELL_PANEL_X = 324;
     private static final int SPELL_PANEL_Y = 61;
     private static final int SPELL_PANEL_W = 162;
-    private static final int SPELL_PANEL_H = 166;
+    private static final int SPELL_PANEL_H = 206;
+    private static final int LOWER_PANEL_X = 112;
+    private static final int LOWER_PANEL_Y = 292;
+    private static final int LOWER_PANEL_W = 336;
+    private static final int LOWER_PANEL_H = 95;
     private static final int COLOR_FRAME = 0xFFB85CFF;
     private static final int COLOR_FRAME_DARK = 0xFF3A2358;
     private static final int COLOR_PANEL = 0xDD070711;
@@ -91,9 +97,18 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     private static final int FOREGROUND_PANEL_V = 0;
     private static final int FOREGROUND_PANEL_W = 320;
     private static final int FOREGROUND_PANEL_H = 350;
+    private static final int LOWER_PANEL_U = 28;
+    private static final int LOWER_PANEL_V = 820;
+    private static final int LOWER_PANEL_SOURCE_W = 628;
+    private static final int LOWER_PANEL_SOURCE_H = 127;
+    private static final int SLOT_U = 28;
+    private static final int SLOT_V = 578;
+    private static final int SLOT_W = 72;
+    private static final int SLOT_H = 70;
 
     private final List<MagicButton> effectButtons = new ArrayList<>();
     private final List<MagicButton> shapeButtons = new ArrayList<>();
+    private final List<RequirementIcon> requirementIcons = new ArrayList<>();
     private final List<String> selectedEffects = new ArrayList<>();
     private MagicButton clearButton;
     private MagicButton addToWandButton;
@@ -137,11 +152,11 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
 
         addToWandButton = actionButton(438, 88, "W", "Add to wand", b -> craft(CraftSpellPacket.Target.WAND));
         addToWandButton.setActionSprite(ACTION_WAND_U);
-        paperButton = actionButton(438, 122, "P", "Make spell paper", b -> craft(CraftSpellPacket.Target.PAPER));
+        paperButton = actionButton(438, 124, "P", "Make spell paper", b -> craft(CraftSpellPacket.Target.PAPER));
         paperButton.setActionSprite(ACTION_PAPER_U);
-        grimoireButton = actionButton(438, 156, "G", "Add to grimoire", b -> craft(CraftSpellPacket.Target.GRIMOIRE));
+        grimoireButton = actionButton(438, 160, "G", "Add to grimoire", b -> craft(CraftSpellPacket.Target.GRIMOIRE));
         grimoireButton.setActionSprite(ACTION_GRIMOIRE_U);
-        clearButton = actionButton(438, 190, "X", "Clear selection", b -> selectedEffects.clear());
+        clearButton = actionButton(438, 196, "X", "Clear selection", b -> selectedEffects.clear());
         clearButton.setActionSprite(ACTION_CLEAR_U);
     }
 
@@ -162,6 +177,16 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
                 FOREGROUND_PANEL_U, FOREGROUND_PANEL_V, FOREGROUND_PANEL_W, FOREGROUND_PANEL_H, 1536, 1024);
         graphics.blit(SPELLCRAFT_ATLAS, leftPos + SPELL_PANEL_X, topPos + SPELL_PANEL_Y, SPELL_PANEL_W, SPELL_PANEL_H,
                 FOREGROUND_PANEL_U, FOREGROUND_PANEL_V, FOREGROUND_PANEL_W, FOREGROUND_PANEL_H, 1536, 1024);
+        graphics.blit(SPELLCRAFT_ATLAS, leftPos + LOWER_PANEL_X, topPos + LOWER_PANEL_Y, LOWER_PANEL_W, LOWER_PANEL_H,
+                LOWER_PANEL_U, LOWER_PANEL_V, LOWER_PANEL_SOURCE_W, LOWER_PANEL_SOURCE_H, 1536, 1024);
+        renderInventorySlotFrames(graphics);
+    }
+
+    private void renderInventorySlotFrames(GuiGraphics graphics) {
+        for (Slot slot : menu.slots) {
+            graphics.blit(SPELLCRAFT_ATLAS, leftPos + slot.x - 1, topPos + slot.y - 1, 18, 18,
+                    SLOT_U, SLOT_V, SLOT_W, SLOT_H, 1536, 1024);
+        }
     }
 
     @Override
@@ -169,6 +194,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
+        renderRequirementTooltip(graphics, mouseX, mouseY);
     }
 
     @Override
@@ -191,11 +217,11 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         List<String> effects = craftableEffects();
-        List<String> shapes = craftableShapes(effects);
         selectedEffects.removeIf(effect -> !effects.contains(effect));
         if (selectedEffects.isEmpty() && !effects.isEmpty()) {
             selectedEffects.add(effects.get(0));
         }
+        List<String> shapes = craftableShapes(effects);
         selectedShape = Math.max(0, Math.min(selectedShape, Math.max(0, shapes.size() - 1)));
         clampScrolls();
         updateButtons(effects, shapes);
@@ -204,12 +230,12 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         graphics.drawString(font, "1. Choose Effects", 28, 52, COLOR_CYAN, false);
         graphics.drawString(font, "2. Choose Shape", 178, 52, COLOR_GREEN, false);
         graphics.drawString(font, "3. Your Spell", 318, 52, COLOR_GOLD, false);
-        graphics.drawString(font, "Reqs", 28, 226 + LOWER_OFFSET, COLOR_GOLD, false);
-        graphics.drawString(font, "Inventory", 142, 226 + LOWER_OFFSET, COLOR_TEXT, false);
+        graphics.drawString(font, "Inventory", LOWER_PANEL_X + 12, LOWER_PANEL_Y + 4, COLOR_TEXT, false);
 
         renderEffectScroll(graphics, effects.size());
         renderShapeScroll(graphics, shapes.size());
         renderSelectedRecipe(graphics);
+        renderLowerHint(graphics);
     }
 
     private void updateButtons(List<String> effects, List<String> shapes) {
@@ -373,10 +399,13 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
 
     private List<String> craftableShapes(List<String> effects) {
         if (selectedEffects.isEmpty() && !effects.isEmpty()) {
-            return SpellRegistry.allowedShapesForPayloads(List.of(effects.get(0)));
+            return SpellRegistry.allowedShapesForPayloads(List.of(effects.get(0))).stream()
+                    .filter(this::hasAnyShapeRequirement)
+                    .toList();
         }
         return SpellRegistry.allowedShapesForPayloads(selectedEffects).stream()
                 .filter(shape -> !selectedEffects.isEmpty())
+                .filter(this::hasAnyShapeRequirement)
                 .toList();
     }
 
@@ -396,20 +425,49 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         return minecraft != null && minecraft.player != null && SpellIngredients.grimoirePayloads(minecraft.player.getInventory()).contains(payload);
     }
 
+    private boolean hasAnyShapeRequirement(String shape) {
+        return minecraft != null && minecraft.player != null && SpellIngredients.hasAnyShapeRequirement(minecraft.player.getInventory(), shape);
+    }
+
     private void renderRequirements(GuiGraphics graphics, String key) {
+        requirementIcons.clear();
         if (!hasIngredients(key) && isUnlocked(key)) {
-            graphics.drawString(font, "Grimoire", 30, 242 + LOWER_OFFSET, 0xFFB8FFB8, false);
+            graphics.drawString(font, "Known", 30, LOWER_PANEL_Y + 18, 0xFFB8FFB8, false);
             return;
         }
 
         List<SpellIngredients.Requirement> requirements = SpellIngredients.requirementsFor(key);
         int x = 30;
-        int y = 242 + LOWER_OFFSET;
+        int y = LOWER_PANEL_Y - 2;
         for (int i = 0; i < Math.min(5, requirements.size()); i++) {
             SpellIngredients.Requirement requirement = requirements.get(i);
             int amount = minecraft == null || minecraft.player == null ? 0 : SpellIngredients.count(minecraft.player.getInventory(), requirement);
-            String line = compact(requirement.displayName().getString(), 8) + " " + amount + "/" + requirement.count();
-            graphics.drawString(font, line, x, y + i * 10, amount >= requirement.count() ? 0xFFB8FFB8 : 0xFFFF7777, false);
+            int iconY = y + i * 18;
+            ItemStack display = requirement.display().copy();
+            graphics.renderItem(display, x, iconY);
+            String count = amount + "/" + requirement.count();
+            graphics.drawString(font, count, x + 20, iconY + 5, amount >= requirement.count() ? 0xFFB8FFB8 : 0xFFFF7777, false);
+            requirementIcons.add(new RequirementIcon(x, iconY, requirement, amount));
+        }
+    }
+
+    private void renderLowerHint(GuiGraphics graphics) {
+        int centerX = LOWER_PANEL_X + 252;
+        int y = LOWER_PANEL_Y + 38;
+        graphics.drawCenteredString(font, "Select effects and a shape", centerX, y, COLOR_TEXT);
+        graphics.drawCenteredString(font, "to craft your spell.", centerX, y + 12, COLOR_TEXT);
+    }
+
+    private void renderRequirementTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        for (RequirementIcon icon : requirementIcons) {
+            int x = leftPos + icon.x();
+            int y = topPos + icon.y();
+            if (mouseX >= x && mouseX < x + 16 && mouseY >= y && mouseY < y + 16) {
+                Component tooltip = icon.requirement().displayName().copy()
+                        .append(Component.literal(" " + icon.amount() + "/" + icon.requirement().count()));
+                graphics.renderTooltip(font, tooltip, mouseX, mouseY);
+                return;
+            }
         }
     }
 
@@ -424,20 +482,44 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     }
 
     private void renderEffectScroll(GuiGraphics graphics, int total) {
-        renderScroll(graphics, 140, 90, 12, 124, total, EFFECT_VISIBLE);
+        renderScroll(graphics, 140, 90, 12, 164, effectScrollOffset, total, EFFECT_VISIBLE);
     }
 
     private void renderShapeScroll(GuiGraphics graphics, int total) {
-        renderScroll(graphics, 300, 90, 12, 124, total, SHAPE_VISIBLE);
+        renderScroll(graphics, 300, 90, 12, 164, shapeScrollOffset, total, SHAPE_VISIBLE);
     }
 
-    private void renderScroll(GuiGraphics graphics, int x, int y, int width, int height, int total, int visible) {
+    private void renderScroll(GuiGraphics graphics, int x, int y, int width, int height, int offset, int total, int visible) {
         boolean active = total > visible;
         int u = active ? SCROLL_ACTIVE_U : SCROLL_INACTIVE_U;
         int v = active ? SCROLL_ACTIVE_V : SCROLL_INACTIVE_V;
         int sourceWidth = active ? SCROLL_ACTIVE_W : SCROLL_INACTIVE_W;
         int sourceHeight = active ? SCROLL_ACTIVE_H : SCROLL_INACTIVE_H;
-        graphics.blit(SPELLCRAFT_ATLAS, x, y, width, height, u, v, sourceWidth, sourceHeight, 1536, 1024);
+        if (!active) {
+            graphics.blit(SPELLCRAFT_ATLAS, x, y, width, height, u, v, sourceWidth, sourceHeight, 1536, 1024);
+            return;
+        }
+
+        int capHeight = Math.min(18, height / 3);
+        int sourceCapHeight = Math.max(1, SCROLL_ACTIVE_H * capHeight / height);
+        graphics.blit(SPELLCRAFT_ATLAS, x, y, width, capHeight, u, v, sourceWidth, sourceCapHeight, 1536, 1024);
+        graphics.blit(SPELLCRAFT_ATLAS, x, y + height - capHeight, width, capHeight,
+                u, v + SCROLL_ACTIVE_H - sourceCapHeight, sourceWidth, sourceCapHeight, 1536, 1024);
+
+        int scrollAreaY = y + capHeight;
+        int scrollAreaHeight = height - capHeight * 2;
+        int sourceScrollY = v + sourceCapHeight;
+        int sourceScrollHeight = SCROLL_ACTIVE_H - sourceCapHeight * 2;
+        graphics.blit(SPELLCRAFT_ATLAS, x, scrollAreaY, width, scrollAreaHeight,
+                u, sourceScrollY, sourceWidth, sourceScrollHeight, 1536, 1024);
+
+        int thumbSourceHeight = Math.min(120, sourceScrollHeight);
+        int thumbHeight = Math.max(22, Math.min(scrollAreaHeight, scrollAreaHeight * visible / total));
+        int maxOffset = Math.max(1, total - visible);
+        int thumbY = scrollAreaY + (scrollAreaHeight - thumbHeight) * offset / maxOffset;
+        int thumbSourceY = sourceScrollY + Math.max(0, (sourceScrollHeight - thumbSourceHeight) / 2);
+        graphics.blit(SPELLCRAFT_ATLAS, x, thumbY, width, thumbHeight,
+                u, thumbSourceY, sourceWidth, thumbSourceHeight, 1536, 1024);
     }
 
     private static int effectX(int index) {
@@ -471,30 +553,40 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         return tex("icons/effects/" + normalize(effect) + ".png");
     }
 
+    private record RequirementIcon(int x, int y, SpellIngredients.Requirement requirement, int amount) {}
+
     private record AtlasIcon(int u, int v, int w, int h) {}
 
     private static AtlasIcon shapeAtlasIcon(String shape) {
         return switch (normalize(shape)) {
-            case "self" -> new AtlasIcon(62, 84, 212, 207);
-            case "target" -> new AtlasIcon(352, 84, 208, 207);
-            case "point" -> new AtlasIcon(640, 84, 209, 207);
-            case "block" -> new AtlasIcon(920, 84, 210, 207);
-            case "self_aoe" -> new AtlasIcon(1211, 84, 210, 207);
-            case "self_area" -> new AtlasIcon(62, 404, 212, 207);
-            case "target_aoe" -> new AtlasIcon(352, 404, 208, 207);
-            case "target_area" -> new AtlasIcon(640, 404, 209, 207);
-            case "ao" -> new AtlasIcon(920, 404, 210, 207);
-            case "ally_self_aoe" -> new AtlasIcon(1211, 404, 210, 207);
-            case "ally_target_aoe" -> new AtlasIcon(62, 724, 212, 208);
-            case "items_self_aoe" -> new AtlasIcon(352, 724, 208, 208);
-            case "water_target_aoe" -> new AtlasIcon(640, 724, 209, 208);
-            default -> new AtlasIcon(62, 84, 212, 207);
+            case "self" -> new AtlasIcon(86, 106, 165, 163);
+            case "target" -> new AtlasIcon(376, 106, 161, 163);
+            case "point" -> new AtlasIcon(677, 106, 136, 167);
+            case "block" -> new AtlasIcon(949, 107, 153, 161);
+            case "self_aoe" -> new AtlasIcon(1229, 104, 172, 167);
+            case "self_area" -> new AtlasIcon(82, 427, 171, 160);
+            case "target_aoe" -> new AtlasIcon(374, 426, 165, 160);
+            case "target_area" -> new AtlasIcon(667, 426, 156, 162);
+            case "aoe" -> new AtlasIcon(950, 427, 150, 161);
+            case "ally_self_aoe" -> new AtlasIcon(1235, 446, 162, 124);
+            case "ally_target_aoe" -> new AtlasIcon(85, 743, 165, 161);
+            case "items_self_aoe" -> new AtlasIcon(375, 760, 163, 137);
+            case "water_target_aoe" -> new AtlasIcon(661, 745, 167, 161);
+            default -> new AtlasIcon(86, 106, 165, 163);
         };
     }
 
     private static void blitShapeIcon(GuiGraphics graphics, String shape, int x, int y, int size) {
         AtlasIcon icon = shapeAtlasIcon(shape);
-        graphics.blit(SHAPE_ICONS_ATLAS, x, y, size, size, icon.u(), icon.v(), icon.w(), icon.h(), 1536, 1024);
+        int drawWidth = size;
+        int drawHeight = size;
+        if (icon.w() > icon.h()) {
+            drawHeight = Math.max(1, size * icon.h() / icon.w());
+        } else if (icon.h() > icon.w()) {
+            drawWidth = Math.max(1, size * icon.w() / icon.h());
+        }
+        graphics.blit(SHAPE_ICONS_ATLAS, x + (size - drawWidth) / 2, y + (size - drawHeight) / 2, drawWidth, drawHeight,
+                icon.u(), icon.v(), icon.w(), icon.h(), 1536, 1024);
     }
 
     private static String normalize(String value) {
@@ -578,13 +670,16 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
             }
             int color = active ? (goldFrame ? COLOR_GOLD : selected ? COLOR_TEXT : 0xFFD7C3E8) : 0xFF6A6375;
             boolean hasAnyIcon = icon != null || shapeIconKey != null;
+            int iconSize = 18;
+            int iconX = getX() + 11;
+            int iconY = getY() + (height - iconSize) / 2;
             if (icon != null) {
-                blit(graphics, icon, getX() + 12, getY() + (height - 16) / 2, 16, 16, 16, 16);
+                blit(graphics, icon, iconX, iconY, iconSize, iconSize, 16, 16);
             }
             if (shapeIconKey != null) {
-                blitShapeIcon(graphics, shapeIconKey, getX() + 12, getY() + (height - 16) / 2, 16);
+                blitShapeIcon(graphics, shapeIconKey, iconX, iconY, iconSize);
             }
-            int textX = !hasAnyIcon ? getX() + width / 2 - font.width(text) / 2 : getX() + 35;
+            int textX = !hasAnyIcon ? getX() + width / 2 - font.width(text) / 2 : getX() + 37;
             int textY = getY() + (height - font.lineHeight) / 2;
             graphics.drawString(font, text, textX, textY, color, false);
         }
