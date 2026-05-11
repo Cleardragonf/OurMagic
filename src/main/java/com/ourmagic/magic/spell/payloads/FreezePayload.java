@@ -29,7 +29,7 @@ public class FreezePayload implements PayloadEffect {
     public boolean apply(SpellContext context, SpellTarget target) {
         boolean applied = false;
         if (target.entity().isPresent() && target.entity().get() instanceof LivingEntity living) {
-            living.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, Math.round(100 * context.data().activeUtilityMultiplier() * context.durationMultiplier() * context.modifierPower()), 2));
+            living.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, Math.round(100 * context.data().activeUtilityMultiplier() * context.durationMultiplier()), 2));
             applied = true;
         }
         if (target.block().isPresent() && context.level().getBlockState(target.block().get()).is(Blocks.WATER)) {

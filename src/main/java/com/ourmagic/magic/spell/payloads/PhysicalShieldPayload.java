@@ -67,7 +67,7 @@ public class PhysicalShieldPayload implements PayloadEffect {
 
         int placed = 0;
         for (BlockPos pos : positions) {
-            if (placeShield(serverLevel, pos)) {
+            if (placeShield(serverLevel, pos, Math.round(LIFETIME_TICKS * context.durationMultiplier()))) {
                 placed++;
             }
         }
@@ -79,9 +79,9 @@ public class PhysicalShieldPayload implements PayloadEffect {
         return placed > 0;
     }
 
-    private static boolean placeShield(ServerLevel level, BlockPos pos) {
+    private static boolean placeShield(ServerLevel level, BlockPos pos, int lifetimeTicks) {
         Block shield = ModBlocks.TEMPORARY_SHIELD.get();
-        return TemporaryShieldBlock.place(level, pos, shield.defaultBlockState(), LIFETIME_TICKS);
+        return TemporaryShieldBlock.place(level, pos, shield.defaultBlockState(), lifetimeTicks);
     }
 
     private static Set<BlockPos> flatWall(BlockPos center, int size, Direction right) {

@@ -28,6 +28,7 @@ public class BaseSpell implements Spell {
     private final SpellEffect effect;
     private final Set<String> supportedUpgrades;
     private final boolean physical;
+    private final Spell.FocusEffect focusEffect;
 
     protected BaseSpell(String key, int manaCost, int cooldownTicks, SpellEffect effect, String... supportedUpgrades) {
         this(key, manaCost, manaCost, cooldownTicks, cooldownTicks, effect, false, supportedUpgrades);
@@ -38,6 +39,10 @@ public class BaseSpell implements Spell {
     }
 
     protected BaseSpell(String key, int minManaCost, int maxManaCost, int minCooldownTicks, int maxCooldownTicks, SpellEffect effect, boolean physical, String... supportedUpgrades) {
+        this(key, minManaCost, maxManaCost, minCooldownTicks, maxCooldownTicks, effect, physical, Spell.FocusEffect.UTILITY, supportedUpgrades);
+    }
+
+    protected BaseSpell(String key, int minManaCost, int maxManaCost, int minCooldownTicks, int maxCooldownTicks, SpellEffect effect, boolean physical, Spell.FocusEffect focusEffect, String... supportedUpgrades) {
         this.key = key;
         this.minManaCost = Math.max(0, Math.min(minManaCost, maxManaCost));
         this.maxManaCost = Math.max(this.minManaCost, Math.max(minManaCost, maxManaCost));
@@ -45,6 +50,7 @@ public class BaseSpell implements Spell {
         this.maxCooldownTicks = Math.max(this.minCooldownTicks, Math.max(minCooldownTicks, maxCooldownTicks));
         this.effect = effect;
         this.physical = physical;
+        this.focusEffect = focusEffect;
         this.supportedUpgrades = Set.of(supportedUpgrades);
     }
 
@@ -89,17 +95,22 @@ public class BaseSpell implements Spell {
     }
 
     @Override
+    public Spell.FocusEffect focusEffect() {
+        return focusEffect;
+    }
+
+    @Override
     public boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data) {
         return cast(level, player, wand, data, 1.0F);
     }
 
     @Override
-    public boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data, float chantMultiplier) {
+    public boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data, float focusMultiplier) {
         SpellEffect castEffect = effect;
         for (SpellModifier modifier : MODIFIERS) {
             castEffect = modifier.wrap(this, castEffect);
         }
-        float multiplier = Math.max(1.0F, Math.min(100.0F, chantMultiplier));
+        float multiplier = Math.max(1.0F, Math.min(100.0F, focusMultiplier));
         return castEffect.cast(new SpellContext(level, player, wand, data, this, 0, 1, multiplier, true, false, java.util.Optional.empty()));
     }
 

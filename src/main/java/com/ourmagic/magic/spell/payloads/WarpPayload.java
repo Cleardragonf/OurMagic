@@ -29,7 +29,7 @@ public class WarpPayload implements PayloadEffect {
             return false;
         }
 
-        int duration = Math.round(120 * context.data().activeUtilityMultiplier() * context.durationMultiplier() * context.modifierPower());
+        int duration = Math.round(120 * context.data().activeUtilityMultiplier() * context.durationMultiplier());
         MagicStatusEffects.warp(player, duration);
         context.beam(target.position(), ParticleTypes.PORTAL);
         context.burst(player.position().add(0, player.getBbHeight() * 0.5D, 0), ParticleTypes.PORTAL, 55, 0.65D, 0.1D);

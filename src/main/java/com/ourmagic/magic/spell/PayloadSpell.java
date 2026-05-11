@@ -1,5 +1,6 @@
 package com.ourmagic.magic.spell;
 
+import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.spell.runtime.ComposedSpellEffect;
 import com.ourmagic.magic.spell.payloads.PayloadEffect;
 import com.ourmagic.magic.spell.shapes.SpellShape;
@@ -20,5 +21,9 @@ public class PayloadSpell extends BaseSpell {
 
     public PayloadSpell(String key, int minManaCost, int maxManaCost, int minCooldownTicks, int maxCooldownTicks, SpellShape shape, PayloadEffect payload, ParticleOptions chainParticle, boolean physical, String... supportedUpgrades) {
         super(key, minManaCost, maxManaCost, minCooldownTicks, maxCooldownTicks, new ComposedSpellEffect(shape, payload, chainParticle), physical, supportedUpgrades);
+    }
+
+    public PayloadSpell(String key, int minManaCost, int maxManaCost, int minCooldownTicks, int maxCooldownTicks, SpellShape shape, PayloadEffect payload, ParticleOptions chainParticle, boolean physical, Spell.FocusEffect focusEffect, String... supportedUpgrades) {
+        super(key, minManaCost, maxManaCost, minCooldownTicks, maxCooldownTicks, new ComposedSpellEffect(shape, payload, chainParticle), physical, focusEffect, supportedUpgrades);
     }
 }
