@@ -563,12 +563,9 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
             case "target" -> new AtlasIcon(376, 106, 161, 163);
             case "point" -> new AtlasIcon(677, 106, 136, 167);
             case "block" -> new AtlasIcon(949, 107, 153, 161);
-            case "self_aoe" -> new AtlasIcon(1229, 104, 172, 167);
-            case "self_area" -> new AtlasIcon(82, 427, 171, 160);
             case "target_aoe" -> new AtlasIcon(374, 426, 165, 160);
-            case "target_area" -> new AtlasIcon(667, 426, 156, 162);
             case "aoe" -> new AtlasIcon(950, 427, 150, 161);
-            case "ally_self_aoe" -> new AtlasIcon(1235, 446, 162, 124);
+            case "ally_aoe" -> new AtlasIcon(1235, 446, 162, 124);
             case "ally_target_aoe" -> new AtlasIcon(85, 743, 165, 161);
             case "items_self_aoe" -> new AtlasIcon(375, 760, 163, 137);
             case "water_target_aoe" -> new AtlasIcon(661, 745, 167, 161);

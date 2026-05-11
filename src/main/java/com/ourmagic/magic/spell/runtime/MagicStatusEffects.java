@@ -48,10 +48,15 @@ public final class MagicStatusEffects {
         entity.setDeltaMovement(Vec3.ZERO);
     }
 
-    public static void stun(ServerPlayer player, int ticks) {
-        STUNNED.put(player.getUUID(), new StunState(ticks, player.position()));
-        player.setDeltaMovement(Vec3.ZERO);
-        player.setPose(Pose.SLEEPING);
+    public static void stun(LivingEntity entity, int ticks) {
+        STUNNED.put(entity.getUUID(), new StunState(ticks, entity.position()));
+        entity.setDeltaMovement(Vec3.ZERO);
+        if (entity instanceof Mob mob) {
+            mob.setTarget(null);
+        }
+        if (entity instanceof ServerPlayer player) {
+            player.setPose(Pose.SLEEPING);
+        }
     }
 
     public static void warp(ServerPlayer player, int ticks) {
@@ -171,28 +176,33 @@ public final class MagicStatusEffects {
                 }
             }
         }
+
+        StunState stun = STUNNED.get(entity.getUUID());
+        if (stun != null && entity.level() instanceof ServerLevel serverLevel) {
+            entity.setDeltaMovement(Vec3.ZERO);
+            entity.teleportTo(stun.anchor().x, stun.anchor().y, stun.anchor().z);
+            if (entity instanceof Mob mob) {
+                mob.setTarget(null);
+            }
+            if (entity instanceof ServerPlayer player) {
+                player.setPose(Pose.SLEEPING);
+            }
+            if (stun.ticks() <= 1) {
+                STUNNED.remove(entity.getUUID());
+                wake(entity);
+            } else {
+                STUNNED.put(entity.getUUID(), new StunState(stun.ticks() - 1, stun.anchor()));
+            }
+            if (entity.tickCount % 10 == 0) {
+                serverLevel.sendParticles(ParticleTypes.WITCH, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 6, 0.25D, 0.2D, 0.25D, 0.01D);
+            }
+        }
     }
 
     @SubscribeEvent
     public static void playerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)) {
             return;
-        }
-
-        StunState stun = STUNNED.get(player.getUUID());
-        if (stun != null) {
-            player.setDeltaMovement(Vec3.ZERO);
-            player.teleportTo(stun.anchor().x, stun.anchor().y, stun.anchor().z);
-            player.setPose(Pose.SLEEPING);
-            if (stun.ticks() <= 1) {
-                STUNNED.remove(player.getUUID());
-                player.setPose(Pose.STANDING);
-            } else {
-                STUNNED.put(player.getUUID(), new StunState(stun.ticks() - 1, stun.anchor()));
-            }
-            if (player.level() instanceof ServerLevel serverLevel && player.tickCount % 10 == 0) {
-                serverLevel.sendParticles(ParticleTypes.WITCH, player.getX(), player.getY() + 0.8D, player.getZ(), 6, 0.25D, 0.2D, 0.25D, 0.01D);
-            }
         }
 
         WarpState warp = WARPED.get(player.getUUID());

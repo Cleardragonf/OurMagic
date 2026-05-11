@@ -1,9 +1,11 @@
 package com.ourmagic.magic.spell.shapes;
 
 import com.ourmagic.magic.spell.runtime.SpellContext;
+import com.ourmagic.magic.spell.runtime.MagicAllies;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
@@ -34,6 +36,38 @@ public final class AreaSelectors {
 
     public static AreaSelector playersAroundTarget(double baseRadius, int maxExtraTargets, boolean includeOrigin) {
         return entitiesAroundTarget(baseRadius, true, maxExtraTargets, includeOrigin, entity -> entity instanceof Player);
+    }
+
+    public static AreaSelector alliesAroundTarget(double baseRadius, int maxExtraTargets, boolean includeOrigin) {
+        return new AreaSelector() {
+            @Override
+            public List<SpellTarget> select(SpellContext context, SpellTarget origin) {
+                double radius = radius(context);
+                List<SpellTarget> targets = new ArrayList<>();
+                origin.entity()
+                        .filter(entity -> includeOrigin && MagicAllies.isAlly(context.player(), entity))
+                        .ifPresent(entity -> targets.add(SpellTarget.entity(entity)));
+                if (radius <= 0.0D) {
+                    return targets;
+                }
+
+                AABB bounds = new AABB(origin.position(), origin.position()).inflate(radius);
+                List<LivingEntity> candidates = new ArrayList<>(context.level().getEntitiesOfClass(LivingEntity.class, bounds, entity -> entity.isAlive() && MagicAllies.isAlly(context.player(), entity)));
+                origin.entity().ifPresent(originEntity -> candidates.removeIf(candidate -> candidate == originEntity));
+                Collections.shuffle(candidates, new Random(context.player().getRandom().nextLong()));
+
+                int limit = maxExtraTargets <= 0 ? candidates.size() : Math.min(maxExtraTargets, candidates.size());
+                for (int i = 0; i < limit; i++) {
+                    targets.add(SpellTarget.entity(candidates.get(i)));
+                }
+                return targets;
+            }
+
+            @Override
+            public double radius(SpellContext context) {
+                return baseRadius * context.data().power() * context.data().activeUtilityMultiplier() * context.radiusMultiplier();
+            }
+        };
     }
 
     public static AreaSelector livingAroundTarget(double baseRadius, boolean scaleWithRadiusUpgrade, int maxExtraTargets, boolean includeOrigin) {

@@ -2,6 +2,7 @@ package com.ourmagic.magic.spell.runtime;
 
 import com.ourmagic.magic.spell.shapes.*;
 
+import com.ourmagic.magic.spell.payloads.MissilePayload;
 import com.ourmagic.magic.spell.payloads.PayloadEffect;
 
 import net.minecraft.core.particles.ParticleOptions;
@@ -46,9 +47,9 @@ public class ComposedSpellEffect implements ChainableEffect {
                     double radius = areaSelector.radius(context);
                     if (radius > 0.0D) {
                         if (origin.entity().map(entity -> entity != context.player()).orElse(true)) {
-                            context.beam(origin.position(), chainParticle);
+                            context.beam(origin.position(), targetingParticle(context));
                         }
-                        areaRingParticle.ifPresent(particle -> context.ring(origin.position(), particle, radius, 36));
+                        areaRingParticle.ifPresent(particle -> context.lingeringRing(origin.position(), particle, radius));
                     }
 
                     List<SpellTarget> targets = areaSelector.select(context, origin);
@@ -77,6 +78,10 @@ public class ComposedSpellEffect implements ChainableEffect {
     @Override
     public ParticleOptions chainParticle() {
         return chainParticle;
+    }
+
+    private ParticleOptions targetingParticle(SpellContext context) {
+        return context.targetAoeShape() ? MissilePayload.PURPLE_PARTICLE : chainParticle;
     }
 
     @Override

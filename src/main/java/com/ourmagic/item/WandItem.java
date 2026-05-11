@@ -128,13 +128,18 @@ public class WandItem extends Item {
             }
             int xp = Math.max(1, Math.round(5 * data.xpMultiplier()));
             int levelsGained = data.addActiveSpellXp(xp);
+            int magicLevelsGained = mana.addMagicXp(Math.max(1, Math.round(xp * 0.10F)));
             if (levelsGained > 0) {
                 celebrateSpellLevelUp(player, data.activeSpellName());
+            }
+            if (magicLevelsGained > 0) {
+                player.displayClientMessage(Component.literal("Your magic reached level " + mana.magicLevel() + ".").withStyle(ChatFormatting.LIGHT_PURPLE), true);
             }
             int wandLevelsGained = data.addWandXp(xp);
             if (wandLevelsGained > 0) {
                 player.displayClientMessage(Component.literal("Your wand reached level " + data.wandLevel() + ".").withStyle(ChatFormatting.GOLD), true);
             }
+            ModNetwork.syncMana(player, mana);
             data.setCooldownUntil(level.getGameTime() + cooldownTicks);
             data.save(stack);
             player.getInventory().setChanged();

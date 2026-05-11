@@ -1,6 +1,7 @@
 package com.ourmagic.registry;
 
 import com.ourmagic.OurMagic;
+import com.ourmagic.item.GuideBookItem;
 import com.ourmagic.item.GrimoireItem;
 import com.ourmagic.item.SpellFocusItem;
 import com.ourmagic.item.WandItem;
@@ -18,6 +19,7 @@ public final class ModItems {
     public static final RegistryObject<Item> ADMIN_WAND = ITEMS.register("admin_wand", () -> new WandItem(new Item.Properties().stacksTo(1), true));
     public static final RegistryObject<Item> SPELL_FOCUS = ITEMS.register("spell_focus", () -> new SpellFocusItem(new Item.Properties()));
     public static final RegistryObject<Item> GRIMOIRE = ITEMS.register("grimoire", () -> new GrimoireItem(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> GUIDE_BOOK = ITEMS.register("guide_book", () -> new GuideBookItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> LIGHTNING_TALISMAN = ITEMS.register("lightning_talisman", () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> ANCHOR_TALISMAN = ITEMS.register("anchor_talisman", () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> SEEKER_TALISMAN = ITEMS.register("seeker_talisman", () -> new Item(new Item.Properties()));

@@ -68,6 +68,10 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
         return SpellRegistry.shapeKey(spell.key()).contains("self");
     }
 
+    public boolean targetAoeShape() {
+        return SpellRegistry.shapeKey(spell.key()).equals("target_aoe");
+    }
+
     public HitResult raycast(double distance) {
         Vec3 eye = player.getEyePosition();
         Vec3 end = eye.add(player.getLookAngle().scale(distance));
@@ -174,11 +178,38 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
             return;
         }
 
+        drawRingFrame(serverLevel, center, particle, radius, count, 0.0D, 0.0D);
+    }
+
+    public void lingeringRing(Vec3 center, ParticleOptions particle, double radius) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        int frames = 10;
+        for (int frame = 0; frame < frames; frame++) {
+            int currentFrame = frame;
+            DelayedSpellCasts.schedule(serverLevel, frame * 2, () -> {
+                double progress = currentFrame / (double) Math.max(1, frames - 1);
+                double bounce = Math.sin(progress * Math.PI) * 0.28D;
+                double pulse = 1.0D + Math.sin(progress * Math.PI * 2.0D) * 0.055D;
+                int count = 44 + (currentFrame % 2) * 8;
+                drawRingFrame(serverLevel, center, particle, radius * pulse, count, bounce, 0.025D);
+                drawRingFrame(serverLevel, center, ParticleTypes.END_ROD, radius * (pulse + 0.018D), 18, bounce + 0.03D, 0.012D);
+                if (currentFrame == 0 || currentFrame == frames - 1) {
+                    serverLevel.sendParticles(ParticleTypes.FLASH, center.x, center.y + bounce + 0.08D, center.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                }
+            });
+        }
+    }
+
+    private static void drawRingFrame(ServerLevel serverLevel, Vec3 center, ParticleOptions particle, double radius, int count, double yOffset, double speed) {
         for (int i = 0; i < count; i++) {
             double angle = (Math.PI * 2.0D * i) / count;
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
-            serverLevel.sendParticles(particle, x, center.y, z, 1, 0.0D, 0.04D, 0.0D, 0.0D);
+            double y = center.y + yOffset;
+            serverLevel.sendParticles(particle, x, y, z, 1, 0.0D, 0.035D, 0.0D, speed);
         }
     }
 }

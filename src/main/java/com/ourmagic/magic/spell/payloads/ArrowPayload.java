@@ -28,12 +28,13 @@ public class ArrowPayload implements PayloadEffect {
         Arrow arrow = new Arrow(context.level(), context.player());
         arrow.setBaseDamage(3.0D * context.damagePower());
         if (context.areaCast()) {
-            Vec3 targetPos = target.position();
-            Vec3 start = context.areaOrigin().orElse(context.player().getEyePosition());
+            Vec3 targetPos = target.entity()
+                    .map(entity -> entity.position().add(0.0D, entity.getBbHeight() * 0.5D, 0.0D))
+                    .orElse(target.position());
+            Vec3 start = context.areaOrigin().orElse(context.player().getEyePosition()).add(0.0D, 0.9D, 0.0D);
             if (start.distanceToSqr(targetPos) < 0.001D) {
-                start = start.add(0.0D, 1.0D, 0.0D);
+                targetPos = targetPos.add(context.player().getLookAngle().scale(1.0D));
             }
-            start = start.add((context.castIndex() - (context.castCount() - 1) / 2.0F) * 0.25D, 0.35D, 0.0D);
             arrow.setPos(start.x, start.y, start.z);
             arrow.shoot(targetPos.x - start.x, targetPos.y - start.y, targetPos.z - start.z, 2.6F, 0.15F);
             context.burst(start, ParticleTypes.ENCHANTED_HIT, 6, 0.12D, 0.01D);

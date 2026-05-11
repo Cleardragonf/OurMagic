@@ -2,6 +2,7 @@ package com.ourmagic.magic.spell.payloads;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.spell.runtime.MagicAllies;
 import com.ourmagic.magic.spell.runtime.SpellBuildContext;
 import com.ourmagic.magic.spell.runtime.SpellContext;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
@@ -10,6 +11,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
@@ -30,6 +32,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -67,7 +70,7 @@ public class SummonPayload implements PayloadEffect {
 
     @Override
     public java.util.Set<String> supportedUpgrades(SpellBuildContext context) {
-        return java.util.Set.of(Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_DURATION, Spell.UPGRADE_DAMAGE);
+        return java.util.Set.of(Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_DURATION, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_RANGE);
     }
 
     @Override
@@ -86,6 +89,7 @@ public class SummonPayload implements PayloadEffect {
             mob.setCustomName(Component.literal("Summoned " + title(mob.getType().getDescription().getString())));
             mob.setPersistenceRequired();
             empower(mob, context);
+            MagicAllies.markSummonOwner(mob, context.player().getUUID());
             level.addFreshEntity(mob);
             SUMMONS.add(new SummonedEntity(level, mob.getUUID(), context.player().getUUID(), lifetime, context.damagePower(), variant));
             spawned = true;
@@ -165,8 +169,13 @@ public class SummonPayload implements PayloadEffect {
             if (entity.tickCount % 20 == 0) {
                 tickSpecial(summon, entity);
             }
-            if (entity instanceof Mob mob && mob.getTarget() == null) {
-                nearestEnemy(summon, entity).ifPresent(mob::setTarget);
+            if (entity instanceof Mob mob) {
+                if (MagicAllies.sameSummonOwner(entity, mob.getTarget())) {
+                    mob.setTarget(null);
+                }
+                if (mob.getTarget() == null) {
+                    nearestEnemy(summon, entity).ifPresent(mob::setTarget);
+                }
             }
         }
     }
@@ -177,9 +186,20 @@ public class SummonPayload implements PayloadEffect {
 
     private static java.util.Optional<LivingEntity> nearestEnemy(SummonedEntity summon, LivingEntity entity) {
         AABB area = entity.getBoundingBox().inflate(10.0D);
-        return summon.level.getEntitiesOfClass(LivingEntity.class, area, candidate -> candidate.isAlive() && !candidate.getUUID().equals(summon.owner) && !candidate.getUUID().equals(summon.entity) && !(candidate instanceof Villager))
+        return summon.level.getEntitiesOfClass(LivingEntity.class, area, candidate -> candidate.isAlive() && !candidate.getUUID().equals(summon.owner) && !candidate.getUUID().equals(summon.entity) && !MagicAllies.sameSummonOwner(entity, candidate) && !(candidate instanceof Villager))
                 .stream()
                 .min(java.util.Comparator.comparingDouble(candidate -> candidate.distanceToSqr(entity)));
+    }
+
+    @SubscribeEvent
+    public static void livingAttack(LivingAttackEvent event) {
+        DamageSource source = event.getSource();
+        if (source.getEntity() instanceof LivingEntity attacker && MagicAllies.sameSummonOwner(attacker, event.getEntity())) {
+            event.setCanceled(true);
+            if (attacker instanceof Mob mob) {
+                mob.setTarget(null);
+            }
+        }
     }
 
     private static void tickSpecial(SummonedEntity summon, LivingEntity entity) {

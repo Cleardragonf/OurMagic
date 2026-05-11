@@ -16,11 +16,11 @@ admin:
         - missile@self
         - cloak
         - time
-        - heal@ally_self_aoe
+        - heal@ally_aoe
         - phase
         - gather@items_self_aoe
         - supergather
-        - regenerate@ally_self_aoe
+        - regenerate@ally_aoe
         - superregenerate
         - pickpocket
         - backup
@@ -296,7 +296,7 @@ apprentice:
       - entangle
       - curse
       - vengeance
-      - heal@ally_self_aoe
+      - heal@ally_aoe
 
       # Apprentice
       - newpage
@@ -491,7 +491,7 @@ borealis:
         - missile@self
         - boon|2
         - push@target
-        - heal@ally_self_aoe
+        - heal@ally_aoe
         - pull
         - day
         - shell
@@ -875,7 +875,7 @@ developer:
         - debugger
         - testdummy
         - time
-        - heal@ally_self_aoe
+        - heal@ally_aoe
         - phase
         - gather@items_self_aoe
         - supergather
@@ -1363,7 +1363,7 @@ master:
       - entangle
       - curse
       - vengeance
-      - heal@ally_self_aoe
+      - heal@ally_aoe
 
       # Apprentice
       - newpage
@@ -1540,7 +1540,7 @@ miniwolf:
         - shrink
         - blob
         - blessing
-        - heal@ally_self_aoe
+        - heal@ally_aoe
         - wither
         - recall
         - phase
@@ -1665,7 +1665,7 @@ purger:
   - collapse
   - boom
   - grenade
-  - heal@ally_self_aoe
+  - heal@ally_aoe
   - boon
   - cure
   - rubberize
@@ -1923,7 +1923,7 @@ staff:
     - blink@point
     - cloak
     - gather@items_self_aoe
-    - heal@ally_self_aoe
+    - heal@ally_aoe
     - levitate@target
     - missile@self
     - pickpocket
@@ -2001,7 +2001,7 @@ student:
       - entangle
       - curse
       - vengeance
-      - heal@ally_self_aoe
+      - heal@ally_aoe
 
       # Extra spells
       - newpage

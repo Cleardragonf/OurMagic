@@ -21,6 +21,7 @@ public final class ClientSetup {
         event.enqueueWork(() -> {
             MenuScreens.register(ModMenus.WAND.get(), WandScreen::new);
             MenuScreens.register(ModMenus.SPELLCRAFT.get(), SpellcraftScreen::new);
+            MenuScreens.register(ModMenus.PLAYER_UPGRADES.get(), PlayerUpgradeScreen::new);
             ItemBlockRenderTypes.setRenderLayer(ModBlocks.TEMPORARY_SHIELD.get(), RenderType.translucent());
         });
     }

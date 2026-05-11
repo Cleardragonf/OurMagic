@@ -138,8 +138,8 @@ public record SpellInstance(String key, String displayName, int manaCost, int co
                 case "target" -> "Spell";
                 case "point" -> "Cast";
                 case "block" -> "Rune";
-                case "self_aoe", "self_area", "ally_self_aoe" -> "Aura";
-                case "target_aoe", "target_area", "ally_target_aoe", "aoe" -> "Burst";
+                case "aoe", "ally_aoe" -> "Aura";
+                case "target_aoe", "ally_target_aoe" -> "Burst";
                 default -> "Spell";
             };
         }

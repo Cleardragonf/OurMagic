@@ -208,10 +208,9 @@ public final class SpellIngredients {
             case "target" -> List.of(item("seeker_talisman", ModItems.SEEKER_TALISMAN.get(), 1));
             case "point" -> List.of(item("waypoint_talisman", ModItems.WAYPOINT_TALISMAN.get(), 1));
             case "block" -> List.of(item("mason_talisman", ModItems.MASON_TALISMAN.get(), 1));
-            case "self_aoe", "self_area" -> List.of(item("pulse_talisman", ModItems.PULSE_TALISMAN.get(), 2));
-            case "target_aoe", "target_area" -> List.of(item("stormcall_talisman", ModItems.STORMCALL_TALISMAN.get(), 2));
+            case "target_aoe" -> List.of(item("stormcall_talisman", ModItems.STORMCALL_TALISMAN.get(), 2));
             case "aoe" -> List.of(item("conflux_talisman", ModItems.CONFLUX_TALISMAN.get(), 2));
-            case "ally_self_aoe" -> List.of(item("sanctuary_talisman", ModItems.SANCTUARY_TALISMAN.get(), 2));
+            case "ally_aoe" -> List.of(item("sanctuary_talisman", ModItems.SANCTUARY_TALISMAN.get(), 2));
             case "ally_target_aoe" -> List.of(item("beacon_talisman", ModItems.BEACON_TALISMAN.get(), 2));
             case "items_self_aoe" -> List.of(item("magnet_talisman", ModItems.MAGNET_TALISMAN.get(), 2));
             case "water_target_aoe" -> List.of(item("tide_talisman", ModItems.TIDE_TALISMAN.get(), 2));

@@ -54,9 +54,43 @@ public final class ModNetwork {
                 .decoder(WandSelectSpellPacket::decode)
                 .consumerMainThread(WandSelectSpellPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(PlayerUpgradePacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(PlayerUpgradePacket::encode)
+                .decoder(PlayerUpgradePacket::decode)
+                .consumerMainThread(PlayerUpgradePacket::handle)
+                .add();
+        CHANNEL.messageBuilder(ScryMarksPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(ScryMarksPacket::encode)
+                .decoder(ScryMarksPacket::decode)
+                .consumerMainThread(ScryMarksPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(ScrySelectPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ScrySelectPacket::encode)
+                .decoder(ScrySelectPacket::decode)
+                .consumerMainThread(ScrySelectPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(ScryStatePacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(ScryStatePacket::encode)
+                .decoder(ScryStatePacket::decode)
+                .consumerMainThread(ScryStatePacket::handle)
+                .add();
+        CHANNEL.messageBuilder(ScryCommandPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ScryCommandPacket::encode)
+                .decoder(ScryCommandPacket::decode)
+                .consumerMainThread(ScryCommandPacket::handle)
+                .add();
     }
 
     public static void syncMana(ServerPlayer player, PlayerMana mana) {
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ManaSyncPacket(mana.mana(), mana.maxMana(), mana.regen()));
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ManaSyncPacket(mana.mana(), mana.maxMana(), mana.regen(),
+                mana.magicLevel(), mana.magicXp(), mana.magicXpToNextLevel(), mana.magicPoints()));
+    }
+
+    public static void sendScryMarks(ServerPlayer player, java.util.List<ScryMarksPacket.Entry> entries) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ScryMarksPacket(entries));
+    }
+
+    public static void syncScryState(ServerPlayer player, boolean active, String targetName, int targetIndex, int targetCount, int ticksRemaining) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ScryStatePacket(active, targetName, targetIndex, targetCount, ticksRemaining));
     }
 }
