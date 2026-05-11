@@ -44,6 +44,11 @@ public final class ModNetwork {
                 .decoder(FocusCastPacket::decode)
                 .consumerMainThread(FocusCastPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(ChantingPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ChantingPacket::encode)
+                .decoder(ChantingPacket::decode)
+                .consumerMainThread(ChantingPacket::handle)
+                .add();
         CHANNEL.messageBuilder(WandSelectSpellPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(WandSelectSpellPacket::encode)
                 .decoder(WandSelectSpellPacket::decode)

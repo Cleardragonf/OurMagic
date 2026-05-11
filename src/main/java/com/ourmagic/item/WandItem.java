@@ -2,6 +2,7 @@ package com.ourmagic.item;
 
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellInstance;
+import com.ourmagic.magic.PlayerChanting;
 import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.magic.spell.runtime.MagicStatusEffects;
 import com.ourmagic.mana.PlayerMana;
@@ -103,16 +104,24 @@ public class WandItem extends Item {
             return false;
         }
 
+        PlayerChanting.Bonus chantingBonus = PlayerChanting.currentBonus(player, spell).orElse(null);
         PlayerMana mana = PlayerMana.get(player);
         int manaCost = data.activeManaCost();
+        if (chantingBonus != null) {
+            manaCost = Math.max(1, Math.round(manaCost * chantingBonus.manaCostMultiplier()));
+        }
         int cooldownTicks = data.activeCooldownTicks();
         if (!player.getAbilities().instabuild && !mana.has(manaCost)) {
             player.displayClientMessage(Component.translatable("message.ourmagic.no_mana").withStyle(ChatFormatting.RED), true);
             return false;
         }
 
-        boolean cast = spell.cast(level, player, stack, data, focusMultiplier);
+        float castMultiplier = focusMultiplier * (chantingBonus == null ? 1.0F : chantingBonus.powerMultiplier());
+        boolean cast = spell.cast(level, player, stack, data, castMultiplier);
         if (cast) {
+            if (chantingBonus != null) {
+                PlayerChanting.consume(player, spell);
+            }
             if (!player.getAbilities().instabuild) {
                 mana.spend(manaCost);
                 ModNetwork.syncMana(player, mana);
@@ -129,6 +138,9 @@ public class WandItem extends Item {
             data.setCooldownUntil(level.getGameTime() + cooldownTicks);
             data.save(stack);
             player.getInventory().setChanged();
+            if (chantingBonus != null) {
+                celebrateChant(player, chantingBonus.level());
+            }
         }
 
         return cast;
@@ -266,5 +278,13 @@ public class WandItem extends Item {
         Component message = Component.literal("Your " + spellName + " has leveled up!").withStyle(ChatFormatting.GOLD);
         player.connection.send(new ClientboundSetTitleTextPacket(message));
         player.displayClientMessage(message, true);
+    }
+
+    private static void celebrateChant(ServerPlayer player, int level) {
+        if (player.level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(ParticleTypes.GLOW, player.getX(), player.getY() + 1.0D, player.getZ(), 20 + level * 10, 0.45D, 0.65D, 0.45D, 0.03D);
+            serverLevel.playSound(null, player.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.65F, 1.0F + level * 0.08F);
+        }
+        player.displayClientMessage(Component.literal("Chant level " + level + " empowered the spell.").withStyle(ChatFormatting.LIGHT_PURPLE), true);
     }
 }

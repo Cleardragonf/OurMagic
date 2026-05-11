@@ -46,6 +46,10 @@ public interface Spell {
         return false;
     }
 
+    default boolean supportsChanting() {
+        return true;
+    }
+
     boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data);
 
     default FocusEffect focusEffect() {

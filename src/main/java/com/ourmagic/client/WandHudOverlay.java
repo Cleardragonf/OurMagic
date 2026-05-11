@@ -75,6 +75,7 @@ public final class WandHudOverlay {
         renderHoverTooltip(graphics, minecraft, data, screenWidth, screenHeight);
         renderHotbarCooldowns(graphics, minecraft, screenWidth, screenHeight);
         ClientFocusMode.render(graphics, minecraft, screenWidth, screenHeight);
+        ClientChantMode.render(graphics, minecraft, screenWidth, screenHeight);
     }
 
     static boolean mouseClicked(double mouseX, double mouseY, int button) {
