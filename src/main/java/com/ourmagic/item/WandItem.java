@@ -84,7 +84,7 @@ public class WandItem extends Item {
                 : InteractionResultHolder.fail(stack);
     }
 
-    public static boolean castActiveSpell(ServerPlayer player, ItemStack stack, float chantMultiplier) {
+    public static boolean castActiveSpell(ServerPlayer player, ItemStack stack, float focusMultiplier) {
         Level level = player.level();
         if (MagicStatusEffects.isSilenced(player)) {
             player.displayClientMessage(Component.literal("Your magic is silenced.").withStyle(ChatFormatting.DARK_PURPLE), true);
@@ -111,7 +111,7 @@ public class WandItem extends Item {
             return false;
         }
 
-        boolean cast = spell.cast(level, player, stack, data, chantMultiplier);
+        boolean cast = spell.cast(level, player, stack, data, focusMultiplier);
         if (cast) {
             if (!player.getAbilities().instabuild) {
                 mana.spend(manaCost);

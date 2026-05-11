@@ -48,7 +48,11 @@ public interface Spell {
 
     boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data);
 
-    default boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data, float chantMultiplier) {
+    default FocusEffect focusEffect() {
+        return FocusEffect.UTILITY;
+    }
+
+    default boolean cast(Level level, ServerPlayer player, ItemStack wand, WandData data, float focusMultiplier) {
         return cast(level, player, wand, data);
     }
 
@@ -58,5 +62,14 @@ public interface Spell {
 
     default boolean supportsUpgradeFamily(String upgrade) {
         return supportsUpgrade(upgrade);
+    }
+
+    enum FocusEffect {
+        NONE,
+        DAMAGE,
+        UTILITY,
+        DURATION,
+        RANGE,
+        RADIUS
     }
 }

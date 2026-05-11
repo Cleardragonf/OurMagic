@@ -29,7 +29,7 @@ public class StunPayload implements PayloadEffect {
             return false;
         }
 
-        int duration = Math.round(80 * context.data().activeUtilityMultiplier() * context.durationMultiplier() * context.modifierPower());
+        int duration = Math.round(80 * context.data().activeUtilityMultiplier() * context.durationMultiplier());
         MagicStatusEffects.stun(player, duration);
         context.beam(target.position(), ParticleTypes.WITCH);
         context.burst(player.position().add(0, player.getBbHeight() * 0.85D, 0), ParticleTypes.CRIT, 20, 0.4D, 0.04D);

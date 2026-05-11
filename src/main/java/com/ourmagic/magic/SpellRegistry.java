@@ -425,6 +425,7 @@ public final class SpellRegistry {
         int minCooldownTicks = 0;
         int maxCooldownTicks = 0;
         ParticleOptions particle = ParticleTypes.ENCHANT;
+        Spell.FocusEffect focusEffect = Spell.FocusEffect.NONE;
 
         for (String payloadKey : parsed.payloads()) {
             SpellPart part = PARTS.get(payloadKey);
@@ -441,6 +442,7 @@ public final class SpellRegistry {
             minCooldownTicks += part.cooldownTicks().min();
             maxCooldownTicks += part.cooldownTicks().max();
             particle = payload.particle(buildContext);
+            focusEffect = strongestFocusEffect(focusEffect, part.focusEffect());
         }
 
         if (parsed.shape().contains("aoe") || parsed.shape().contains("area")) {
@@ -450,7 +452,7 @@ public final class SpellRegistry {
         PayloadEffect payload = payloads.size() == 1 ? payloads.get(0) : new CompositePayload(payloads.toArray(PayloadEffect[]::new));
         SpellShape spellShape = shape.factory().apply(particle);
         boolean physical = parsed.payloads().stream().map(PARTS::get).anyMatch(SpellPart::physical);
-        return new PayloadSpell(key, Math.max(1, minManaCost), Math.max(1, maxManaCost), Math.max(1, minCooldownTicks), Math.max(1, maxCooldownTicks), spellShape, payload, particle, physical, upgrades.toArray(String[]::new));
+        return new PayloadSpell(key, Math.max(1, minManaCost), Math.max(1, maxManaCost), Math.max(1, minCooldownTicks), Math.max(1, maxCooldownTicks), spellShape, payload, particle, physical, focusEffect, upgrades.toArray(String[]::new));
     }
 
     private static void part(String key, Supplier<PayloadEffect> payload, ShapeCompatibility shapes, CostRange manaCost, CostRange cooldownTicks) {
@@ -458,7 +460,33 @@ public final class SpellRegistry {
     }
 
     private static void part(String key, Supplier<PayloadEffect> payload, ShapeCompatibility shapes, CostRange manaCost, CostRange cooldownTicks, boolean physical) {
-        PARTS.put(key, new SpellPart(payload, shapes, manaCost, cooldownTicks, physical));
+        PARTS.put(key, new SpellPart(payload, shapes, manaCost, cooldownTicks, physical, focusEffectFor(key, physical)));
+    }
+
+    private static Spell.FocusEffect focusEffectFor(String key, boolean physical) {
+        return switch (key) {
+            case "blink", "conjure", "fire_place", "gather", "phase", "recall", "scry", "transmute", "warp" -> Spell.FocusEffect.RANGE;
+            case "cleanse", "illusion", "rune", "sanctuary" -> Spell.FocusEffect.RADIUS;
+            case "anchor", "bind", "blind", "bubble", "charm", "curse", "frost", "hex", "levitate", "overload", "reflect", "reveal", "shield", "silence", "stun", "ward" -> Spell.FocusEffect.DURATION;
+            case "nullify" -> Spell.FocusEffect.RANGE;
+            case "heal", "lifedrain", "manaburn", "regenerate", "summon", "summon_random", "summon_undead", "summon_beast", "summon_guardian", "summon_arcane", "summon_swarm" -> Spell.FocusEffect.UTILITY;
+            default -> physical ? Spell.FocusEffect.DAMAGE : Spell.FocusEffect.UTILITY;
+        };
+    }
+
+    private static Spell.FocusEffect strongestFocusEffect(Spell.FocusEffect current, Spell.FocusEffect candidate) {
+        return focusPriority(candidate) > focusPriority(current) ? candidate : current;
+    }
+
+    private static int focusPriority(Spell.FocusEffect effect) {
+        return switch (effect) {
+            case DAMAGE -> 5;
+            case UTILITY -> 4;
+            case DURATION -> 3;
+            case RADIUS -> 2;
+            case RANGE -> 1;
+            case NONE -> 0;
+        };
     }
 
     private static CostRange mana(int min, int max) {
@@ -559,7 +587,7 @@ public final class SpellRegistry {
         }
     }
 
-    private record SpellPart(Supplier<PayloadEffect> payload, ShapeCompatibility shapes, CostRange manaCost, CostRange cooldownTicks, boolean physical) {
+    private record SpellPart(Supplier<PayloadEffect> payload, ShapeCompatibility shapes, CostRange manaCost, CostRange cooldownTicks, boolean physical, Spell.FocusEffect focusEffect) {
     }
 
     private record ShapePart(Function<ParticleOptions, SpellShape> factory) {

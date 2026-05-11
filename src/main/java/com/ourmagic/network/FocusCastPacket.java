@@ -10,17 +10,17 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
-public record ChantCastPacket(InteractionHand hand, float multiplier) {
-    public static void encode(ChantCastPacket packet, FriendlyByteBuf buffer) {
+public record FocusCastPacket(InteractionHand hand, float multiplier) {
+    public static void encode(FocusCastPacket packet, FriendlyByteBuf buffer) {
         buffer.writeEnum(packet.hand);
         buffer.writeFloat(packet.multiplier);
     }
 
-    public static ChantCastPacket decode(FriendlyByteBuf buffer) {
-        return new ChantCastPacket(buffer.readEnum(InteractionHand.class), buffer.readFloat());
+    public static FocusCastPacket decode(FriendlyByteBuf buffer) {
+        return new FocusCastPacket(buffer.readEnum(InteractionHand.class), buffer.readFloat());
     }
 
-    public static void handle(ChantCastPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
+    public static void handle(FocusCastPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();

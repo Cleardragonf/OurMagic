@@ -48,7 +48,7 @@ public class FireballPayload implements PayloadEffect {
         direction = direction.add((context.player().getRandom().nextDouble() - 0.5D) * 0.04D * i, (context.player().getRandom().nextDouble() - 0.5D) * 0.02D * i, (context.player().getRandom().nextDouble() - 0.5D) * 0.04D * i);
         SmallFireball fireball = new SmallFireball(context.level(), context.player(), direction.x, direction.y, direction.z);
         fireball.setPos(start.x, start.y, start.z);
-        fireball.setDeltaMovement(fireball.getDeltaMovement().scale(context.data().activeDamageMultiplier() * context.modifierPower()));
+        fireball.setDeltaMovement(fireball.getDeltaMovement().scale(context.data().activeDamageMultiplier() * context.focusPower(Spell.FocusEffect.DAMAGE)));
         context.level().addFreshEntity(fireball);
         if (i == 0) {
             if (!context.selfShape() && !context.areaCast()) {

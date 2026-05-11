@@ -39,10 +39,10 @@ public final class ModNetwork {
                 .decoder(CraftSpellPacket::decode)
                 .consumerMainThread(CraftSpellPacket::handle)
                 .add();
-        CHANNEL.messageBuilder(ChantCastPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(ChantCastPacket::encode)
-                .decoder(ChantCastPacket::decode)
-                .consumerMainThread(ChantCastPacket::handle)
+        CHANNEL.messageBuilder(FocusCastPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(FocusCastPacket::encode)
+                .decoder(FocusCastPacket::decode)
+                .consumerMainThread(FocusCastPacket::handle)
                 .add();
         CHANNEL.messageBuilder(WandSelectSpellPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(WandSelectSpellPacket::encode)

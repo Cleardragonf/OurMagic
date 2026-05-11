@@ -1,6 +1,8 @@
 package com.ourmagic.client;
 
 import com.ourmagic.OurMagic;
+import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.network.ModNetwork;
 import com.ourmagic.network.WandSelectSpellPacket;
 import com.ourmagic.registry.ModItems;
@@ -72,7 +74,7 @@ public final class WandHudOverlay {
         renderAssignedBar(graphics, minecraft, data, screenWidth, screenHeight);
         renderHoverTooltip(graphics, minecraft, data, screenWidth, screenHeight);
         renderHotbarCooldowns(graphics, minecraft, screenWidth, screenHeight);
-        ClientChantMode.render(graphics, minecraft, screenWidth, screenHeight);
+        ClientFocusMode.render(graphics, minecraft, screenWidth, screenHeight);
     }
 
     static boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -216,12 +218,20 @@ public final class WandHudOverlay {
         }
 
         WandData.WandSpellData spell = data.spells().get(spellIndex);
+        Spell registeredSpell = SpellRegistry.get(spell.key());
+        String focusText = registeredSpell == null ? "Unknown" : titleCase(registeredSpell.focusEffect().name());
         graphics.renderTooltip(minecraft.font, List.of(
                 Component.literal(spell.displayName()),
                 Component.literal(spell.key()),
                 Component.literal("Mana " + spell.manaCost() + " | Cooldown " + String.format("%.1fs", spell.cooldownTicks() / 20.0F)),
-                Component.literal("Level " + spell.level() + " | Points " + spell.attributePoints())
+                Component.literal("Level " + spell.level() + " | Points " + spell.attributePoints()),
+                Component.literal("Focus: " + focusText)
         ), java.util.Optional.empty(), (int) mouseX, (int) mouseY);
+    }
+
+    private static String titleCase(String value) {
+        String lower = value.toLowerCase(java.util.Locale.ROOT);
+        return lower.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + lower.substring(1);
     }
 
     private static int spellListIndexAt(double mouseX, double mouseY, int spellCount) {

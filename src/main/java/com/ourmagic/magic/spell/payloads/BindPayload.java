@@ -29,7 +29,7 @@ public class BindPayload implements PayloadEffect {
             return false;
         }
 
-        int duration = Math.round(100 * context.data().activeUtilityMultiplier() * context.durationMultiplier() * context.modifierPower());
+        int duration = Math.round(100 * context.data().activeUtilityMultiplier() * context.durationMultiplier());
         MagicStatusEffects.bind(living, duration);
         context.beam(target.position(), ParticleTypes.ENCHANT);
         context.ring(living.position().add(0, 0.15D, 0), ParticleTypes.ENCHANT, Math.max(0.6D, living.getBbWidth()), 28);

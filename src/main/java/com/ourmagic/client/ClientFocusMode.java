@@ -2,7 +2,7 @@ package com.ourmagic.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.ourmagic.OurMagic;
-import com.ourmagic.network.ChantCastPacket;
+import com.ourmagic.network.FocusCastPacket;
 import com.ourmagic.network.ModNetwork;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.wand.WandData;
@@ -21,7 +21,7 @@ import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
 
 @Mod.EventBusSubscriber(modid = OurMagic.MOD_ID, value = Dist.CLIENT)
-public final class ClientChantMode {
+public final class ClientFocusMode {
     private static final float LOOK_THRESHOLD_DEGREES = 8.0F;
     private static final RandomSource RANDOM = RandomSource.create();
     private static boolean active;
@@ -36,7 +36,7 @@ public final class ClientChantMode {
     private static float accumulatedYaw;
     private static float accumulatedPitch;
 
-    private ClientChantMode() {
+    private ClientFocusMode() {
     }
 
     @SubscribeEvent
@@ -150,7 +150,7 @@ public final class ClientChantMode {
         String progressText = progressBar();
         graphics.drawString(minecraft.font, Component.literal(progressText), centerX - minecraft.font.width(progressText) / 2, centerY - 4, 0xFF66FFAA, true);
 
-        String power = String.format("x%.1f", multiplier);
+        String power = String.format("Focus x%.1f", multiplier);
         graphics.drawString(minecraft.font, Component.literal(power), centerX - minecraft.font.width(power) / 2, centerY + 10, 0xFFFFD84D, true);
     }
 
@@ -172,10 +172,10 @@ public final class ClientChantMode {
         }
 
         InteractionHand castHand = hand;
-        float castMultiplier = multiplier;
+        float focusMultiplier = multiplier;
         active = false;
         multiplier = 1.0F;
-        ModNetwork.CHANNEL.sendToServer(new ChantCastPacket(castHand, castMultiplier));
+        ModNetwork.CHANNEL.sendToServer(new FocusCastPacket(castHand, focusMultiplier));
     }
 
     private static void cancel() {

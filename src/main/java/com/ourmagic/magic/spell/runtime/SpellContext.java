@@ -41,23 +41,27 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
     }
 
     public float damagePower() {
-        return data.power() * data.activeDamageMultiplier() * (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_DAMAGE) * 0.10F) * modifierPower;
+        return data.power() * data.activeDamageMultiplier() * (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_DAMAGE) * 0.10F) * focusPower(Spell.FocusEffect.DAMAGE);
     }
 
     public float utilityPower() {
-        return data.power() * data.activeUtilityMultiplier() * modifierPower;
+        return data.power() * data.activeUtilityMultiplier() * focusPower(Spell.FocusEffect.UTILITY);
     }
 
     public float rangeMultiplier() {
-        return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RANGE) * 0.20F) * data.rangeMultiplierFromWand();
+        return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RANGE) * 0.20F) * data.rangeMultiplierFromWand() * focusPower(Spell.FocusEffect.RANGE);
     }
 
     public float radiusMultiplier() {
-        return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RADIUS) * 0.20F) * data.radiusMultiplierFromWand();
+        return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RADIUS) * 0.20F) * data.radiusMultiplierFromWand() * focusPower(Spell.FocusEffect.RADIUS);
     }
 
     public float durationMultiplier() {
-        return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_DURATION) * 0.20F) * data.durationMultiplier();
+        return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_DURATION) * 0.20F) * data.durationMultiplier() * focusPower(Spell.FocusEffect.DURATION);
+    }
+
+    public float focusPower(Spell.FocusEffect effect) {
+        return spell.focusEffect() == effect ? modifierPower : 1.0F;
     }
 
     public boolean selfShape() {

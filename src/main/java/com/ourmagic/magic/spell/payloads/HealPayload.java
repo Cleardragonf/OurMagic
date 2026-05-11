@@ -43,7 +43,7 @@ public class HealPayload implements PayloadEffect {
         }
 
         float amount = living == context.player() ? selfAmount : otherAmount;
-        living.heal(amount * context.data().power() * context.data().activeUtilityMultiplier());
+        living.heal(amount * context.utilityPower());
         context.burst(living.position().add(0, 1.1D, 0), ParticleTypes.HEART, particleCount, 0.55D, 0.02D);
         return true;
     }
