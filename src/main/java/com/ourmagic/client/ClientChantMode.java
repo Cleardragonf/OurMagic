@@ -6,6 +6,7 @@ import com.ourmagic.network.ChantingPacket;
 import com.ourmagic.network.ModNetwork;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.wand.WandData;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -15,6 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
@@ -46,6 +48,13 @@ public final class ClientChantMode {
 
     @SubscribeEvent
     public static void interaction(InputEvent.InteractionKeyMappingTriggered event) {
+        if (active) {
+            if (event.isCancelable()) {
+                event.setCanceled(true);
+            }
+            return;
+        }
+
         if (!charged || !event.isUseItem()) {
             return;
         }
@@ -57,7 +66,27 @@ public final class ClientChantMode {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void mouseClicked(InputEvent.MouseButton.Pre event) {
+        if (!active) {
+            return;
+        }
+        if (event.isCancelable()) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void mouseScrolled(InputEvent.MouseScrollingEvent event) {
+        if (!active) {
+            return;
+        }
+        if (event.isCancelable()) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void keyPressed(InputEvent.Key event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null || event.getAction() != GLFW.GLFW_PRESS) {
@@ -81,6 +110,9 @@ public final class ClientChantMode {
             return;
         }
 
+        if (isSpellSlotKey(event.getKey())) {
+            return;
+        }
         if (event.getKey() == GLFW.GLFW_KEY_ESCAPE) {
             cancel();
             cancelEvent(event);
@@ -108,8 +140,13 @@ public final class ClientChantMode {
             } else if (typed.equals(prompt)) {
                 completeWord();
             }
+            releaseBlockedKeyMappings(minecraft);
             cancelEvent(event);
+            return;
         }
+
+        cancelEvent(event);
+        releaseBlockedKeyMappings(minecraft);
     }
 
     @SubscribeEvent
@@ -127,6 +164,10 @@ public final class ClientChantMode {
         if (active && !hasWand(minecraft.player.getItemInHand(hand))) {
             cancel();
             return;
+        }
+
+        if (active) {
+            releaseBlockedKeyMappings(minecraft);
         }
 
         if (charged && ++chargedTicks > CHARGE_TTL_TICKS) {
@@ -245,6 +286,19 @@ public final class ClientChantMode {
             return (char) ('a' + key - GLFW.GLFW_KEY_A);
         }
         return 0;
+    }
+
+    private static boolean isSpellSlotKey(int key) {
+        return key >= GLFW.GLFW_KEY_1 && key <= GLFW.GLFW_KEY_6;
+    }
+
+    private static void releaseBlockedKeyMappings(Minecraft minecraft) {
+        for (KeyMapping mapping : minecraft.options.keyMappings) {
+            while (mapping.consumeClick()) {
+                // Drain queued keybind clicks so menus, movement, and other actions do not fire during chanting.
+            }
+            mapping.setDown(false);
+        }
     }
 
     private static void cancelEvent(InputEvent.Key event) {
