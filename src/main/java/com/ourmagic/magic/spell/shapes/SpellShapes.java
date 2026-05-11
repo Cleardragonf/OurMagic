@@ -36,15 +36,19 @@ public final class SpellShapes {
     }
 
     public static SpellShape playersAroundSelf(double radius, ParticleOptions areaRingParticle) {
-        return new SpellShape(TargetSelectors.self(), AreaSelectors.playersAroundTarget(radius, 0, true), areaRingParticle);
+        return new SpellShape(TargetSelectors.self(), AreaSelectors.alliesAroundTarget(radius, 0, true), areaRingParticle);
     }
 
     public static SpellShape livingAroundSelf(double radius, int maxExtraTargets, ParticleOptions areaRingParticle) {
-        return new SpellShape(TargetSelectors.self(), AreaSelectors.livingAroundTarget(radius, false, maxExtraTargets, true), areaRingParticle);
+        return livingAroundSelf(radius, maxExtraTargets, true, areaRingParticle);
+    }
+
+    public static SpellShape livingAroundSelf(double radius, int maxExtraTargets, boolean includeCaster, ParticleOptions areaRingParticle) {
+        return new SpellShape(TargetSelectors.self(), AreaSelectors.livingAroundTarget(radius, false, maxExtraTargets, includeCaster), areaRingParticle);
     }
 
     public static SpellShape playersAroundLookedLivingOrSelf(double range, double radius, ParticleOptions areaRingParticle) {
-        return new SpellShape(TargetSelectors.lookedLivingOrSelf(range), AreaSelectors.playersAroundTarget(radius, 0, true), areaRingParticle);
+        return new SpellShape(TargetSelectors.lookedLivingOrSelf(range), AreaSelectors.alliesAroundTarget(radius, 0, true), areaRingParticle);
     }
 
     public static SpellShape livingAroundLookedPoint(double range, double missDistance, double radius, int maxExtraTargets, ParticleOptions areaRingParticle) {

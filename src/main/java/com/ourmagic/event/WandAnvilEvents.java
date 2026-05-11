@@ -2,6 +2,7 @@ package com.ourmagic.event;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.registry.ModItems;
+import com.ourmagic.ui.PlayerUpgradeMenu;
 import com.ourmagic.ui.SpellcraftMenu;
 import com.ourmagic.ui.WandMenu;
 import com.ourmagic.wand.WandData;
@@ -54,10 +55,19 @@ public final class WandAnvilEvents {
 
     @SubscribeEvent
     public static void rightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (!isWand(event.getItemStack())) {
+        if (isAnvil(event) && isWand(event.getEntity().getOffhandItem())) {
+            if (event.getHand() == InteractionHand.MAIN_HAND) {
+                openPlayerUpgrades(event);
+            } else {
+                event.setCanceled(true);
+                event.setCancellationResult(InteractionResult.sidedSuccess(event.getLevel().isClientSide));
+            }
             return;
         }
 
+        if (!isWand(event.getItemStack())) {
+            return;
+        }
         if (isEnchantingTable(event)) {
             openSpellcraft(event);
             return;
@@ -68,6 +78,28 @@ public final class WandAnvilEvents {
         }
 
         openWand(event);
+    }
+
+    private static void openPlayerUpgrades(PlayerInteractEvent.RightClickBlock event) {
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.sidedSuccess(event.getLevel().isClientSide));
+
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        NetworkHooks.openScreen(player, new MenuProvider() {
+            @Override
+            public Component getDisplayName() {
+                return Component.literal("Player Upgrades");
+            }
+
+            @Nullable
+            @Override
+            public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
+                return new PlayerUpgradeMenu(containerId, inventory);
+            }
+        });
     }
 
     private static void openWand(PlayerInteractEvent.RightClickBlock event) {

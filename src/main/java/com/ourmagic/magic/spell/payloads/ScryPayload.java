@@ -29,7 +29,7 @@ public class ScryPayload implements PayloadEffect {
     @Override
     public boolean apply(SpellContext context, SpellTarget target) {
         if (context.selfShape()) {
-            return Scrying.viewNext(context.player(), context.durationMultiplier());
+            return Scrying.openSelection(context.player(), context.durationMultiplier());
         }
 
         if (target.entity().isPresent() && target.entity().get() instanceof LivingEntity living) {

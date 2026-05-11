@@ -1,6 +1,9 @@
 package com.ourmagic.magic.spell.runtime;
 
 import com.ourmagic.OurMagic;
+import com.ourmagic.network.ModNetwork;
+import com.ourmagic.network.ScryCommandPacket;
+import com.ourmagic.network.ScryMarksPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.particles.ParticleTypes;
@@ -30,8 +33,10 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,6 +48,7 @@ public final class Scrying {
     private static final int MAX_MARKS = 12;
     private static final int VISION_TICKS = 20 * 12;
     private static final List<Vision> VISIONS = new ArrayList<>();
+    private static final Map<UUID, Float> PENDING_SELECTIONS = new HashMap<>();
 
     private Scrying() {
     }
@@ -73,6 +79,50 @@ public final class Scrying {
         return true;
     }
 
+    public static boolean openSelection(ServerPlayer caster, float durationMultiplier) {
+        ListTag marks = marks(caster);
+        if (marks.isEmpty()) {
+            caster.displayClientMessage(net.minecraft.network.chat.Component.literal("No scry marks."), true);
+            return false;
+        }
+
+        PENDING_SELECTIONS.put(caster.getUUID(), durationMultiplier);
+        List<ScryMarksPacket.Entry> entries = new ArrayList<>();
+        for (int i = 0; i < marks.size(); i++) {
+            CompoundTag mark = marks.getCompound(i);
+            entries.add(new ScryMarksPacket.Entry(i, mark.getString("Type"), mark.getString("Name")));
+        }
+        ModNetwork.sendScryMarks(caster, entries);
+        return true;
+    }
+
+    public static boolean viewSelected(ServerPlayer caster, int index) {
+        float durationMultiplier = PENDING_SELECTIONS.getOrDefault(caster.getUUID(), 1.0F);
+        PENDING_SELECTIONS.remove(caster.getUUID());
+        return viewIndex(caster, index, durationMultiplier);
+    }
+
+    public static void handleCommand(ServerPlayer player, ScryCommandPacket.Command command) {
+        Vision vision = activeVision(player).orElse(null);
+        if (vision == null) {
+            ModNetwork.syncScryState(player, false, "", 0, 0, 0);
+            return;
+        }
+
+        switch (command) {
+            case EXIT -> {
+                endVision(player, true);
+            }
+            case RENEW -> {
+                vision.ticks = Math.round(VISION_TICKS * vision.durationMultiplier);
+                syncVisionState(player, vision);
+                player.displayClientMessage(net.minecraft.network.chat.Component.literal("Scrying renewed."), true);
+            }
+            case NEXT -> switchVision(player, vision, 1);
+            case PREVIOUS -> switchVision(player, vision, -1);
+        }
+    }
+
     public static boolean viewNext(ServerPlayer caster, float durationMultiplier) {
         ListTag marks = marks(caster);
         if (marks.isEmpty()) {
@@ -83,6 +133,16 @@ public final class Scrying {
         CompoundTag root = root(caster);
         int index = Math.floorMod(root.getInt(NEXT_TAG), marks.size());
         root.putInt(NEXT_TAG, Math.floorMod(index + 1, marks.size()));
+        return viewIndex(caster, index, durationMultiplier);
+    }
+
+    private static boolean viewIndex(ServerPlayer caster, int index, float durationMultiplier) {
+        ListTag marks = marks(caster);
+        if (index < 0 || index >= marks.size()) {
+            caster.displayClientMessage(net.minecraft.network.chat.Component.literal("That scry mark is gone."), true);
+            return false;
+        }
+
         CompoundTag mark = marks.getCompound(index).copy();
         Optional<RemoteView> remote = resolve(caster.serverLevel().getServer(), mark);
         if (remote.isEmpty()) {
@@ -101,9 +161,12 @@ public final class Scrying {
                 caster.getYRot(),
                 caster.getXRot(),
                 caster.gameMode.getGameModeForPlayer(),
-                createBodyCopy(caster)
+                createBodyCopy(caster),
+                index,
+                durationMultiplier
         ));
         enterVision(caster, view);
+        syncVisionState(caster, activeVision(caster).orElseThrow());
         caster.displayClientMessage(net.minecraft.network.chat.Component.literal("Scrying " + mark.getString("Name") + "."), true);
         return true;
     }
@@ -154,6 +217,7 @@ public final class Scrying {
                 ServerPlayer owner = event.getServer().getPlayerList().getPlayer(vision.owner);
                 if (owner != null) {
                     restoreVision(owner, vision);
+                    ModNetwork.syncScryState(owner, false, "", 0, 0, 0);
                     owner.displayClientMessage(net.minecraft.network.chat.Component.literal("Scrying ended."), true);
                 }
                 iterator.remove();
@@ -167,6 +231,7 @@ public final class Scrying {
             }
             if (isBodyMissing(event.getServer(), vision)) {
                 restoreVision(owner, vision);
+                ModNetwork.syncScryState(owner, false, "", 0, 0, 0);
                 owner.displayClientMessage(net.minecraft.network.chat.Component.literal("Your scrying body was disturbed."), true);
                 iterator.remove();
                 continue;
@@ -175,6 +240,7 @@ public final class Scrying {
             Optional<RemoteView> remote = resolve(event.getServer(), vision.mark);
             if (remote.isEmpty()) {
                 restoreVision(owner, vision);
+                ModNetwork.syncScryState(owner, false, "", 0, 0, 0);
                 iterator.remove();
                 continue;
             }
@@ -183,6 +249,7 @@ public final class Scrying {
             if (owner.level() != view.level || owner.distanceToSqr(view.center) > 64.0D || "player".equals(vision.mark.getString("Type")) && owner.tickCount % 10 == 0) {
                 enterVision(owner, view);
             }
+            syncVisionState(owner, vision);
         }
     }
 
@@ -208,6 +275,7 @@ public final class Scrying {
             ServerPlayer owner = server.getPlayerList().getPlayer(vision.owner);
             if (owner != null) {
                 restoreVision(owner, vision);
+                ModNetwork.syncScryState(owner, false, "", 0, 0, 0);
                 owner.displayClientMessage(net.minecraft.network.chat.Component.literal("Your scrying body was struck."), true);
             } else {
                 attacked.discard();
@@ -224,6 +292,7 @@ public final class Scrying {
             if (vision.owner.equals(player.getUUID())) {
                 restoreVision(player, vision);
                 iterator.remove();
+                ModNetwork.syncScryState(player, false, "", 0, 0, 0);
                 if (notify) {
                     player.displayClientMessage(net.minecraft.network.chat.Component.literal("Scrying ended."), true);
                 }
@@ -251,6 +320,34 @@ public final class Scrying {
         }
         player.setGameMode(vision.previousMode);
         player.setDeltaMovement(Vec3.ZERO);
+    }
+
+    private static Optional<Vision> activeVision(ServerPlayer player) {
+        return VISIONS.stream().filter(vision -> vision.owner.equals(player.getUUID())).findFirst();
+    }
+
+    private static void switchVision(ServerPlayer player, Vision vision, int direction) {
+        ListTag marks = marks(player);
+        if (marks.isEmpty()) {
+            endVision(player, true);
+            return;
+        }
+        int nextIndex = Math.floorMod(vision.markIndex + direction, marks.size());
+        Optional<RemoteView> remote = resolve(player.serverLevel().getServer(), marks.getCompound(nextIndex));
+        if (remote.isEmpty()) {
+            player.displayClientMessage(net.minecraft.network.chat.Component.literal("That scry mark is unreachable."), true);
+            return;
+        }
+        vision.mark = marks.getCompound(nextIndex).copy();
+        vision.markIndex = nextIndex;
+        vision.ticks = Math.round(VISION_TICKS * vision.durationMultiplier);
+        enterVision(player, remote.get());
+        syncVisionState(player, vision);
+    }
+
+    private static void syncVisionState(ServerPlayer player, Vision vision) {
+        int count = marks(player).size();
+        ModNetwork.syncScryState(player, true, vision.mark.getString("Name"), vision.markIndex, count, Math.max(0, vision.ticks));
     }
 
     private static UUID createBodyCopy(ServerPlayer player) {
@@ -464,16 +561,18 @@ public final class Scrying {
 
     private static final class Vision {
         private final UUID owner;
-        private final CompoundTag mark;
+        private CompoundTag mark;
         private final ResourceKey<Level> returnDimension;
         private final Vec3 returnPosition;
         private final float returnYaw;
         private final float returnPitch;
         private final GameType previousMode;
         private final UUID bodyCopy;
+        private final float durationMultiplier;
+        private int markIndex;
         private int ticks;
 
-        private Vision(UUID owner, CompoundTag mark, int ticks, ResourceKey<Level> returnDimension, Vec3 returnPosition, float returnYaw, float returnPitch, GameType previousMode, UUID bodyCopy) {
+        private Vision(UUID owner, CompoundTag mark, int ticks, ResourceKey<Level> returnDimension, Vec3 returnPosition, float returnYaw, float returnPitch, GameType previousMode, UUID bodyCopy, int markIndex, float durationMultiplier) {
             this.owner = owner;
             this.mark = mark;
             this.ticks = ticks;
@@ -483,6 +582,8 @@ public final class Scrying {
             this.returnPitch = returnPitch;
             this.previousMode = previousMode;
             this.bodyCopy = bodyCopy;
+            this.markIndex = markIndex;
+            this.durationMultiplier = durationMultiplier;
         }
     }
 
