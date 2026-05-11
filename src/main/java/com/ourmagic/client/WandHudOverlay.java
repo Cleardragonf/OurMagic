@@ -248,11 +248,6 @@ public final class WandHudOverlay {
         return lower.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + lower.substring(1);
     }
 
-    private static String titleCase(String value) {
-        String lower = value.toLowerCase(java.util.Locale.ROOT);
-        return lower.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + lower.substring(1);
-    }
-
     private static int spellListIndexAt(double mouseX, double mouseY, int spellCount, int screenWidth, int screenHeight) {
         int width = SPELL_COLUMNS * SLOT + (SPELL_COLUMNS - 1) * GAP;
         int height = VISIBLE_ROWS * SLOT + (VISIBLE_ROWS - 1) * GAP;
