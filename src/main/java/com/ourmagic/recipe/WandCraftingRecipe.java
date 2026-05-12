@@ -2,7 +2,9 @@ package com.ourmagic.recipe;
 
 import com.google.gson.JsonObject;
 import com.ourmagic.registry.ModItems;
+import com.ourmagic.wand.StaffData;
 import com.ourmagic.wand.WandData;
+import com.ourmagic.wand.WandMaterialModifier;
 import com.ourmagic.wand.WandModifier;
 import com.ourmagic.wand.WandTemplates;
 import net.minecraft.core.NonNullList;
@@ -18,6 +20,7 @@ import net.minecraft.world.item.crafting.CustomRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
+import java.util.Optional;
 
 public class WandCraftingRecipe extends CustomRecipe {
     public WandCraftingRecipe(ResourceLocation id, CraftingBookCategory category) {
@@ -27,6 +30,10 @@ public class WandCraftingRecipe extends CustomRecipe {
     @Override
     public boolean matches(CraftingContainer container, Level level) {
         if (matchesUpgrade(container)) {
+            return true;
+        }
+
+        if (matchesStaffCreation(container)) {
             return true;
         }
 
@@ -60,6 +67,11 @@ public class WandCraftingRecipe extends CustomRecipe {
             return upgrade;
         }
 
+        ItemStack staffCreation = assembleStaffCreation(container);
+        if (!staffCreation.isEmpty()) {
+            return staffCreation;
+        }
+
         return WandTemplates.applyRandom(new ItemStack(ModItems.WAND.get()), RandomSource.create());
     }
 
@@ -90,7 +102,8 @@ public class WandCraftingRecipe extends CustomRecipe {
 
     private static boolean matchesUpgrade(CraftingContainer container) {
         ItemStack wand = ItemStack.EMPTY;
-        WandModifier modifier = null;
+        ItemStack staff = ItemStack.EMPTY;
+        String modifierKey = null;
         int itemCount = 0;
 
         for (int i = 0; i < container.getContainerSize(); i++) {
@@ -101,19 +114,44 @@ public class WandCraftingRecipe extends CustomRecipe {
             itemCount++;
             if (isWand(stack) && wand.isEmpty()) {
                 wand = stack;
-            } else if (modifier == null && WandModifier.fromItem(stack).isPresent()) {
-                modifier = WandModifier.fromItem(stack).get();
+            } else if (isStaff(stack) && staff.isEmpty()) {
+                staff = stack;
+            } else if (modifierKey == null) {
+                // Check for leveled modifier
+                Optional<WandModifier> leveledMod = WandModifier.fromItem(stack);
+                if (leveledMod.isPresent()) {
+                    modifierKey = leveledMod.get().key();
+                } else {
+                    // Check for material modifier
+                    Optional<WandMaterialModifier> materialMod = WandMaterialModifier.fromItem(stack);
+                    if (materialMod.isPresent()) {
+                        modifierKey = materialMod.get().key();
+                    } else {
+                        return false;
+                    }
+                }
             } else {
                 return false;
             }
         }
 
-        return itemCount == 2 && !wand.isEmpty() && modifier != null && WandData.read(wand).canAddWandModifier(modifier.key());
+        if (itemCount != 2 || modifierKey == null) {
+            return false;
+        }
+
+        if (!wand.isEmpty()) {
+            return WandData.read(wand).canAddWandModifier(modifierKey);
+        } else if (!staff.isEmpty()) {
+            return StaffData.read(staff).canAddStaffModifier(modifierKey);
+        }
+
+        return false;
     }
 
     private static ItemStack assembleUpgrade(CraftingContainer container) {
         ItemStack wand = ItemStack.EMPTY;
-        WandModifier modifier = null;
+        ItemStack staff = ItemStack.EMPTY;
+        String modifierKey = null;
 
         for (int i = 0; i < container.getContainerSize(); i++) {
             ItemStack stack = container.getItem(i);
@@ -122,27 +160,103 @@ public class WandCraftingRecipe extends CustomRecipe {
             }
             if (isWand(stack)) {
                 wand = stack;
-            } else {
-                modifier = WandModifier.fromItem(stack).orElse(null);
+            } else if (isStaff(stack)) {
+                staff = stack;
+            } else if (modifierKey == null) {
+                // Check for leveled modifier
+                Optional<WandModifier> leveledMod = WandModifier.fromItem(stack);
+                if (leveledMod.isPresent()) {
+                    modifierKey = leveledMod.get().key();
+                } else {
+                    // Check for material modifier
+                    Optional<WandMaterialModifier> materialMod = WandMaterialModifier.fromItem(stack);
+                    if (materialMod.isPresent()) {
+                        modifierKey = materialMod.get().key();
+                    }
+                }
             }
         }
 
-        if (wand.isEmpty() || modifier == null) {
+        if (modifierKey == null) {
             return ItemStack.EMPTY;
         }
 
-        ItemStack result = wand.copy();
-        result.setCount(1);
-        WandData data = WandData.read(result);
-        if (!data.addWandModifier(modifier.key())) {
-            return ItemStack.EMPTY;
+        if (!wand.isEmpty()) {
+            ItemStack result = wand.copy();
+            result.setCount(1);
+            WandData data = WandData.read(result);
+            if (!data.addWandModifier(modifierKey)) {
+                return ItemStack.EMPTY;
+            }
+            data.save(result);
+            return result;
+        } else if (!staff.isEmpty()) {
+            ItemStack result = staff.copy();
+            result.setCount(1);
+            StaffData data = StaffData.read(result);
+            if (!data.addStaffModifier(modifierKey)) {
+                return ItemStack.EMPTY;
+            }
+            data.save(result);
+            return result;
         }
-        data.save(result);
-        return result;
+
+        return ItemStack.EMPTY;
     }
 
     private static boolean isWand(ItemStack stack) {
         return stack.is(ModItems.WAND.get()) || stack.is(ModItems.ADMIN_WAND.get());
+    }
+
+    private static boolean isStaff(ItemStack stack) {
+        return stack.is(ModItems.STAFF.get());
+    }
+
+    private static boolean matchesStaffCreation(CraftingContainer container) {
+        int logs = 0;
+        int netherStars = 0;
+
+        for (int i = 0; i < container.getContainerSize(); i++) {
+            ItemStack stack = container.getItem(i);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            if (stack.getItem() instanceof net.minecraft.world.level.block.Block && net.minecraft.tags.ItemTags.LOGS.contains(stack.getItem())) {
+                logs++;
+            } else if (stack.is(Items.NETHER_STAR)) {
+                netherStars++;
+            } else {
+                return false;
+            }
+        }
+
+        return logs >= 1 && netherStars == 1;
+    }
+
+    private static ItemStack assembleStaffCreation(CraftingContainer container) {
+        boolean hasLogs = false;
+        boolean hasNetherStar = false;
+
+        for (int i = 0; i < container.getContainerSize(); i++) {
+            ItemStack stack = container.getItem(i);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            if (stack.getItem() instanceof net.minecraft.world.level.block.Block && net.minecraft.tags.ItemTags.LOGS.contains(stack.getItem())) {
+                hasLogs = true;
+            } else if (stack.is(Items.NETHER_STAR)) {
+                hasNetherStar = true;
+            }
+        }
+
+        if (!hasLogs || !hasNetherStar) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack result = new ItemStack(ModItems.STAFF.get());
+        StaffData data = StaffData.createNew();
+        data.save(result);
+        return result;
     }
 
     public static class Serializer implements RecipeSerializer<WandCraftingRecipe> {

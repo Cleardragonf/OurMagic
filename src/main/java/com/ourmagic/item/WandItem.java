@@ -184,7 +184,7 @@ public class WandItem extends Item {
         return true;
     }
 
-    private static boolean isSpellPaper(ItemStack stack) {
+    public static boolean isSpellPaper(ItemStack stack) {
         return stack.is(Items.PAPER)
                 && stack.hasTag()
                 && stack.getOrCreateTag().contains(CraftSpellPacket.TAG_SPELL_KEY);

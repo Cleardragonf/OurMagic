@@ -34,6 +34,7 @@ public final class WandData {
     private static final String TAG_SPELL_POINTS = "AttributePoints";
     private static final String TAG_SPELL_UPGRADES = "Upgrades";
     private static final int MAX_SPELL_LEVEL = 100;
+    private static final int MAX_WAND_LEVEL = 20;
     private static final int ASSIGNED_SLOTS = 6;
     private static final String SHAPE_UPGRADE_PREFIX = "shape:";
 
@@ -61,7 +62,7 @@ public final class WandData {
         this.displayName = displayName;
         this.power = power;
         this.spells = new ArrayList<>(spells);
-        this.wandLevel = Math.max(1, Math.min(MAX_SPELL_LEVEL, wandLevel));
+        this.wandLevel = Math.max(1, Math.min(MAX_WAND_LEVEL, wandLevel));
         this.wandXp = Math.max(0, wandXp);
         this.modifiers = new LinkedHashMap<>(modifiers);
         this.activeIndex = Math.max(0, Math.min(activeIndex, Math.max(0, spells.size() - 1)));
@@ -202,13 +203,16 @@ public final class WandData {
     }
 
     public int wandXpToNextLevel() {
-        if (wandLevel >= MAX_SPELL_LEVEL) {
+        if (wandLevel >= MAX_WAND_LEVEL) {
             return 0;
         }
         return 80 + wandLevel * 20;
     }
 
     public int wandModifierSlots() {
+        if (wandLevel >= 15) {
+            return 7;
+        }
         int milestones = Math.max(0, wandLevel / 5);
         return 1 + milestones * (milestones + 1) / 2;
     }
@@ -276,15 +280,41 @@ public final class WandData {
     }
 
     public float cooldownMultiplier() {
-        return Math.max(0.35F, 1.0F - modifierLevel(WandModifier.HASTE.key()) * 0.08F);
+        float multiplier = Math.max(0.35F, 1.0F - modifierLevel(WandModifier.HASTE.key()) * 0.08F);
+        // Woods reduce cooldown by 1 tick each (approximate as -0.05 multiplier per wood)
+        int woodCount = getWoodModifierCount();
+        multiplier *= Math.max(0.35F, 1.0F - (woodCount * 0.05F));
+        // String reduces cooldown by 0.5 ticks (approximate as -0.025 multiplier)
+        if (hasModifier(WandMaterialModifier.STRING.key())) {
+            multiplier *= 0.975F;
+        }
+        // Gunpowder increases cooldown (penalty)
+        if (hasModifier(WandMaterialModifier.GUNPOWDER.key())) {
+            multiplier *= 1.025F;
+        }
+        return multiplier;
     }
 
     public float damageMultiplier() {
-        return 1.0F + modifierLevel(WandModifier.POTENCY.key()) * 0.12F;
+        float multiplier = 1.0F + modifierLevel(WandModifier.POTENCY.key()) * 0.12F;
+        // Rotten Flesh increases damage by 5%
+        if (hasModifier(WandMaterialModifier.ROTTEN_FLESH.key())) {
+            multiplier *= 1.05F;
+        }
+        // Spider Eye increases potency by 3%
+        if (hasModifier(WandMaterialModifier.SPIDER_EYE.key())) {
+            multiplier *= 1.03F;
+        }
+        return multiplier;
     }
 
     public float durationMultiplier() {
-        return 1.0F + modifierLevel(WandModifier.HARDNESS.key()) * 0.10F;
+        float multiplier = 1.0F + modifierLevel(WandModifier.HARDNESS.key()) * 0.10F;
+        // Bone increases duration by 10%
+        if (hasModifier(WandMaterialModifier.BONE.key())) {
+            multiplier *= 1.10F;
+        }
+        return multiplier;
     }
 
     public float radiusMultiplierFromWand() {
@@ -292,7 +322,12 @@ public final class WandData {
     }
 
     public float rangeMultiplierFromWand() {
-        return 1.0F + modifierLevel(WandModifier.FOCUS.key()) * 0.05F;
+        float multiplier = 1.0F + modifierLevel(WandModifier.FOCUS.key()) * 0.05F;
+        // Ender Pearl increases range by 5%
+        if (hasModifier(WandMaterialModifier.ENDER_PEARL.key())) {
+            multiplier *= 1.05F;
+        }
+        return multiplier;
     }
 
     public float xpMultiplier() {
@@ -354,23 +389,37 @@ public final class WandData {
     }
 
     public int addWandXp(int amount) {
-        if (amount <= 0 || wandLevel >= MAX_SPELL_LEVEL) {
+        if (amount <= 0 || wandLevel >= MAX_WAND_LEVEL) {
             return 0;
         }
         int oldLevel = wandLevel;
         wandXp += amount;
-        while (wandLevel < MAX_SPELL_LEVEL && wandXp >= wandXpToNextLevel()) {
+        while (wandLevel < MAX_WAND_LEVEL && wandXp >= wandXpToNextLevel()) {
             wandXp -= wandXpToNextLevel();
             wandLevel++;
         }
-        if (wandLevel >= MAX_SPELL_LEVEL) {
+        if (wandLevel >= MAX_WAND_LEVEL) {
             wandXp = 0;
         }
         return wandLevel - oldLevel;
     }
 
     public boolean canAddWandModifier(String key) {
-        return WandModifier.byKey(key).isPresent() && usedWandModifierSlots() < wandModifierSlots();
+        // Check if it's a leveled modifier
+        Optional<WandModifier> leveledModifier = WandModifier.byKey(key);
+        if (leveledModifier.isPresent()) {
+            int currentLevel = modifierLevel(key);
+            return currentLevel < leveledModifier.get().maxLevel() && usedWandModifierSlots() < wandModifierSlots();
+        }
+        
+        // Check if it's a material modifier
+        Optional<WandMaterialModifier> materialModifier = WandMaterialModifier.byKey(key);
+        if (materialModifier.isPresent()) {
+            // Material modifiers are single-use (can only be added once)
+            return !modifiers.containsKey(key) && usedWandModifierSlots() < wandModifierSlots();
+        }
+        
+        return false;
     }
 
     public boolean addWandModifier(String key) {
@@ -450,6 +499,32 @@ public final class WandData {
             return Optional.empty();
         }
         return Optional.of(spells.get(activeIndex));
+    }
+
+    public boolean isLeveledModifier(String key) {
+        return WandModifier.byKey(key).isPresent();
+    }
+
+    public boolean isMaterialModifier(String key) {
+        return WandMaterialModifier.byKey(key).isPresent();
+    }
+
+    public boolean hasModifier(String key) {
+        return modifiers.containsKey(key) && modifierLevel(key) > 0;
+    }
+
+    private int getWoodModifierCount() {
+        int count = 0;
+        if (hasModifier(WandMaterialModifier.CHERRY.key())) count++;
+        if (hasModifier(WandMaterialModifier.OAK.key())) count++;
+        if (hasModifier(WandMaterialModifier.SPRUCE.key())) count++;
+        if (hasModifier(WandMaterialModifier.BIRCH.key())) count++;
+        if (hasModifier(WandMaterialModifier.JUNGLE.key())) count++;
+        if (hasModifier(WandMaterialModifier.ACACIA.key())) count++;
+        if (hasModifier(WandMaterialModifier.DARK_OAK.key())) count++;
+        if (hasModifier(WandMaterialModifier.MANGROVE.key())) count++;
+        if (hasModifier(WandMaterialModifier.PALE_OAK.key())) count++;
+        return count;
     }
 
     private static int[] defaultAssignments(int spellCount) {
@@ -662,5 +737,32 @@ public final class WandData {
                 default -> this;
             };
         }
+
+        public CompoundTag save() {
+            CompoundTag spellTag = new CompoundTag();
+            spellTag.putString(TAG_SPELL_KEY, key);
+            spellTag.putString(TAG_SPELL_NAME, displayName);
+            spellTag.putInt(TAG_SPELL_COST, manaCost);
+            spellTag.putInt(TAG_SPELL_COOLDOWN, cooldownTicks);
+            spellTag.putInt(TAG_SPELL_LEVEL, level);
+            spellTag.putInt(TAG_SPELL_XP, xp);
+            spellTag.putInt(TAG_SPELL_POINTS, attributePoints);
+            CompoundTag upgrades = new CompoundTag();
+            upgrades.putInt("chaining", chaining);
+            upgrades.putInt("chaining_entities", chainingEntities);
+            upgrades.putInt("chaining_radius", chainingRadius);
+            upgrades.putInt("chaining_damage", chainingDamage);
+            upgrades.putInt("damage", damage);
+            upgrades.putInt("radius", radius);
+            upgrades.putInt("multistrike", multistrike);
+            upgrades.putInt("multistrike_casts", multistrikeCasts);
+            upgrades.putInt("range", range);
+            upgrades.putInt("duration", duration);
+            spellTag.put(TAG_SPELL_UPGRADES, upgrades);
+            return spellTag;
+        }
+
+        public static WandSpellData load(CompoundTag tag) {
+            return WandSpellData.read(tag);
+        }
     }
-}
