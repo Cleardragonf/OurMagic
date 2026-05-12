@@ -49,6 +49,13 @@ public final class ClientChantMode {
     @SubscribeEvent
     public static void interaction(InputEvent.InteractionKeyMappingTriggered event) {
         if (active) {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (event.isUseItem()
+                    && minecraft.player != null
+                    && hasWand(minecraft.player.getItemInHand(event.getHand()))) {
+                finishForCast();
+                return;
+            }
             if (event.isCancelable()) {
                 event.setCanceled(true);
             }
@@ -71,6 +78,13 @@ public final class ClientChantMode {
         if (!active) {
             return;
         }
+        if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.player != null && activeWandHand(minecraft) != null) {
+                finishForCast();
+                return;
+            }
+        }
         if (event.isCancelable()) {
             event.setCanceled(true);
         }
@@ -90,6 +104,13 @@ public final class ClientChantMode {
     public static void keyPressed(InputEvent.Key event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.screen != null || event.getAction() != GLFW.GLFW_PRESS) {
+            return;
+        }
+
+        if (active && event.getKey() == GLFW.GLFW_KEY_C && altDown(minecraft)) {
+            releaseBlockedKeyMappings(minecraft);
+            lockCharge();
+            cancelEvent(event);
             return;
         }
 
@@ -114,6 +135,7 @@ public final class ClientChantMode {
             return;
         }
         if (event.getKey() == GLFW.GLFW_KEY_ESCAPE) {
+            releaseBlockedKeyMappings(minecraft);
             cancel();
             cancelEvent(event);
             return;
@@ -244,6 +266,17 @@ public final class ClientChantMode {
         typed = "";
         progress = 0;
         level = 0;
+        chargedTicks = 0;
+    }
+
+    private static void finishForCast() {
+        if (level <= 0) {
+            send(ChantingPacket.Mode.CANCEL);
+        }
+        active = false;
+        charged = false;
+        typed = "";
+        progress = 0;
         chargedTicks = 0;
     }
 
