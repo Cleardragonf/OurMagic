@@ -79,6 +79,11 @@ public final class ModNetwork {
                 .decoder(ScryCommandPacket::decode)
                 .consumerMainThread(ScryCommandPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(WardLightStatePacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(WardLightStatePacket::encode)
+                .decoder(WardLightStatePacket::decode)
+                .consumerMainThread(WardLightStatePacket::handle)
+                .add();
     }
 
     public static void syncMana(ServerPlayer player, PlayerMana mana) {
@@ -92,5 +97,9 @@ public final class ModNetwork {
 
     public static void syncScryState(ServerPlayer player, boolean active, String targetName, int targetIndex, int targetCount, int ticksRemaining) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ScryStatePacket(active, targetName, targetIndex, targetCount, ticksRemaining));
+    }
+
+    public static void syncWardLight(ServerPlayer player, boolean active) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new WardLightStatePacket(active));
     }
 }

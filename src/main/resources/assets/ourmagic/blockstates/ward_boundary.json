@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "water=false": {
+      "model": "ourmagic:block/ward_boundary_magic"
+    },
+    "water=true": {
+      "model": "ourmagic:block/ward_boundary"
+    }
+  }
+}

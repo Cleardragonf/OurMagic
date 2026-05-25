@@ -14,6 +14,12 @@ public class CompositePayload implements PayloadEffect {
 
     @Override
     public boolean apply(SpellContext context, SpellTarget target) {
+        List<PayloadEffect> wardPayloads = payloads.stream().filter(payload -> payload instanceof WardPayload).toList();
+        if (!wardPayloads.isEmpty()) {
+            List<PayloadEffect> triggeredPayloads = payloads.stream().filter(payload -> !(payload instanceof WardPayload)).toList();
+            return ((WardPayload) wardPayloads.get(0)).place(context, target, triggeredPayloads);
+        }
+
         List<PayloadEffect> runePayloads = payloads.stream().filter(payload -> payload instanceof RunePayload).toList();
         if (!runePayloads.isEmpty()) {
             List<PayloadEffect> triggeredPayloads = payloads.stream().filter(payload -> !(payload instanceof RunePayload)).toList();

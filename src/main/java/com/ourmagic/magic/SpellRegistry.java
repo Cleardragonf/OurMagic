@@ -47,6 +47,7 @@ import com.ourmagic.magic.spell.payloads.SilencePayload;
 import com.ourmagic.magic.spell.payloads.SummonPayload;
 import com.ourmagic.magic.spell.payloads.TransmutePayload;
 import com.ourmagic.magic.spell.payloads.WardPayload;
+import com.ourmagic.magic.spell.payloads.WardAreaPayload;
 import com.ourmagic.magic.spell.runtime.SpellBuildContext;
 import com.ourmagic.magic.spell.shapes.SpellShape;
 import com.ourmagic.magic.spell.shapes.SpellShapes;
@@ -91,7 +92,6 @@ public final class SpellRegistry {
             "summon_arcane",
             "summon_swarm",
             "transmute",
-            "ward",
             "warp"
     );
     private static final Map<String, Set<String>> PAYLOAD_COMBOS = payloadCombos();
@@ -235,6 +235,34 @@ public final class SpellRegistry {
         return recipe != null && isPayloadCombinationAllowed(recipe.payloads()) && isShapeAllowed(recipe.payloads(), recipe.shape()) && get(spellKey) != null;
     }
 
+    public static List<PayloadEffect> payloadEffectsExcluding(String spellKey, String excludedPayload) {
+        return payloadEffectsExcluding(spellKey, Set.of(excludedPayload));
+    }
+
+    public static List<PayloadEffect> payloadEffectsExcluding(String spellKey, Set<String> excludedPayloads) {
+        Recipe recipe = Recipe.parse(spellKey);
+        if (recipe == null || !isValidRecipe(spellKey)) {
+            return List.of();
+        }
+
+        List<PayloadEffect> payloads = new ArrayList<>();
+        int payloadIndex = 0;
+        for (String payloadKey : recipe.payloads()) {
+            if (excludedPayloads.contains(payloadKey)) {
+                continue;
+            }
+            SpellPart part = PARTS.get(payloadKey);
+            if (part == null) {
+                return List.of();
+            }
+            PayloadEffect payload = part.payload().get();
+            SpellBuildContext buildContext = new SpellBuildContext(spellKey, payloadKey, recipe.shape(), recipe.payloads(), payloadIndex++);
+            payload.particle(buildContext);
+            payloads.add(payload);
+        }
+        return List.copyOf(payloads);
+    }
+
     public static List<String> allowedShapes(String spellKey) {
         Recipe recipe = Recipe.parse(spellKey);
         return recipe == null ? List.of() : allowedShapesForPayloads(recipe.payloads());
@@ -304,7 +332,7 @@ public final class SpellRegistry {
         part("regenerate", RegeneratePayload::new, shapes("target", "ally_aoe", "ally_target_aoe"), mana(25, 47), cooldown(70, 140));
         part("reveal", RevealPayload::new, shapes("target", "target_aoe", "aoe"), mana(8, 16), cooldown(21, 42));
         part("rune", RunePayload::new, shapes("block", "point"), mana(12, 24), cooldown(42, 84));
-        part("sanctuary", SanctuaryPayload::new, shapes("self", "point", "aoe", "ally_aoe"), mana(25, 48), cooldown(84, 168));
+        part("sanctuary", SanctuaryPayload::new, shapes("self", "point", "target", "aoe", "ally_aoe"), mana(25, 48), cooldown(84, 168));
         part("scry", ScryPayload::new, shapes("self", "target", "point", "block"), mana(7, 14), cooldown(14, 28));
         part("shield", PhysicalShieldPayload::new, shapes("self", "block"), mana(13, 24), cooldown(56, 112));
         part("silence", SilencePayload::new, shapes("target", "target_aoe", "aoe"), mana(17, 33), cooldown(49, 98));
@@ -317,7 +345,37 @@ public final class SpellRegistry {
         part("summon_arcane", () -> new SummonPayload(SummonPayload.Variant.ARCANE), shapes("point", "block"), mana(30, 58), cooldown(84, 168));
         part("summon_swarm", () -> new SummonPayload(SummonPayload.Variant.SWARM), shapes("point", "block"), mana(18, 35), cooldown(56, 112));
         part("transmute", TransmutePayload::new, shapes("block", "target_aoe", "aoe"), mana(12, 24), cooldown(35, 70));
-        part("ward", WardPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(15, 29), cooldown(56, 112));
+        part("ward", WardPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe", "ward_hostile", "ward_players", "ward_allies", "ward_any"), mana(15, 29), cooldown(56, 112));
+        part("anti_fire", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_FIRE), shapes("target"), mana(12, 24), cooldown(45, 90));
+        part("anti_water", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_WATER), shapes("target"), mana(12, 24), cooldown(45, 90));
+        part("anti_explosion", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_EXPLOSION), shapes("target"), mana(16, 32), cooldown(60, 120));
+        part("anti_magic", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_MAGIC), shapes("target"), mana(22, 44), cooldown(80, 160));
+        part("anti_grief", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_GRIEF), shapes("target"), mana(18, 36), cooldown(70, 140));
+        part("anti_projectile", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_PROJECTILE), shapes("target"), mana(16, 32), cooldown(60, 120));
+        part("anti_teleport", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_TELEPORT), shapes("target"), mana(18, 36), cooldown(70, 140));
+        part("anti_decay", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_DECAY), shapes("target"), mana(12, 24), cooldown(45, 90));
+        part("anti_summon", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_SUMMON), shapes("target"), mana(18, 36), cooldown(70, 140));
+        part("air", () -> new WardAreaPayload(WardAreaPayload.Variant.AIR), shapes("target"), mana(14, 28), cooldown(50, 100));
+        part("air_bubble", () -> new WardAreaPayload(WardAreaPayload.Variant.AIR_BUBBLE), shapes("target"), mana(18, 36), cooldown(70, 140));
+        part("alarm", () -> new WardAreaPayload(WardAreaPayload.Variant.ALARM), shapes("target"), mana(10, 20), cooldown(35, 70));
+        part("entry_filter", () -> new WardAreaPayload(WardAreaPayload.Variant.ENTRY_FILTER), shapes("target"), mana(18, 36), cooldown(70, 140));
+        part("weather", () -> new WardAreaPayload(WardAreaPayload.Variant.WEATHER), shapes("target"), mana(14, 28), cooldown(55, 110));
+        part("lockdown", () -> new WardAreaPayload(WardAreaPayload.Variant.LOCKDOWN), shapes("target"), mana(24, 48), cooldown(90, 180));
+        part("item_guard", () -> new WardAreaPayload(WardAreaPayload.Variant.ITEM_GUARD), shapes("target"), mana(12, 24), cooldown(45, 90));
+        part("storage_lock", () -> new WardAreaPayload(WardAreaPayload.Variant.STORAGE_LOCK), shapes("target"), mana(14, 28), cooldown(50, 100));
+        part("grow", () -> new WardAreaPayload(WardAreaPayload.Variant.GROW), shapes("target"), mana(16, 32), cooldown(60, 120));
+        part("freeze", () -> new WardAreaPayload(WardAreaPayload.Variant.FREEZE), shapes("target"), mana(14, 28), cooldown(55, 110));
+        part("thaw", () -> new WardAreaPayload(WardAreaPayload.Variant.THAW), shapes("target"), mana(14, 28), cooldown(55, 110));
+        part("weakening", () -> new WardAreaPayload(WardAreaPayload.Variant.WEAKENING), shapes("target"), mana(16, 32), cooldown(60, 120));
+        part("mana_drain", () -> new WardAreaPayload(WardAreaPayload.Variant.MANA_DRAIN), shapes("target"), mana(20, 40), cooldown(80, 160));
+        part("reflect_projectile", () -> new WardAreaPayload(WardAreaPayload.Variant.REFLECT_PROJECTILE), shapes("target"), mana(22, 44), cooldown(85, 170));
+        part("dispel", () -> new WardAreaPayload(WardAreaPayload.Variant.DISPEL), shapes("target"), mana(20, 40), cooldown(80, 160));
+        part("light", () -> new WardAreaPayload(WardAreaPayload.Variant.LIGHT), shapes("target"), mana(10, 20), cooldown(35, 70));
+        part("dark", () -> new WardAreaPayload(WardAreaPayload.Variant.DARK), shapes("target"), mana(10, 20), cooldown(35, 70));
+        part("temporal", () -> new WardAreaPayload(WardAreaPayload.Variant.TEMPORAL), shapes("target"), mana(18, 36), cooldown(70, 140));
+        part("stasis", () -> new WardAreaPayload(WardAreaPayload.Variant.STASIS), shapes("target"), mana(18, 36), cooldown(70, 140));
+        part("fertility", () -> new WardAreaPayload(WardAreaPayload.Variant.FERTILITY), shapes("target"), mana(14, 28), cooldown(60, 120));
+        part("camouflage", () -> new WardAreaPayload(WardAreaPayload.Variant.CAMOUFLAGE), shapes("target"), mana(18, 36), cooldown(70, 140));
         part("warp", WarpPayload::new, shapes("self"), mana(28, 54), cooldown(84, 168));
     }
 
@@ -332,6 +390,10 @@ public final class SpellRegistry {
         shape("ally_target_aoe", particle -> SpellShapes.playersAroundLookedLivingOrSelf(18, 4, particle));
         shape("items_self_aoe", particle -> SpellShapes.itemsAroundSelf(10, particle));
         shape("water_target_aoe", particle -> SpellShapes.waterBlocksAroundLookedLivingOrPoint(18, 18, 1, 1, 0, particle));
+        shape("ward_hostile", particle -> SpellShapes.lookedPoint(20, 12));
+        shape("ward_players", particle -> SpellShapes.lookedPoint(20, 12));
+        shape("ward_allies", particle -> SpellShapes.lookedPoint(20, 12));
+        shape("ward_any", particle -> SpellShapes.lookedPoint(20, 12));
     }
 
     private static void registerDefaults() {
@@ -356,6 +418,40 @@ public final class SpellRegistry {
         registerRecipe("gather@items_self_aoe");
         registerRecipe("regenerate@ally_aoe");
         registerRecipe("ward@self");
+        registerRecipe("ward+bind@ward_hostile");
+        registerRecipe("ward+heal@ward_allies");
+        registerRecipe("ward+anti_fire@ward_any");
+        registerRecipe("ward+anti_water@ward_any");
+        registerRecipe("ward+anti_explosion@ward_any");
+        registerRecipe("ward+anti_magic@ward_any");
+        registerRecipe("ward+anti_grief@ward_any");
+        registerRecipe("ward+anti_projectile@ward_any");
+        registerRecipe("ward+anti_teleport@ward_any");
+        registerRecipe("ward+anti_decay@ward_any");
+        registerRecipe("ward+anti_summon@ward_any");
+        registerRecipe("ward+air@ward_any");
+        registerRecipe("ward+air_bubble@ward_any");
+        registerRecipe("ward+alarm@ward_any");
+        registerRecipe("ward+entry_filter@ward_hostile");
+        registerRecipe("ward+weather@ward_any");
+        registerRecipe("ward+lockdown@ward_any");
+        registerRecipe("ward+item_guard@ward_any");
+        registerRecipe("ward+storage_lock@ward_any");
+        registerRecipe("ward+grow@ward_any");
+        registerRecipe("ward+freeze@ward_any");
+        registerRecipe("ward+thaw@ward_any");
+        registerRecipe("ward+cleanse@ward_allies");
+        registerRecipe("ward+reveal@ward_any");
+        registerRecipe("ward+sanctuary@ward_any");
+        registerRecipe("ward+weakening@ward_hostile");
+        registerRecipe("ward+mana_drain@ward_players");
+        registerRecipe("ward+reflect_projectile@ward_any");
+        registerRecipe("ward+dispel@ward_any");
+        registerRecipe("ward+light@ward_any");
+        registerRecipe("ward+temporal@ward_any");
+        registerRecipe("ward+stasis@ward_hostile");
+        registerRecipe("ward+fertility@ward_any");
+        registerRecipe("ward+camouflage@ward_any");
         registerRecipe("gravity@target_aoe");
         registerRecipe("silence@target");
         registerRecipe("charm@target");
@@ -465,7 +561,7 @@ public final class SpellRegistry {
         return switch (key) {
             case "blink", "conjure", "fire_place", "gather", "phase", "recall", "scry", "transmute", "warp" -> Spell.FocusEffect.RANGE;
             case "cleanse", "illusion", "rune", "sanctuary" -> Spell.FocusEffect.RADIUS;
-            case "anchor", "bind", "blind", "bubble", "charm", "curse", "frost", "hex", "levitate", "overload", "reflect", "reveal", "shield", "silence", "stun", "ward" -> Spell.FocusEffect.DURATION;
+            case "anchor", "alarm", "anti_decay", "anti_explosion", "anti_fire", "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water", "air", "air_bubble", "bind", "blind", "bubble", "camouflage", "charm", "curse", "dark", "dispel", "entry_filter", "fertility", "freeze", "frost", "grow", "hex", "item_guard", "levitate", "light", "lockdown", "mana_drain", "overload", "reflect", "reflect_projectile", "reveal", "shield", "silence", "stasis", "storage_lock", "stun", "temporal", "thaw", "ward", "weakening", "weather" -> Spell.FocusEffect.DURATION;
             case "nullify" -> Spell.FocusEffect.RANGE;
             case "heal", "lifedrain", "manaburn", "regenerate", "summon", "summon_random", "summon_undead", "summon_beast", "summon_guardian", "summon_arcane", "summon_swarm" -> Spell.FocusEffect.UTILITY;
             default -> physical ? Spell.FocusEffect.DAMAGE : Spell.FocusEffect.UTILITY;
@@ -513,6 +609,14 @@ public final class SpellRegistry {
             return false;
         }
 
+        if (payloads.contains("ward") && payloads.size() > 1 && !shape.startsWith("ward_")) {
+            return false;
+        }
+
+        if (shape.startsWith("ward_")) {
+            return isWardShapeAllowed(payloads);
+        }
+
         if (payloads.contains("rune") && (shape.equals("block") || shape.equals("point"))) {
             return payloads.stream().allMatch(PARTS::containsKey);
         }
@@ -524,6 +628,16 @@ public final class SpellRegistry {
             }
         }
         return true;
+    }
+
+    private static boolean isWardShapeAllowed(List<String> payloads) {
+        if (!payloads.contains("ward") || payloads.size() < 2) {
+            return false;
+        }
+        return payloads.stream()
+                .filter(payload -> !payload.equals("ward"))
+                .map(PARTS::get)
+                .allMatch(part -> part != null && part.shapes().allows("target"));
     }
 
     private static boolean isPayloadCombinationAllowed(List<String> payloads) {
@@ -565,6 +679,7 @@ public final class SpellRegistry {
         combo(combos, "curse", "blind", "hex", "lifedrain", "manaburn", "overload", "silence");
         combo(combos, "hex", "blind", "lifedrain", "manaburn", "overload", "silence");
         combo(combos, "heal", "bubble", "regenerate", "reveal");
+        combo(combos, "ward", "anchor", "alarm", "anti_decay", "anti_explosion", "anti_fire", "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water", "air", "air_bubble", "arrow", "bind", "blast", "blind", "bubble", "camouflage", "charm", "cleanse", "curse", "dark", "disarm", "dispel", "entry_filter", "fertility", "fire", "fireball", "freeze", "frost", "gravity", "grow", "heal", "hex", "item_guard", "levitate", "lifedrain", "light", "lightning", "lockdown", "mana_drain", "manaburn", "missile", "nullify", "overload", "push", "regenerate", "reflect", "reflect_projectile", "reveal", "sanctuary", "silence", "stasis", "storage_lock", "stun", "temporal", "thaw", "weakening", "weather");
         return combos;
     }
 

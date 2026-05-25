@@ -5,17 +5,18 @@ import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.PlayerChanting;
 import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.magic.spell.runtime.MagicStatusEffects;
+import com.ourmagic.magic.ward.WorldWards;
 import com.ourmagic.mana.PlayerMana;
 import com.ourmagic.network.CraftSpellPacket;
 import com.ourmagic.network.ModNetwork;
 import com.ourmagic.registry.ModItems;
+import com.ourmagic.util.PlayerTitles;
 import com.ourmagic.wand.WandData;
 import com.ourmagic.wand.WandModifier;
 import com.ourmagic.wand.WandTemplates;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -89,6 +90,15 @@ public class WandItem extends Item {
         Level level = player.level();
         if (MagicStatusEffects.isSilenced(player)) {
             player.displayClientMessage(Component.literal("Your magic is silenced.").withStyle(ChatFormatting.DARK_PURPLE), true);
+            return false;
+        }
+        if (level instanceof ServerLevel serverLevel && WorldWards.isMagicSuppressedAt(serverLevel, player.blockPosition())) {
+            PlayerTitles.show(player,
+                    Component.literal("Magic Suppressed").withStyle(ChatFormatting.DARK_PURPLE),
+                    Component.literal("This ward suppresses your magic.").withStyle(ChatFormatting.LIGHT_PURPLE),
+                    5, 35, 10);
+            serverLevel.sendParticles(ParticleTypes.ENCHANT, player.getX(), player.getY() + 1.0D, player.getZ(), 12, 0.35D, 0.35D, 0.35D, 0.02D);
+            serverLevel.playSound(null, player.blockPosition(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 0.35F, 1.45F);
             return false;
         }
 
@@ -281,7 +291,7 @@ public class WandItem extends Item {
         }
 
         Component message = Component.literal("Your " + spellName + " has leveled up!").withStyle(ChatFormatting.GOLD);
-        player.connection.send(new ClientboundSetTitleTextPacket(message));
+        PlayerTitles.show(player, message);
         player.displayClientMessage(message, true);
     }
 

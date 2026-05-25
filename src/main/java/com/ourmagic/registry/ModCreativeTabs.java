@@ -23,6 +23,7 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.SPELL_FOCUS.get());
                 output.accept(ModItems.GRIMOIRE.get());
                 output.accept(ModItems.GUIDE_BOOK.get());
+                output.accept(ModItems.WARD_TUNER.get());
                 output.accept(ModItems.LIGHTNING_TALISMAN.get());
                 output.accept(ModItems.ANCHOR_TALISMAN.get());
                 output.accept(ModItems.SEEKER_TALISMAN.get());
@@ -36,6 +37,10 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.MAGNET_TALISMAN.get());
                 output.accept(ModItems.TIDE_TALISMAN.get());
                 output.accept(ModItems.TEMPORARY_SHIELD.get());
+                output.accept(ModItems.WARD_STONE.get());
+                output.accept(ModItems.MAGIC_FLOW_CONVERTER.get());
+                output.accept(ModItems.CREATIVE_RF_GENERATOR.get());
+                output.accept(ModItems.WARD_PERIMETER_STONE.get());
             })
             .build());
 

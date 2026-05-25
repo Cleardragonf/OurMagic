@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ADA",
+    "DPD",
+    "ADA"
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "D": {
+      "item": "minecraft:deepslate_bricks"
+    },
+    "P": {
+      "item": "ourmagic:pulse_talisman"
+    }
+  },
+  "result": {
+    "item": "ourmagic:ward_perimeter_stone",
+    "count": 16
+  }
+}

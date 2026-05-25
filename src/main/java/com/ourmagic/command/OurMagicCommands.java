@@ -2,24 +2,40 @@ package com.ourmagic.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.ourmagic.magic.ArcaneKnowledgeBook;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellRegistry;
+import com.ourmagic.magic.ward.WorldWards;
+import com.ourmagic.block.entity.WardStoneBlockEntity;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.wand.WandData;
 import com.ourmagic.wand.WandTemplates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public final class OurMagicCommands {
+    private static final String WARD_PAYLOAD = "ward";
+    private static final String DEFAULT_WARD_SHAPE = "ward_any";
+
     private OurMagicCommands() {
     }
 
@@ -43,7 +59,64 @@ public final class OurMagicCommands {
                         .requires(source -> source.hasPermission(2))
                         .executes(context -> dropArcaneKnowledgeBook(context.getSource(), context.getSource().getPlayerOrException(), false))
                         .then(Commands.argument("strong", BoolArgumentType.bool())
-                                .executes(context -> dropArcaneKnowledgeBook(context.getSource(), context.getSource().getPlayerOrException(), BoolArgumentType.getBool(context, "strong"))))));
+                                .executes(context -> dropArcaneKnowledgeBook(context.getSource(), context.getSource().getPlayerOrException(), BoolArgumentType.getBool(context, "strong")))))
+                .then(Commands.literal("ward")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("stone")
+                                .executes(context -> giveItem(context.getSource(), context.getSource().getPlayerOrException(), new ItemStack(ModItems.WARD_STONE.get()), "Ward Stone"))
+                                .then(Commands.argument("target", EntityArgument.player())
+                                        .executes(context -> giveItem(context.getSource(), EntityArgument.getPlayer(context, "target"), new ItemStack(ModItems.WARD_STONE.get()), "Ward Stone"))))
+                        .then(Commands.literal("converter")
+                                .executes(context -> giveItem(context.getSource(), context.getSource().getPlayerOrException(), new ItemStack(ModItems.MAGIC_FLOW_CONVERTER.get()), "Magic Flow Converter"))
+                                .then(Commands.argument("target", EntityArgument.player())
+                                        .executes(context -> giveItem(context.getSource(), EntityArgument.getPlayer(context, "target"), new ItemStack(ModItems.MAGIC_FLOW_CONVERTER.get()), "Magic Flow Converter"))))
+                        .then(Commands.literal("rf_generator")
+                                .executes(context -> giveItem(context.getSource(), context.getSource().getPlayerOrException(), new ItemStack(ModItems.CREATIVE_RF_GENERATOR.get()), "Creative RF Generator"))
+                                .then(Commands.argument("target", EntityArgument.player())
+                                        .executes(context -> giveItem(context.getSource(), EntityArgument.getPlayer(context, "target"), new ItemStack(ModItems.CREATIVE_RF_GENERATOR.get()), "Creative RF Generator"))))
+                        .then(Commands.literal("tuner")
+                                .executes(context -> giveItem(context.getSource(), context.getSource().getPlayerOrException(), new ItemStack(ModItems.WARD_TUNER.get()), "Ward Tuner"))
+                                .then(Commands.argument("target", EntityArgument.player())
+                                        .executes(context -> giveItem(context.getSource(), EntityArgument.getPlayer(context, "target"), new ItemStack(ModItems.WARD_TUNER.get()), "Ward Tuner"))))
+                        .then(Commands.literal("perimeter")
+                                .executes(context -> giveItem(context.getSource(), context.getSource().getPlayerOrException(), new ItemStack(ModItems.WARD_PERIMETER_STONE.get(), 32), "Ward Perimeter Stones"))
+                                .then(Commands.argument("count", IntegerArgumentType.integer(1, 6400))
+                                        .executes(context -> giveItem(context.getSource(), context.getSource().getPlayerOrException(), new ItemStack(ModItems.WARD_PERIMETER_STONE.get(), IntegerArgumentType.getInteger(context, "count")), "Ward Perimeter Stones"))
+                                        .then(Commands.argument("target", EntityArgument.player())
+                                                .executes(context -> giveItem(context.getSource(), EntityArgument.getPlayer(context, "target"), new ItemStack(ModItems.WARD_PERIMETER_STONE.get(), IntegerArgumentType.getInteger(context, "count")), "Ward Perimeter Stones")))))
+                        .then(Commands.literal("paper")
+                                .then(Commands.argument("spell", StringArgumentType.greedyString())
+                                        .executes(context -> giveWardPaper(context.getSource(), context.getSource().getPlayerOrException(), StringArgumentType.getString(context, "spell")))))
+                        .then(Commands.literal("apply")
+                                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                        .then(Commands.argument("spell", StringArgumentType.greedyString())
+                                                .executes(context -> applyWard(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "pos"), context.getSource().getPlayerOrException(), StringArgumentType.getString(context, "spell"))))))
+                        .then(Commands.literal("clear")
+                                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                        .executes(context -> clearWard(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "pos")))))
+                        .then(Commands.literal("info")
+                                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                        .executes(context -> wardInfo(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "pos")))))
+                        .then(Commands.literal("outline")
+                                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                        .executes(context -> wardOutline(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "pos")))))
+                        .then(Commands.literal("biome")
+                                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                        .then(Commands.argument("biome", ResourceLocationArgument.id())
+                                                .executes(context -> wardBiome(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "pos"), ResourceLocationArgument.getId(context, "biome"))))))
+                        .then(Commands.literal("charge")
+                                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                        .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                                .executes(context -> chargeWardStone(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "pos"), IntegerArgumentType.getInteger(context, "amount"))))))
+                        .then(Commands.literal("link")
+                                .then(Commands.argument("ward", BlockPosArgument.blockPos())
+                                        .then(Commands.argument("perimeter", BlockPosArgument.blockPos())
+                                                .executes(context -> linkWardPerimeter(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "ward"), BlockPosArgument.getLoadedBlockPos(context, "perimeter"))))))
+                        .then(Commands.literal("unlink")
+                                .then(Commands.argument("perimeter", BlockPosArgument.blockPos())
+                                        .executes(context -> unlinkWardPerimeter(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "perimeter")))))
+                        .then(Commands.literal("count")
+                                .executes(context -> wardCount(context.getSource())))));
     }
 
     private static int giveWand(CommandSourceStack source, ServerPlayer target) {
@@ -84,5 +157,164 @@ public final class OurMagicCommands {
         target.level().addFreshEntity(item);
         source.sendSuccess(() -> Component.literal("Dropped " + stack.getHoverName().getString() + " for " + target.getGameProfile().getName()), true);
         return 1;
+    }
+
+    private static int giveItem(CommandSourceStack source, ServerPlayer target, ItemStack stack, String name) {
+        int remaining = stack.getCount();
+        while (remaining > 0) {
+            ItemStack chunk = stack.copy();
+            chunk.setCount(Math.min(remaining, stack.getMaxStackSize()));
+            remaining -= chunk.getCount();
+            if (!target.getInventory().add(chunk)) {
+                target.drop(chunk, false);
+            }
+        }
+        source.sendSuccess(() -> Component.literal("Gave " + name + " to " + target.getGameProfile().getName()), true);
+        return 1;
+    }
+
+    private static int giveWardPaper(CommandSourceStack source, ServerPlayer target, String spellKey) {
+        String resolvedSpellKey = normalizeWardSpellKey(spellKey);
+        Spell spell = SpellRegistry.get(resolvedSpellKey);
+        if (spell == null || !SpellRegistry.payloadParts(resolvedSpellKey).contains(WARD_PAYLOAD)) {
+            source.sendFailure(Component.literal("Unknown ward spell recipe: " + spellKey + " (resolved to " + resolvedSpellKey + ")"));
+            return 0;
+        }
+
+        ItemStack paper = new ItemStack(Items.PAPER);
+        SpellInstance.fixed(resolvedSpellKey).writeToItem(paper);
+        if (!target.getInventory().add(paper)) {
+            target.drop(paper, false);
+        }
+        source.sendSuccess(() -> Component.literal("Gave ward paper " + resolvedSpellKey + " to " + target.getGameProfile().getName()), true);
+        return 1;
+    }
+
+    private static int applyWard(CommandSourceStack source, BlockPos pos, ServerPlayer owner, String spellKey) {
+        ServerLevel level = source.getLevel();
+        String resolvedSpellKey = normalizeWardSpellKey(spellKey);
+        WorldWards.ApplyResult result = WorldWards.apply(level, pos, owner, SpellInstance.fixed(resolvedSpellKey));
+        if (!result.success()) {
+            source.sendFailure(Component.literal(result.message() + " (" + spellKey + " resolved to " + resolvedSpellKey + ")"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal(result.message()), true);
+        return 1;
+    }
+
+    private static String normalizeWardSpellKey(String input) {
+        String trimmed = input.trim();
+        if (trimmed.isEmpty()) {
+            return trimmed;
+        }
+
+        String[] split = trimmed.split("@", 2);
+        List<String> payloads = new ArrayList<>();
+        for (String rawPayload : split[0].split("\\+")) {
+            String payload = normalizeRecipeToken(rawPayload);
+            if (!payload.isEmpty()) {
+                payloads.add(payload);
+            }
+        }
+
+        payloads.remove(WARD_PAYLOAD);
+        payloads.add(0, WARD_PAYLOAD);
+
+        String shape = split.length > 1 ? normalizeWardShape(split[1]) : DEFAULT_WARD_SHAPE;
+        return String.join("+", payloads) + "@" + shape;
+    }
+
+    private static String normalizeWardShape(String input) {
+        String shape = normalizeRecipeToken(input);
+        if (shape.isEmpty()) {
+            return DEFAULT_WARD_SHAPE;
+        }
+        if (shape.startsWith("ward_")) {
+            return shape;
+        }
+        return switch (shape) {
+            case "any", "all", "everyone", "everything" -> "ward_any";
+            case "hostile", "hostiles", "enemy", "enemies", "mob", "mobs" -> "ward_hostile";
+            case "player", "players" -> "ward_players";
+            case "ally", "allies", "friend", "friends", "friendly" -> "ward_allies";
+            default -> "ward_" + shape;
+        };
+    }
+
+    private static String normalizeRecipeToken(String input) {
+        return input.trim().toLowerCase(Locale.ROOT).replaceAll("[\\s-]+", "_");
+    }
+
+    private static int clearWard(CommandSourceStack source, BlockPos pos) {
+        boolean removed = WorldWards.clear(source.getLevel(), pos);
+        if (!removed) {
+            source.sendFailure(Component.literal("No ward is anchored at that Ward Stone."));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Cleared ward at " + pos.toShortString()), true);
+        return 1;
+    }
+
+    private static int wardInfo(CommandSourceStack source, BlockPos pos) {
+        String message = WorldWards.describe(source.getLevel(), pos).orElse("No ward is anchored at that Ward Stone.");
+        source.sendSuccess(() -> Component.literal(message), false);
+        return 1;
+    }
+
+    private static int wardOutline(CommandSourceStack source, BlockPos pos) {
+        if (!WorldWards.showOutline(source.getLevel(), pos)) {
+            source.sendFailure(Component.literal("No ward is anchored at that Ward Stone."));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Displayed ward outline at " + pos.toShortString()), false);
+        return 1;
+    }
+
+    private static int wardBiome(CommandSourceStack source, BlockPos pos, ResourceLocation biomeId) {
+        WorldWards.ApplyResult result = WorldWards.setBiome(source.getLevel(), pos, biomeId);
+        if (!result.success()) {
+            source.sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal(result.message()), true);
+        return 1;
+    }
+
+    private static int chargeWardStone(CommandSourceStack source, BlockPos pos, int amount) {
+        ServerLevel level = source.getLevel();
+        java.util.Optional<WardStoneBlockEntity> wardStone = WardStoneBlockEntity.getOrCreate(level, pos);
+        if (wardStone.isEmpty()) {
+            source.sendFailure(Component.literal("There is no Ward Stone at " + pos.toShortString() + "."));
+            return 0;
+        }
+        int accepted = wardStone.get().receiveMagicFlow(amount, false);
+        source.sendSuccess(() -> Component.literal("Added " + accepted + " MF to Ward Stone. Stored "
+                + wardStone.get().magicFlow() + "/" + wardStone.get().magicFlowCapacity() + " MF."), true);
+        return accepted;
+    }
+
+    private static int linkWardPerimeter(CommandSourceStack source, BlockPos ward, BlockPos perimeter) {
+        WorldWards.ApplyResult result = WorldWards.linkPerimeter(source.getLevel(), ward, perimeter);
+        if (!result.success()) {
+            source.sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal(result.message()), true);
+        return 1;
+    }
+
+    private static int unlinkWardPerimeter(CommandSourceStack source, BlockPos perimeter) {
+        if (!WorldWards.unlinkPerimeter(source.getLevel(), perimeter)) {
+            source.sendFailure(Component.literal("That Ward Perimeter Stone was not linked."));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Unlinked Ward Perimeter Stone at " + perimeter.toShortString()), true);
+        return 1;
+    }
+
+    private static int wardCount(CommandSourceStack source) {
+        int count = WorldWards.count(source.getLevel());
+        source.sendSuccess(() -> Component.literal("Active world wards: " + count), false);
+        return count;
     }
 }
