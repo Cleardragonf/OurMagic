@@ -62,12 +62,12 @@ public record WandSelectSpellPacket(InteractionHand hand, Mode mode, int slot, i
         }
 
         if (hand == InteractionHand.OFF_HAND) {
-            player.connection.send(new ClientboundContainerSetSlotPacket(ClientboundContainerSetSlotPacket.PLAYER_INVENTORY, 0, 45, wand.copy()));
+            player.connection.send(new ClientboundContainerSetSlotPacket(ClientboundContainerSetSlotPacket.PLAYER_INVENTORY, 0, net.minecraft.world.entity.player.Inventory.SLOT_OFFHAND, wand.copy()));
             return;
         }
 
         int slot = player.getInventory().selected;
-        player.connection.send(new ClientboundContainerSetSlotPacket(ClientboundContainerSetSlotPacket.PLAYER_INVENTORY, 0, 36 + slot, wand.copy()));
+        player.connection.send(new ClientboundContainerSetSlotPacket(ClientboundContainerSetSlotPacket.PLAYER_INVENTORY, 0, slot, wand.copy()));
     }
 
     public enum Mode {
