@@ -328,7 +328,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         int x = 126;
         int y = 17;
 
-        graphics.drawCenteredString(font, titleCase(selectedUpgrade), imageWidth / 2, y, 0xFFFFFFFF);
+        graphics.drawCenteredString(font, upgradeLabel(selectedUpgrade), imageWidth / 2, y, 0xFFFFFFFF);
 
         renderUpgradeIcon(graphics, selectedUpgrade, rank);
 
@@ -495,7 +495,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             mainUpgradeButton.setX(leftPos + 102);
             mainUpgradeButton.setY(topPos + 207);
             mainUpgradeButton.setMessage(yellow(rank <= 0
-                    ? "Enable " + titleCase(selectedUpgrade)
+                    ? "Enable " + upgradeLabel(selectedUpgrade)
                     : "Upgrade"));
             mainUpgradeButton.setTooltip(Tooltip.create(Component.literal(upgradeTooltip(spell, selectedUpgrade))));
         }
@@ -553,10 +553,12 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
 
         return switch (upgrade) {
             case Spell.UPGRADE_CHAINING -> spell.chaining();
+            case Spell.UPGRADE_ENTITIES -> spell.chainingEntities();
             case Spell.UPGRADE_CHAIN_RADIUS -> spell.chainingRadius();
             case Spell.UPGRADE_CHAIN_DAMAGE -> spell.chainingDamage();
             case Spell.UPGRADE_MULTISTRIKE -> spell.multistrike();
             case Spell.UPGRADE_DAMAGE -> spell.damage();
+            case Spell.UPGRADE_HEALING -> spell.healing();
             case Spell.UPGRADE_RANGE -> spell.range();
             case Spell.UPGRADE_RADIUS -> spell.radius();
             case Spell.UPGRADE_DURATION -> spell.duration();
@@ -600,7 +602,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
                 case 0 -> Spell.UPGRADE_CASTS;
                 default -> null;
             };
+            case Spell.UPGRADE_ENTITIES -> index == 0 ? Spell.UPGRADE_ENTITIES : null;
             case Spell.UPGRADE_DAMAGE -> index == 0 ? Spell.UPGRADE_DAMAGE : null;
+            case Spell.UPGRADE_HEALING -> index == 0 ? Spell.UPGRADE_HEALING : null;
             case Spell.UPGRADE_RANGE -> index == 0 ? Spell.UPGRADE_RANGE : null;
             case Spell.UPGRADE_RADIUS -> index == 0 ? Spell.UPGRADE_RADIUS : null;
             case Spell.UPGRADE_DURATION -> index == 0 ? Spell.UPGRADE_DURATION : null;
@@ -620,7 +624,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
                 case 0 -> "Casts";
                 default -> "Stat";
             };
+            case Spell.UPGRADE_ENTITIES -> "Entities";
             case Spell.UPGRADE_DAMAGE -> "Damage";
+            case Spell.UPGRADE_HEALING -> "Healing";
             case Spell.UPGRADE_RANGE -> "Reach";
             case Spell.UPGRADE_RADIUS -> "Radius";
             case Spell.UPGRADE_DURATION -> "Duration";
@@ -636,6 +642,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             case Spell.UPGRADE_RADIUS -> "Radius";
             case Spell.UPGRADE_CASTS -> "Casts";
             case Spell.UPGRADE_DAMAGE -> "Damage";
+            case Spell.UPGRADE_HEALING -> "Healing";
             case Spell.UPGRADE_RANGE -> "Reach";
             case Spell.UPGRADE_DURATION -> "Duration";
             default -> titleCase(upgrade);
@@ -646,7 +653,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         return switch (upgrade) {
             case Spell.UPGRADE_ENTITIES, Spell.UPGRADE_CASTS -> "*";
             case Spell.UPGRADE_CHAIN_RADIUS, Spell.UPGRADE_RADIUS, Spell.UPGRADE_RANGE -> "O";
-            case Spell.UPGRADE_CHAIN_DAMAGE, Spell.UPGRADE_DAMAGE -> "+";
+            case Spell.UPGRADE_CHAIN_DAMAGE, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_HEALING -> "+";
             case Spell.UPGRADE_DURATION -> "||";
             default -> "*";
         };
@@ -654,12 +661,13 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
 
     private static String statDescription(String upgrade) {
         return switch (upgrade) {
-            case Spell.UPGRADE_ENTITIES -> "Maximum targets hit.";
+            case Spell.UPGRADE_ENTITIES -> "Entities summoned.";
             case Spell.UPGRADE_CHAIN_RADIUS -> "New target search radius.";
             case Spell.UPGRADE_CHAIN_DAMAGE -> "Chain damage bonus.";
             case Spell.UPGRADE_RADIUS -> "Area search radius.";
             case Spell.UPGRADE_CASTS -> "Additional casts.";
             case Spell.UPGRADE_DAMAGE -> "Damage bonus.";
+            case Spell.UPGRADE_HEALING -> "Healing bonus.";
             case Spell.UPGRADE_RANGE -> "Spell reach.";
             case Spell.UPGRADE_DURATION -> "Effect time.";
             default -> "Upgrade stat.";
@@ -669,12 +677,13 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     private static String statValue(WandData.WandSpellData spell, String upgrade, int rank, int nextRank) {
         boolean showNext = rank > 0 && spell.canUpgrade(upgrade);
         return switch (upgrade) {
-            case Spell.UPGRADE_ENTITIES -> arrowValue(rank + spell.chainingEntities(), showNext ? rank + spell.chainingEntities() + 1 : null);
+            case Spell.UPGRADE_ENTITIES -> arrowValue(1 + rank, showNext ? 2 + rank : null);
             case Spell.UPGRADE_CHAIN_RADIUS -> arrowValue((4 + spell.chainingRadius()) + " blocks", showNext ? (5 + spell.chainingRadius()) + " blocks" : null);
             case Spell.UPGRADE_CHAIN_DAMAGE -> arrowValue("+" + (spell.chainingDamage() * 10) + "%", showNext ? "+" + ((spell.chainingDamage() + 1) * 10) + "%" : null);
             case Spell.UPGRADE_RADIUS -> arrowValue("+" + (spell.radius() * 20) + "%", showNext ? "+" + ((spell.radius() + 1) * 20) + "%" : null);
             case Spell.UPGRADE_CASTS -> arrowValue(1 + rank + spell.multistrikeCasts(), showNext ? 2 + rank + spell.multistrikeCasts() : null);
             case Spell.UPGRADE_DAMAGE -> arrowValue("+" + (spell.damage() * 10) + "%", showNext ? "+" + ((spell.damage() + 1) * 10) + "%" : null);
+            case Spell.UPGRADE_HEALING -> arrowValue("+" + (spell.healing() * 15) + "%", showNext ? "+" + ((spell.healing() + 1) * 15) + "%" : null);
             case Spell.UPGRADE_RANGE -> arrowValue("+" + (rank * 20) + "%", showNext ? "+" + (nextRank * 20) + "%" : null);
             case Spell.UPGRADE_DURATION -> arrowValue("+" + (rank * 20) + "%", showNext ? "+" + (nextRank * 20) + "%" : null);
             default -> "";
@@ -693,7 +702,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         return switch (upgrade) {
             case Spell.UPGRADE_CHAINING -> "Chains to additional nearby targets.";
             case Spell.UPGRADE_MULTISTRIKE -> "Fires additional casts at the target.";
+            case Spell.UPGRADE_ENTITIES -> "Summons additional entities.";
             case Spell.UPGRADE_DAMAGE -> "Increases spell damage.";
+            case Spell.UPGRADE_HEALING -> "Increases healing and recovery strength.";
             case Spell.UPGRADE_RANGE -> "Extends how far the spell can reach.";
             case Spell.UPGRADE_RADIUS -> "Expands area and chain radius.";
             case Spell.UPGRADE_DURATION -> "Keeps spell effects active longer.";
@@ -717,7 +728,9 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         List<String> upgrades = new ArrayList<>();
         addIfSupported(upgrades, spell, Spell.UPGRADE_CHAINING);
         addIfSupported(upgrades, spell, Spell.UPGRADE_MULTISTRIKE);
+        addIfSupportedFamily(upgrades, spell, Spell.UPGRADE_ENTITIES);
         addIfSupported(upgrades, spell, Spell.UPGRADE_DAMAGE);
+        addIfSupported(upgrades, spell, Spell.UPGRADE_HEALING);
         addIfSupported(upgrades, spell, Spell.UPGRADE_RANGE);
         addIfSupported(upgrades, spell, Spell.UPGRADE_RADIUS);
         addIfSupported(upgrades, spell, Spell.UPGRADE_DURATION);
@@ -730,10 +743,17 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         }
     }
 
+    private static void addIfSupportedFamily(List<String> upgrades, Spell spell, String upgrade) {
+        if (spell != null && spell.supportsUpgradeFamily(upgrade)) {
+            upgrades.add(upgrade);
+        }
+    }
+
     private static String upgradeLabel(String upgrade) {
         return switch (upgrade) {
             case Spell.UPGRADE_CHAINING -> "Chaining";
             case Spell.UPGRADE_MULTISTRIKE -> "Multi";
+            case Spell.UPGRADE_ENTITIES -> "Entities";
             case Spell.UPGRADE_DAMAGE -> "Damage";
             case Spell.UPGRADE_RANGE -> "Range";
             case Spell.UPGRADE_RADIUS -> "Radius";
@@ -743,7 +763,7 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
     }
 
     private static String upgradeTooltip(WandData.WandSpellData spell, String upgrade) {
-        return titleCase(upgrade) + " " + getUpgradeRank(spell, upgrade) + " | Cost: 1 point | " + upgradeCostDetails(spell, upgrade);
+        return upgradeLabel(upgrade) + " " + getUpgradeRank(spell, upgrade) + " | Cost: 1 point | " + upgradeCostDetails(spell, upgrade);
     }
 
     private static String upgradeCostDetails(WandData.WandSpellData spell, String upgrade) {

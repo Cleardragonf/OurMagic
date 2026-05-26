@@ -2,6 +2,7 @@ package com.ourmagic.magic;
 
 import com.ourmagic.magic.spell.PayloadSpell;
 import com.ourmagic.magic.spell.payloads.ArrowPayload;
+import com.ourmagic.magic.spell.payloads.AgilityPayload;
 import com.ourmagic.magic.spell.payloads.BindPayload;
 import com.ourmagic.magic.spell.payloads.BlindPayload;
 import com.ourmagic.magic.spell.payloads.BlastPayload;
@@ -16,9 +17,13 @@ import com.ourmagic.magic.spell.payloads.CursePayload;
 import com.ourmagic.magic.spell.payloads.DisarmPayload;
 import com.ourmagic.magic.spell.payloads.EchoPayload;
 import com.ourmagic.magic.spell.payloads.ExplosionPayload;
+import com.ourmagic.magic.spell.payloads.BlastguardPayload;
+import com.ourmagic.magic.spell.payloads.FallguardPayload;
+import com.ourmagic.magic.spell.payloads.FireguardPayload;
 import com.ourmagic.magic.spell.payloads.FirePlacementPayload;
 import com.ourmagic.magic.spell.payloads.FirePayload;
 import com.ourmagic.magic.spell.payloads.FireballPayload;
+import com.ourmagic.magic.spell.payloads.FortifyPayload;
 import com.ourmagic.magic.spell.payloads.FreezePayload;
 import com.ourmagic.magic.spell.payloads.GatherPayload;
 import com.ourmagic.magic.spell.payloads.GravityPayload;
@@ -28,7 +33,9 @@ import com.ourmagic.magic.spell.payloads.IllusionPayload;
 import com.ourmagic.magic.spell.payloads.LevitatePayload;
 import com.ourmagic.magic.spell.payloads.LifedrainPayload;
 import com.ourmagic.magic.spell.payloads.LightningPayload;
+import com.ourmagic.magic.spell.payloads.LifeWardPayload;
 import com.ourmagic.magic.spell.payloads.ManaBurnPayload;
+import com.ourmagic.magic.spell.payloads.ManaShieldPayload;
 import com.ourmagic.magic.spell.payloads.MissilePayload;
 import com.ourmagic.magic.spell.payloads.NullifyPayload;
 import com.ourmagic.magic.spell.payloads.OverloadPayload;
@@ -71,6 +78,7 @@ public final class SpellRegistry {
     private static final Map<String, Spell> SPELLS = new LinkedHashMap<>();
     private static final Map<String, SpellPart> PARTS = new LinkedHashMap<>();
     private static final Map<String, ShapePart> SHAPES = new LinkedHashMap<>();
+    private static List<ArcaneKnowledgeRecipe> arcaneKnowledgeRecipes;
     private static final Set<String> SOLO_PAYLOADS = Set.of(
             "blink",
             "cleanse",
@@ -126,6 +134,14 @@ public final class SpellRegistry {
             random("regenerate", "ally_aoe", 3),
             random("regenerate", "target", 2),
             random("regenerate", "ally_target_aoe", 2),
+            random("fortify", "self", 3),
+            random("fortify", "ally_aoe", 3),
+            random("fireguard", "self", 2),
+            random("fallguard", "self", 2),
+            random("blastguard", "self", 2),
+            random("agility", "self", 3),
+            random("mana_shield", "self", 2),
+            random("life_ward", "self", 2),
             random("explode", "target", 1),
             random("explode", "target_aoe", 1),
             random("explode", "point", 1),
@@ -294,13 +310,48 @@ public final class SpellRegistry {
         return get("missile@self");
     }
 
+    public static Spell randomArcaneKnowledgeSpell(RandomSource random) {
+        List<ArcaneKnowledgeRecipe> recipes = arcaneKnowledgeRollTable();
+        if (recipes.isEmpty()) {
+            return randomSpell(random);
+        }
+
+        int totalWeight = 0;
+        for (ArcaneKnowledgeRecipe recipe : recipes) {
+            totalWeight += recipe.weight();
+        }
+
+        int roll = random.nextInt(Math.max(1, totalWeight));
+        for (ArcaneKnowledgeRecipe recipe : recipes) {
+            roll -= recipe.weight();
+            if (roll < 0) {
+                return get(recipe.key());
+            }
+        }
+
+        return randomSpell(random);
+    }
+
+    public static List<String> arcaneKnowledgeRecipes() {
+        return arcaneKnowledgeRollTable().stream().map(ArcaneKnowledgeRecipe::key).toList();
+    }
+
+    private static List<ArcaneKnowledgeRecipe> arcaneKnowledgeRollTable() {
+        if (arcaneKnowledgeRecipes == null) {
+            arcaneKnowledgeRecipes = buildArcaneKnowledgeRecipes();
+        }
+        return arcaneKnowledgeRecipes;
+    }
+
     private static void registerParts() {
         part("anchor", AnchorPayload::new, shapes("target", "target_aoe", "aoe"), mana(14, 28), cooldown(42, 84));
+        part("agility", AgilityPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(12, 23), cooldown(42, 84));
         part("arrow", ArrowPayload::new, shapes("target", "target_aoe", "aoe"), mana(7, 14), cooldown(10, 20), true);
         part("bind", BindPayload::new, shapes("target", "target_aoe", "aoe"), mana(15, 30), cooldown(39, 77), true);
         part("blast", BlastPayload::new, shapes("target", "point", "block", "target_aoe", "aoe"), mana(17, 32), cooldown(35, 70), true);
         part("blind", BlindPayload::new, shapes("target", "target_aoe", "aoe"), mana(11, 20), cooldown(25, 49));
         part("blink", BlinkPayload::new, shapes("self", "point"), mana(20, 38), cooldown(49, 98));
+        part("blastguard", BlastguardPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(18, 35), cooldown(56, 112));
         part("bubble", BubblePayload::new, shapes("self", "ally_aoe"), mana(7, 14), cooldown(21, 42));
         part("charm", CharmPayload::new, shapes("target", "target_aoe", "aoe"), mana(16, 31), cooldown(42, 84));
         part("cleanse", CleansePayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(13, 25), cooldown(35, 70));
@@ -309,9 +360,12 @@ public final class SpellRegistry {
         part("disarm", DisarmPayload::new, shapes("target"), mana(18, 35), cooldown(56, 112), true);
         part("echo", EchoPayload::new, shapes("self", "target", "point", "block", "target_aoe", "aoe", "ally_aoe", "ally_target_aoe"), mana(8, 16), cooldown(18, 36));
         part("explode", ExplosionPayload::new, shapes("self", "target", "point", "block", "target_aoe", "aoe"), mana(21, 41), cooldown(49, 98), true);
+        part("fallguard", FallguardPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(12, 23), cooldown(42, 84));
         part("fire", FirePayload::new, shapes("target", "target_aoe", "aoe"), mana(10, 19), cooldown(25, 49), true);
+        part("fireguard", FireguardPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(12, 23), cooldown(42, 84));
         part("fire_place", FirePlacementPayload::new, shapes("block"), mana(8, 16), cooldown(14, 28));
         part("fireball", FireballPayload::new, shapes("self", "target", "point", "target_aoe", "aoe"), mana(13, 24), cooldown(21, 42), true);
+        part("fortify", FortifyPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(18, 35), cooldown(56, 112));
         part("frost", FreezePayload::new, shapes("block", "target_aoe", "aoe", "water_target_aoe"), mana(10, 19), cooldown(17, 34), true);
         part("gather", GatherPayload::new, shapes("items_self_aoe"), mana(11, 20), cooldown(21, 42));
         part("gravity", GravityPayload::new, shapes("target", "point", "block", "target_aoe", "aoe"), mana(18, 35), cooldown(49, 98), true);
@@ -320,8 +374,10 @@ public final class SpellRegistry {
         part("illusion", IllusionPayload::new, shapes("self", "point", "target_aoe", "aoe"), mana(13, 25), cooldown(35, 70));
         part("levitate", LevitatePayload::new, shapes("self", "target"), mana(15, 30), cooldown(32, 63), true);
         part("lifedrain", LifedrainPayload::new, shapes("target"), mana(18, 35), cooldown(42, 84));
+        part("life_ward", LifeWardPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(24, 46), cooldown(84, 168));
         part("lightning", LightningPayload::new, shapes("target", "target_aoe", "aoe"), mana(25, 47), cooldown(63, 126), true);
         part("manaburn", ManaBurnPayload::new, shapes("target"), mana(18, 35), cooldown(49, 98));
+        part("mana_shield", ManaShieldPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(16, 31), cooldown(56, 112));
         part("missile", MissilePayload::new, shapes("self", "target", "target_aoe", "aoe"), mana(6, 11), cooldown(8, 17), true);
         part("reflect", ReflectPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(16, 31), cooldown(56, 112));
         part("nullify", NullifyPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe"), mana(14, 27), cooldown(42, 84));
@@ -417,6 +473,13 @@ public final class SpellRegistry {
         registerRecipe("fire_place@block");
         registerRecipe("gather@items_self_aoe");
         registerRecipe("regenerate@ally_aoe");
+        registerRecipe("fortify@self");
+        registerRecipe("fireguard@self");
+        registerRecipe("fallguard@self");
+        registerRecipe("blastguard@self");
+        registerRecipe("agility@self");
+        registerRecipe("mana_shield@self");
+        registerRecipe("life_ward@self");
         registerRecipe("ward@self");
         registerRecipe("ward+bind@ward_hostile");
         registerRecipe("ward+heal@ward_allies");
@@ -561,7 +624,11 @@ public final class SpellRegistry {
         return switch (key) {
             case "blink", "conjure", "fire_place", "gather", "phase", "recall", "scry", "transmute", "warp" -> Spell.FocusEffect.RANGE;
             case "cleanse", "illusion", "rune", "sanctuary" -> Spell.FocusEffect.RADIUS;
+<<<<<<< HEAD
             case "anchor", "alarm", "anti_decay", "anti_explosion", "anti_fire", "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water", "air", "air_bubble", "bind", "blind", "bubble", "camouflage", "charm", "curse", "dark", "dispel", "entry_filter", "fertility", "freeze", "frost", "grow", "hex", "item_guard", "levitate", "light", "lockdown", "mana_drain", "overload", "reflect", "reflect_projectile", "reveal", "shield", "silence", "stasis", "storage_lock", "temporal", "thaw", "ward", "weakening", "weather" -> Spell.FocusEffect.DURATION;
+=======
+            case "agility", "anchor", "alarm", "anti_decay", "anti_explosion", "anti_fire", "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water", "air", "air_bubble", "bind", "blastguard", "blind", "bubble", "camouflage", "charm", "curse", "dark", "dispel", "entry_filter", "fallguard", "fertility", "fireguard", "fortify", "freeze", "frost", "grow", "hex", "item_guard", "levitate", "life_ward", "light", "lockdown", "mana_drain", "mana_shield", "overload", "reflect", "reflect_projectile", "reveal", "shield", "silence", "stasis", "storage_lock", "stun", "temporal", "thaw", "ward", "weakening", "weather" -> Spell.FocusEffect.DURATION;
+>>>>>>> ```markdown
             case "nullify" -> Spell.FocusEffect.RANGE;
             case "heal", "lifedrain", "manaburn", "regenerate", "summon", "summon_random", "summon_undead", "summon_beast", "summon_guardian", "summon_arcane", "summon_swarm" -> Spell.FocusEffect.UTILITY;
             default -> physical ? Spell.FocusEffect.DAMAGE : Spell.FocusEffect.UTILITY;
@@ -597,6 +664,56 @@ public final class SpellRegistry {
 
     private static RandomSpellRecipe random(String payloads, String shape, int weight) {
         return new RandomSpellRecipe(payloads + "@" + shape, weight);
+    }
+
+    private static List<ArcaneKnowledgeRecipe> buildArcaneKnowledgeRecipes() {
+        Set<String> wandRecipes = new LinkedHashSet<>();
+        RANDOM_RECIPES.forEach(recipe -> wandRecipes.add(recipe.key()));
+
+        List<String> payloads = List.copyOf(PARTS.keySet());
+        Set<ArcaneKnowledgeRecipe> recipes = new LinkedHashSet<>();
+        addArcaneKnowledgeRecipes(recipes, wandRecipes, payloads, List.of());
+        return List.copyOf(recipes);
+    }
+
+    private static void addArcaneKnowledgeRecipes(Set<ArcaneKnowledgeRecipe> recipes, Set<String> excludedRecipes, List<String> payloads, List<String> selected) {
+        if (!selected.isEmpty()) {
+            addArcaneKnowledgeShapes(recipes, excludedRecipes, selected);
+        }
+        if (selected.size() >= 3) {
+            return;
+        }
+
+        int start = selected.isEmpty() ? 0 : payloads.indexOf(selected.get(selected.size() - 1)) + 1;
+        for (int i = start; i < payloads.size(); i++) {
+            List<String> next = new ArrayList<>(selected);
+            next.add(payloads.get(i));
+            if (isPayloadCombinationAllowed(next)) {
+                addArcaneKnowledgeRecipes(recipes, excludedRecipes, payloads, next);
+            }
+        }
+    }
+
+    private static void addArcaneKnowledgeShapes(Set<ArcaneKnowledgeRecipe> recipes, Set<String> excludedRecipes, List<String> payloads) {
+        for (String shape : SHAPES.keySet()) {
+            if (!isShapeAllowed(payloads, shape)) {
+                continue;
+            }
+
+            String key = String.join("+", payloads) + "@" + shape;
+            if (!excludedRecipes.contains(key) && get(key) != null) {
+                recipes.add(new ArcaneKnowledgeRecipe(key, arcaneKnowledgeWeight(payloads.size())));
+            }
+        }
+    }
+
+    private static int arcaneKnowledgeWeight(int payloadCount) {
+        return switch (payloadCount) {
+            case 1 -> 100;
+            case 2 -> 16;
+            case 3 -> 2;
+            default -> 1;
+        };
     }
 
     private static ShapeCompatibility shapes(String... shapes) {
@@ -678,8 +795,8 @@ public final class SpellRegistry {
         combo(combos, "bind", "arrow", "blind", "curse", "fire", "fireball", "frost", "hex", "lightning", "manaburn", "missile", "overload", "silence", "stun");
         combo(combos, "curse", "blind", "hex", "lifedrain", "manaburn", "overload", "silence");
         combo(combos, "hex", "blind", "lifedrain", "manaburn", "overload", "silence");
-        combo(combos, "heal", "bubble", "regenerate", "reveal");
-        combo(combos, "ward", "anchor", "alarm", "anti_decay", "anti_explosion", "anti_fire", "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water", "air", "air_bubble", "arrow", "bind", "blast", "blind", "bubble", "camouflage", "charm", "cleanse", "curse", "dark", "disarm", "dispel", "entry_filter", "fertility", "fire", "fireball", "freeze", "frost", "gravity", "grow", "heal", "hex", "item_guard", "levitate", "lifedrain", "light", "lightning", "lockdown", "mana_drain", "manaburn", "missile", "nullify", "overload", "push", "regenerate", "reflect", "reflect_projectile", "reveal", "sanctuary", "silence", "stasis", "storage_lock", "stun", "temporal", "thaw", "weakening", "weather");
+        combo(combos, "heal", "agility", "blastguard", "bubble", "fallguard", "fireguard", "fortify", "life_ward", "mana_shield", "regenerate", "reveal");
+        combo(combos, "ward", "agility", "anchor", "alarm", "anti_decay", "anti_explosion", "anti_fire", "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water", "air", "air_bubble", "arrow", "bind", "blast", "blastguard", "blind", "bubble", "camouflage", "charm", "cleanse", "curse", "dark", "disarm", "dispel", "entry_filter", "fallguard", "fertility", "fire", "fireball", "fireguard", "fortify", "freeze", "frost", "gravity", "grow", "heal", "hex", "item_guard", "levitate", "life_ward", "lifedrain", "light", "lightning", "lockdown", "mana_drain", "mana_shield", "manaburn", "missile", "nullify", "overload", "push", "regenerate", "reflect", "reflect_projectile", "reveal", "sanctuary", "silence", "stasis", "storage_lock", "stun", "temporal", "thaw", "weakening", "weather");
         return combos;
     }
 
@@ -707,6 +824,9 @@ public final class SpellRegistry {
     }
 
     private record RandomSpellRecipe(String key, int weight) {
+    }
+
+    private record ArcaneKnowledgeRecipe(String key, int weight) {
     }
 
     private record Recipe(List<String> payloads, String shape) {

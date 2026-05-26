@@ -21,7 +21,7 @@ public final class ArcaneKnowledgeBook {
 
     public static ItemStack create(RandomSource random, boolean strong) {
         ItemStack stack = new ItemStack(Items.BOOK);
-        List<String> spells = randomSpells(random, spellCount(random));
+        List<String> spells = randomSpells(random, spellCount(random, strong));
         writeSpells(stack, spells);
         stack.setHoverName(Component.literal("Book of Arcane Knowledge").withStyle(ChatFormatting.LIGHT_PURPLE));
         return stack;
@@ -59,7 +59,18 @@ public final class ArcaneKnowledgeBook {
         stack.getOrCreateTag().put(TAG_ARCANE_KNOWLEDGE, tags);
     }
 
-    private static int spellCount(RandomSource random) {
+    private static int spellCount(RandomSource random, boolean strong) {
+        if (strong) {
+            float roll = random.nextFloat();
+            if (roll < 0.15F) {
+                return 4;
+            }
+            if (roll < 0.50F) {
+                return 3;
+            }
+            return 2;
+        }
+
         float roll = random.nextFloat();
         if (roll < 0.01F) {
             return 3;
@@ -74,7 +85,7 @@ public final class ArcaneKnowledgeBook {
         Set<String> spells = new LinkedHashSet<>();
         int attempts = 0;
         while (spells.size() < count && attempts++ < count * 8) {
-            Spell spell = SpellRegistry.randomSpell(random);
+            Spell spell = SpellRegistry.randomArcaneKnowledgeSpell(random);
             if (spell != null) {
                 spells.add(spell.key());
             }

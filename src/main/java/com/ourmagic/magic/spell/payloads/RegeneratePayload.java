@@ -21,7 +21,7 @@ public class RegeneratePayload implements PayloadEffect {
 
     @Override
     public Set<String> supportedUpgrades(SpellBuildContext context) {
-        return Set.of(Spell.UPGRADE_RANGE, Spell.UPGRADE_DURATION);
+        return Set.of(Spell.UPGRADE_RANGE, Spell.UPGRADE_DURATION, Spell.UPGRADE_HEALING);
     }
 
     @Override
@@ -31,7 +31,8 @@ public class RegeneratePayload implements PayloadEffect {
         }
 
         boolean self = living == context.player();
-        living.addEffect(new MobEffectInstance(MobEffects.REGENERATION, Math.round((self ? 160 : 120) * context.data().activeUtilityMultiplier() * context.durationMultiplier()), self ? 1 : 0));
+        int amplifier = Math.max(self ? 1 : 0, context.data().activeUpgradeLevel(Spell.UPGRADE_HEALING) / 2);
+        living.addEffect(new MobEffectInstance(MobEffects.REGENERATION, Math.round((self ? 160 : 120) * context.data().activeUtilityMultiplier() * context.durationMultiplier()), amplifier));
         if (self) {
             living.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, Math.round(120 * context.data().activeUtilityMultiplier() * context.durationMultiplier()), 0));
         }

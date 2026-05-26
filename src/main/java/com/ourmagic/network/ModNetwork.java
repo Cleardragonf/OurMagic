@@ -3,7 +3,9 @@ package com.ourmagic.network;
 import com.ourmagic.OurMagic;
 import com.ourmagic.mana.PlayerMana;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
@@ -84,10 +86,17 @@ public final class ModNetwork {
                 .decoder(WardLightStatePacket::decode)
                 .consumerMainThread(WardLightStatePacket::handle)
                 .add();
+<<<<<<< HEAD
         CHANNEL.messageBuilder(StunStatePacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(StunStatePacket::encode)
                 .decoder(StunStatePacket::decode)
                 .consumerMainThread(StunStatePacket::handle)
+=======
+        CHANNEL.messageBuilder(IllusionDecoyPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(IllusionDecoyPacket::encode)
+                .decoder(IllusionDecoyPacket::decode)
+                .consumerMainThread(IllusionDecoyPacket::handle)
+>>>>>>> ```markdown
                 .add();
     }
 
@@ -108,7 +117,17 @@ public final class ModNetwork {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new WardLightStatePacket(active));
     }
 
+<<<<<<< HEAD
     public static void syncStunState(ServerPlayer player, boolean active) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new StunStatePacket(active));
+=======
+    public static void sendIllusionDecoy(ServerLevel level, Vec3 position, IllusionDecoyPacket packet) {
+        double maxDistanceSqr = 128.0D * 128.0D;
+        for (ServerPlayer player : level.players()) {
+            if (player.distanceToSqr(position) <= maxDistanceSqr) {
+                CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
+            }
+        }
+>>>>>>> ```markdown
     }
 }

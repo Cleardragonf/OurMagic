@@ -125,9 +125,14 @@ public class GuideBookScreen extends Screen {
                             "The preview shows what will be crafted."
                     )),
                     new Page("Effects", "What the spell does", List.of(
-                            "Effects are payloads like Arrow, Lightning, Heal, or Shield.",
+                            "Effects are payloads like Arrow, Lightning, Heal, Fortify, or Shield.",
                             "Your wand level controls how many effects can be combined.",
                             "Unavailable effects are hidden until you have a recipe source."
+                    )),
+                    new Page("Defenses", "Protective magic", List.of(
+                            "Fortify, Fireguard, Fallguard, Blastguard, Agility, Mana Shield, and Life Ward are defensive effects.",
+                            "Some grant vanilla buffs. Mana Shield and Life Ward use OurMagic status logic.",
+                            "Fallguard blocks fall damage. Blastguard blocks explosion damage."
                     )),
                     new Page("Combos", "Multiple effects", List.of(
                             "A spell can contain more than one effect when your wand level allows it.",
@@ -181,7 +186,7 @@ public class GuideBookScreen extends Screen {
                     new Page("Spell Upgrades", "Main-hand wand and anvil", List.of(
                             "Use a wand on an anvil from the main hand.",
                             "Pick a spell, then spend spell points on upgrades.",
-                            "Upgrades can increase damage, range, radius, duration, or chaining."
+                            "Upgrades can increase damage, healing, range, radius, duration, or chaining."
                     )),
                     new Page("Magic Levels", "Player progression", List.of(
                             "Successful casts give spell XP to the wand spell.",

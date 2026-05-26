@@ -9,6 +9,7 @@ public interface Spell {
     String UPGRADE_CHAINING = "chaining";
     String UPGRADE_MULTISTRIKE = "multistrike";
     String UPGRADE_DAMAGE = "damage";
+    String UPGRADE_HEALING = "healing";
     String UPGRADE_RANGE = "range";
     String UPGRADE_RADIUS = "radius";
     String UPGRADE_DURATION = "duration";

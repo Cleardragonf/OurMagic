@@ -5,8 +5,8 @@ import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.spell.runtime.SpellBuildContext;
 import com.ourmagic.magic.spell.runtime.SpellContext;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
+import com.ourmagic.network.IllusionDecoyPacket;
+import com.ourmagic.network.ModNetwork;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -15,11 +15,8 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
@@ -59,6 +56,11 @@ public class IllusionPayload implements PayloadEffect {
         if (decoy == null) {
             return false;
         }
+
+        context.player().addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, duration, 0, false, false, true));
+        ModNetwork.sendIllusionDecoy(level, center, IllusionDecoyPacket.from(decoy.getUUID(), context.player().getGameProfile(),
+                center.x, center.y, center.z, context.player().getYRot(), context.player().getXRot(), duration,
+                slot -> context.player().getItemBySlot(slot)));
 
         for (Mob mob : context.level().getEntitiesOfClass(Mob.class, new AABB(center, center).inflate(radius), mob -> mob.isAlive())) {
             mob.setTarget(null);
@@ -101,26 +103,14 @@ public class IllusionPayload implements PayloadEffect {
 
         decoy.moveTo(position.x, position.y, position.z, player.getYRot(), player.getXRot());
         decoy.setCustomName(player.getDisplayName());
-        decoy.setCustomNameVisible(true);
-        decoy.setShowArms(true);
+        decoy.setCustomNameVisible(false);
+        decoy.setInvisible(true);
+        decoy.setShowArms(false);
         decoy.setNoBasePlate(true);
         decoy.setInvulnerable(false);
-        decoy.setItemSlot(EquipmentSlot.HEAD, playerHead(player));
-        decoy.setItemSlot(EquipmentSlot.CHEST, player.getItemBySlot(EquipmentSlot.CHEST).copy());
-        decoy.setItemSlot(EquipmentSlot.LEGS, player.getItemBySlot(EquipmentSlot.LEGS).copy());
-        decoy.setItemSlot(EquipmentSlot.FEET, player.getItemBySlot(EquipmentSlot.FEET).copy());
-        decoy.setItemSlot(EquipmentSlot.MAINHAND, player.getMainHandItem().copy());
-        decoy.setItemSlot(EquipmentSlot.OFFHAND, player.getOffhandItem().copy());
         level.addFreshEntity(decoy);
         DECOYS.add(new Decoy(level, decoy.getUUID(), duration));
         return decoy;
-    }
-
-    private static ItemStack playerHead(ServerPlayer player) {
-        ItemStack head = new ItemStack(Items.PLAYER_HEAD);
-        CompoundTag tag = head.getOrCreateTag();
-        tag.put("SkullOwner", NbtUtils.writeGameProfile(new CompoundTag(), player.getGameProfile()));
-        return head;
     }
 
     private static final class Decoy {
