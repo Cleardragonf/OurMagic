@@ -3,18 +3,25 @@ package com.ourmagic.magic.spell.runtime;
 import com.ourmagic.OurMagic;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import com.ourmagic.mana.PlayerMana;
 >>>>>>> ```markdown
+=======
+>>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
 import com.ourmagic.network.ModNetwork;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
 <<<<<<< HEAD
+<<<<<<< HEAD
 import net.minecraft.world.effect.MobEffect;
 =======
 >>>>>>> ```markdown
+=======
+import net.minecraft.world.effect.MobEffect;
+>>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -350,6 +357,7 @@ public final class MagicStatusEffects {
     @SubscribeEvent
     public static void livingAttack(LivingAttackEvent event) {
 <<<<<<< HEAD
+<<<<<<< HEAD
         Entity attacker = event.getSource().getEntity();
         if (attacker != null && isStunned(attacker)) {
             event.setCanceled(true);
@@ -372,6 +380,11 @@ public final class MagicStatusEffects {
                 serverLevel.sendParticles(ParticleTypes.SMOKE, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 32, 0.55D, 0.55D, 0.55D, 0.035D);
             }
 >>>>>>> ```markdown
+=======
+        Entity attacker = event.getSource().getEntity();
+        if (attacker != null && isStunned(attacker)) {
+            event.setCanceled(true);
+>>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
             return;
         }
 
