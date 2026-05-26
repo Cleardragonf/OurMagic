@@ -33,7 +33,7 @@ public class HealPayload implements PayloadEffect {
 
     @Override
     public Set<String> supportedUpgrades(SpellBuildContext context) {
-        return Set.of(Spell.UPGRADE_RANGE);
+        return Set.of(Spell.UPGRADE_RANGE, Spell.UPGRADE_HEALING);
     }
 
     @Override
@@ -43,7 +43,7 @@ public class HealPayload implements PayloadEffect {
         }
 
         float amount = living == context.player() ? selfAmount : otherAmount;
-        living.heal(amount * context.utilityPower());
+        living.heal(amount * context.healingPower());
         context.burst(living.position().add(0, 1.1D, 0), ParticleTypes.HEART, particleCount, 0.55D, 0.02D);
         return true;
     }

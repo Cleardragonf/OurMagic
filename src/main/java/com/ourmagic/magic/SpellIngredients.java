@@ -160,10 +160,12 @@ public final class SpellIngredients {
             case "anti_water" -> List.of(item("sponge", Items.SPONGE, 1), item("prismarine_crystals", Items.PRISMARINE_CRYSTALS, 2));
             case "air" -> List.of(item("glass_bottle", Items.GLASS_BOTTLE, 3), item("feather", Items.FEATHER, 2));
             case "air_bubble" -> List.of(item("sponge", Items.SPONGE, 2), item("glass", Items.GLASS, 4), item("prismarine_crystals", Items.PRISMARINE_CRYSTALS, 2));
+            case "agility" -> List.of(potion("swiftness_potion", Potions.SWIFTNESS, Items.POTION, 1), item("rabbit_foot", Items.RABBIT_FOOT, 1), item("feather", Items.FEATHER, 2));
             case "alarm" -> List.of(item("note_block", Items.NOTE_BLOCK, 1), item("redstone", Items.REDSTONE, 2));
             case "arrow" -> List.of(item("arrow", Items.ARROW, 3), item("feather", Items.FEATHER, 1));
             case "bind" -> List.of(item("lead", Items.LEAD, 1), item("ender_pearl", Items.ENDER_PEARL, 1), item("amethyst_shard", Items.AMETHYST_SHARD, 1));
             case "blast" -> List.of(item("fire_charge", Items.FIRE_CHARGE, 1), item("gunpowder", Items.GUNPOWDER, 2));
+            case "blastguard" -> List.of(item("obsidian", Items.OBSIDIAN, 2), item("shield", Items.SHIELD, 1), item("gunpowder", Items.GUNPOWDER, 2));
             case "blind" -> List.of(item("ink_sac", Items.INK_SAC, 1), item("fermented_spider_eye", Items.FERMENTED_SPIDER_EYE, 1));
             case "blink" -> List.of(item("ender_pearl", Items.ENDER_PEARL, 1), item("amethyst_shard", Items.AMETHYST_SHARD, 2));
             case "bubble" -> List.of(item("prismarine_crystals", Items.PRISMARINE_CRYSTALS, 2), potion("water_potion", Potions.WATER, Items.POTION, 1));
@@ -178,9 +180,12 @@ public final class SpellIngredients {
             case "entry_filter" -> List.of(item("iron_door", Items.IRON_DOOR, 1), item("ender_pearl", Items.ENDER_PEARL, 1));
             case "echo" -> List.of(item("echo_shard", Items.ECHO_SHARD, 1), item("amethyst_shard", Items.AMETHYST_SHARD, 1));
             case "explode" -> List.of(item("tnt", Items.TNT, 1), item("gunpowder", Items.GUNPOWDER, 2));
+            case "fallguard" -> List.of(item("feather", Items.FEATHER, 4), item("phantom_membrane", Items.PHANTOM_MEMBRANE, 1), item("slime_ball", Items.SLIME_BALL, 1));
             case "fire", "fireball" -> List.of(item("blaze_powder", Items.BLAZE_POWDER, 1), item("fire_charge", Items.FIRE_CHARGE, 1));
+            case "fireguard" -> List.of(potion("fire_resistance_potion", Potions.FIRE_RESISTANCE, Items.POTION, 1), item("magma_cream", Items.MAGMA_CREAM, 1));
             case "fire_place" -> List.of(item("flint", Items.FLINT, 1), item("coal", Items.COAL, 1));
             case "fertility" -> List.of(item("bone_meal", Items.BONE_MEAL, 8), item("moss_block", Items.MOSS_BLOCK, 1));
+            case "fortify" -> List.of(item("shield", Items.SHIELD, 1), item("iron_ingot", Items.IRON_INGOT, 2), item("amethyst_shard", Items.AMETHYST_SHARD, 1));
             case "freeze" -> List.of(item("packed_ice", Items.PACKED_ICE, 2), item("snowball", Items.SNOWBALL, 4));
             case "frost" -> List.of(item("snowball", Items.SNOWBALL, 4), item("packed_ice", Items.PACKED_ICE, 1));
             case "gather" -> List.of(item("hopper", Items.HOPPER, 1), item("redstone", Items.REDSTONE, 2));
@@ -190,6 +195,7 @@ public final class SpellIngredients {
             case "heal" -> List.of(potion("healing_potion", Potions.HEALING, Items.POTION, 1), item("glistering_melon_slice", Items.GLISTERING_MELON_SLICE, 1));
             case "illusion" -> List.of(item("glass", Items.GLASS, 2), item("phantom_membrane", Items.PHANTOM_MEMBRANE, 1));
             case "levitate" -> List.of(item("feather", Items.FEATHER, 2), item("phantom_membrane", Items.PHANTOM_MEMBRANE, 1));
+            case "life_ward" -> List.of(item("totem_of_undying", Items.TOTEM_OF_UNDYING, 1), item("ghast_tear", Items.GHAST_TEAR, 1), item("golden_apple", Items.GOLDEN_APPLE, 1));
             case "lifedrain" -> List.of(item("ghast_tear", Items.GHAST_TEAR, 1), item("fermented_spider_eye", Items.FERMENTED_SPIDER_EYE, 1));
             case "light" -> List.of(item("glowstone_dust", Items.GLOWSTONE_DUST, 4), item("torch", Items.TORCH, 8));
             case "lightning" -> List.of(item("lightning_talisman", ModItems.LIGHTNING_TALISMAN.get(), 1));
@@ -197,6 +203,7 @@ public final class SpellIngredients {
             case "item_guard" -> List.of(item("hopper", Items.HOPPER, 1), item("chest", Items.CHEST, 1));
             case "storage_lock" -> List.of(item("chest", Items.CHEST, 1), item("iron_ingot", Items.IRON_INGOT, 2));
             case "mana_drain" -> List.of(item("soul_sand", Items.SOUL_SAND, 2), item("amethyst_shard", Items.AMETHYST_SHARD, 2));
+            case "mana_shield" -> List.of(item("shield", Items.SHIELD, 1), item("lapis_lazuli", Items.LAPIS_LAZULI, 4), item("amethyst_shard", Items.AMETHYST_SHARD, 2));
             case "manaburn" -> List.of(item("soul_sand", Items.SOUL_SAND, 1), item("blaze_powder", Items.BLAZE_POWDER, 1));
             case "missile" -> List.of(item("amethyst_shard", Items.AMETHYST_SHARD, 1), item("gunpowder", Items.GUNPOWDER, 1));
             case "reflect" -> List.of(item("glass_pane", Items.GLASS_PANE, 4), item("amethyst_shard", Items.AMETHYST_SHARD, 1));

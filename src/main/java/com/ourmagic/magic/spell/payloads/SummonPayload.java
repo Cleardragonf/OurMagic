@@ -70,7 +70,7 @@ public class SummonPayload implements PayloadEffect {
 
     @Override
     public java.util.Set<String> supportedUpgrades(SpellBuildContext context) {
-        return java.util.Set.of(Spell.UPGRADE_MULTISTRIKE, Spell.UPGRADE_DURATION, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_RANGE);
+        return java.util.Set.of(Spell.UPGRADE_ENTITIES, Spell.UPGRADE_DURATION, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_RANGE);
     }
 
     @Override
@@ -81,10 +81,14 @@ public class SummonPayload implements PayloadEffect {
 
         int lifetime = Math.round(BASE_LIFETIME_TICKS * context.durationMultiplier());
         Vec3 center = target.position();
+        int count = 1 + context.data().activeUpgradeLevel(Spell.UPGRADE_ENTITIES);
         boolean spawned = false;
-        Mob mob = createMob(level, context.player().getRandom(), variant);
-        if (mob != null) {
-            Vec3 position = scatter(center, context.castIndex(), context.castCount());
+        for (int i = 0; i < count; i++) {
+            Mob mob = createMob(level, context.player().getRandom(), variant);
+            if (mob == null) {
+                continue;
+            }
+            Vec3 position = scatter(center, i, count);
             mob.moveTo(position.x, position.y, position.z, context.player().getYRot() + 180.0F, 0.0F);
             mob.setCustomName(Component.literal("Summoned " + title(mob.getType().getDescription().getString())));
             mob.setPersistenceRequired();

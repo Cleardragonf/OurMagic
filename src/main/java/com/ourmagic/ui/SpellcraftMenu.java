@@ -45,6 +45,9 @@ public class SpellcraftMenu extends AbstractContainerMenu {
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
         Slot source = slots.get(index);
+        if (source instanceof LockedWandSlot) {
+            return ItemStack.EMPTY;
+        }
         if (!source.hasItem()) {
             return ItemStack.EMPTY;
         }
@@ -81,7 +84,26 @@ public class SpellcraftMenu extends AbstractContainerMenu {
         }
 
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, INVENTORY_X + column * 18, HOTBAR_Y));
+            Slot slot = hand == InteractionHand.MAIN_HAND && column == inventory.selected
+                    ? new LockedWandSlot(inventory, column, INVENTORY_X + column * 18, HOTBAR_Y)
+                    : new Slot(inventory, column, INVENTORY_X + column * 18, HOTBAR_Y);
+            addSlot(slot);
+        }
+    }
+
+    private static final class LockedWandSlot extends Slot {
+        private LockedWandSlot(Inventory inventory, int slot, int x, int y) {
+            super(inventory, slot, x, y);
+        }
+
+        @Override
+        public boolean mayPickup(Player player) {
+            return false;
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return false;
         }
     }
 }

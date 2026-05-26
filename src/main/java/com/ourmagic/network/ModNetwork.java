@@ -3,7 +3,9 @@ package com.ourmagic.network;
 import com.ourmagic.OurMagic;
 import com.ourmagic.mana.PlayerMana;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
@@ -84,6 +86,11 @@ public final class ModNetwork {
                 .decoder(WardLightStatePacket::decode)
                 .consumerMainThread(WardLightStatePacket::handle)
                 .add();
+        CHANNEL.messageBuilder(IllusionDecoyPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(IllusionDecoyPacket::encode)
+                .decoder(IllusionDecoyPacket::decode)
+                .consumerMainThread(IllusionDecoyPacket::handle)
+                .add();
     }
 
     public static void syncMana(ServerPlayer player, PlayerMana mana) {
@@ -101,5 +108,14 @@ public final class ModNetwork {
 
     public static void syncWardLight(ServerPlayer player, boolean active) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new WardLightStatePacket(active));
+    }
+
+    public static void sendIllusionDecoy(ServerLevel level, Vec3 position, IllusionDecoyPacket packet) {
+        double maxDistanceSqr = 128.0D * 128.0D;
+        for (ServerPlayer player : level.players()) {
+            if (player.distanceToSqr(position) <= maxDistanceSqr) {
+                CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
+            }
+        }
     }
 }

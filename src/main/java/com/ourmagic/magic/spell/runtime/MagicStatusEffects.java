@@ -2,10 +2,13 @@ package com.ourmagic.magic.spell.runtime;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
+import com.ourmagic.mana.PlayerMana;
+import com.ourmagic.network.ModNetwork;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -39,6 +42,10 @@ public final class MagicStatusEffects {
     private static final Map<UUID, TimedState> REFLECTING = new HashMap<>();
     private static final Map<UUID, TimedState> ANCHORED = new HashMap<>();
     private static final Map<UUID, HexState> HEXED = new HashMap<>();
+    private static final Map<UUID, ManaShieldState> MANA_SHIELDED = new HashMap<>();
+    private static final Map<UUID, LifeWardState> LIFE_WARDED = new HashMap<>();
+    private static final Map<UUID, TimedState> FALLGUARDED = new HashMap<>();
+    private static final Map<UUID, TimedState> BLASTGUARDED = new HashMap<>();
 
     private MagicStatusEffects() {
     }
@@ -115,6 +122,30 @@ public final class MagicStatusEffects {
         HEXED.put(entity.getUUID(), new HexState(ticks, Math.max(1.0F, damageMultiplier)));
     }
 
+    public static void manaShield(ServerPlayer player, int ticks, float absorptionRatio) {
+        ManaShieldState existing = MANA_SHIELDED.get(player.getUUID());
+        MANA_SHIELDED.put(player.getUUID(), new ManaShieldState(
+                Math.max(ticks, existing == null ? 0 : existing.ticks()),
+                Math.max(absorptionRatio, existing == null ? 0.0F : existing.absorptionRatio())));
+    }
+
+    public static void lifeWard(LivingEntity entity, int ticks, float power) {
+        LifeWardState existing = LIFE_WARDED.get(entity.getUUID());
+        LIFE_WARDED.put(entity.getUUID(), new LifeWardState(
+                Math.max(ticks, existing == null ? 0 : existing.ticks()),
+                Math.max(power, existing == null ? 0.0F : existing.power())));
+    }
+
+    public static void fallguard(LivingEntity entity, int ticks) {
+        TimedState existing = FALLGUARDED.get(entity.getUUID());
+        FALLGUARDED.put(entity.getUUID(), new TimedState(Math.max(ticks, existing == null ? 0 : existing.ticks())));
+    }
+
+    public static void blastguard(LivingEntity entity, int ticks) {
+        TimedState existing = BLASTGUARDED.get(entity.getUUID());
+        BLASTGUARDED.put(entity.getUUID(), new TimedState(Math.max(ticks, existing == null ? 0 : existing.ticks())));
+    }
+
     public static void nullify(LivingEntity entity) {
         BOUND.remove(entity.getUUID());
         SILENCED.remove(entity.getUUID());
@@ -123,6 +154,10 @@ public final class MagicStatusEffects {
         REFLECTING.remove(entity.getUUID());
         ANCHORED.remove(entity.getUUID());
         HEXED.remove(entity.getUUID());
+        MANA_SHIELDED.remove(entity.getUUID());
+        LIFE_WARDED.remove(entity.getUUID());
+        FALLGUARDED.remove(entity.getUUID());
+        BLASTGUARDED.remove(entity.getUUID());
         Scrying.clearMarksOn(entity);
         wake(entity);
         WarpState warp = WARPED.remove(entity.getUUID());
@@ -136,6 +171,11 @@ public final class MagicStatusEffects {
         entity.removeEffect(MobEffects.WATER_BREATHING);
         entity.removeEffect(MobEffects.REGENERATION);
         entity.removeEffect(MobEffects.DAMAGE_RESISTANCE);
+        entity.removeEffect(MobEffects.ABSORPTION);
+        entity.removeEffect(MobEffects.FIRE_RESISTANCE);
+        entity.removeEffect(MobEffects.MOVEMENT_SPEED);
+        entity.removeEffect(MobEffects.JUMP);
+        entity.removeEffect(MobEffects.SLOW_FALLING);
         entity.removeEffect(MobEffects.GLOWING);
         entity.removeEffect(MobEffects.WEAKNESS);
         entity.removeEffect(MobEffects.DIG_SLOWDOWN);
@@ -197,6 +237,13 @@ public final class MagicStatusEffects {
                 serverLevel.sendParticles(ParticleTypes.WITCH, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 6, 0.25D, 0.2D, 0.25D, 0.01D);
             }
         }
+
+        if (FALLGUARDED.containsKey(entity.getUUID())) {
+            entity.fallDistance = 0.0F;
+            if (entity.level() instanceof ServerLevel serverLevel && entity.tickCount % 12 == 0) {
+                serverLevel.sendParticles(ParticleTypes.CLOUD, entity.getX(), entity.getY() + 0.15D, entity.getZ(), 4, 0.35D, 0.05D, 0.35D, 0.01D);
+            }
+        }
     }
 
     @SubscribeEvent
@@ -237,6 +284,10 @@ public final class MagicStatusEffects {
         tickSimple(REFLECTING);
         tickSimple(ANCHORED);
         tickSimple(HEXED);
+        tickSimple(MANA_SHIELDED);
+        tickSimple(LIFE_WARDED);
+        tickSimple(FALLGUARDED);
+        tickSimple(BLASTGUARDED);
     }
 
     @SubscribeEvent
@@ -248,6 +299,26 @@ public final class MagicStatusEffects {
 
     @SubscribeEvent
     public static void livingAttack(LivingAttackEvent event) {
+        if (event.getSource().is(DamageTypes.FALL) && FALLGUARDED.containsKey(event.getEntity().getUUID())) {
+            event.getEntity().fallDistance = 0.0F;
+            event.setCanceled(true);
+            if (event.getEntity().level() instanceof ServerLevel serverLevel) {
+                LivingEntity entity = event.getEntity();
+                serverLevel.sendParticles(ParticleTypes.CLOUD, entity.getX(), entity.getY() + 0.15D, entity.getZ(), 18, 0.45D, 0.08D, 0.45D, 0.02D);
+            }
+            return;
+        }
+
+        if (isExplosionDamage(event.getSource()) && BLASTGUARDED.containsKey(event.getEntity().getUUID())) {
+            event.setCanceled(true);
+            if (event.getEntity().level() instanceof ServerLevel serverLevel) {
+                LivingEntity entity = event.getEntity();
+                serverLevel.sendParticles(ParticleTypes.EXPLOSION, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                serverLevel.sendParticles(ParticleTypes.SMOKE, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 32, 0.55D, 0.55D, 0.55D, 0.035D);
+            }
+            return;
+        }
+
         if (event.getSource().is(DamageTypes.MAGIC)) {
             return;
         }
@@ -285,6 +356,37 @@ public final class MagicStatusEffects {
 
     @SubscribeEvent
     public static void livingHurt(LivingHurtEvent event) {
+        ManaShieldState manaShield = MANA_SHIELDED.get(event.getEntity().getUUID());
+        if (manaShield != null && event.getEntity() instanceof ServerPlayer player) {
+            PlayerMana mana = PlayerMana.get(player);
+            int manaAvailable = mana.mana();
+            if (manaAvailable > 0) {
+                float absorbed = Math.min(event.getAmount() * manaShield.absorptionRatio(), manaAvailable);
+                if (absorbed > 0.0F && mana.spend(Math.max(1, Math.round(absorbed)))) {
+                    event.setAmount(Math.max(0.0F, event.getAmount() - absorbed));
+                    ModNetwork.syncMana(player, mana);
+                    if (player.level() instanceof ServerLevel serverLevel) {
+                        serverLevel.sendParticles(ParticleTypes.ENCHANT, player.getX(), player.getY() + player.getBbHeight() * 0.5D, player.getZ(), 18, 0.45D, 0.45D, 0.45D, 0.04D);
+                    }
+                }
+            }
+        }
+
+        LifeWardState lifeWard = LIFE_WARDED.get(event.getEntity().getUUID());
+        if (lifeWard != null && event.getAmount() >= event.getEntity().getHealth()) {
+            LIFE_WARDED.remove(event.getEntity().getUUID());
+            event.setAmount(0.0F);
+            LivingEntity entity = event.getEntity();
+            entity.setHealth(Math.min(entity.getMaxHealth(), Math.max(4.0F, 4.0F * lifeWard.power())));
+            entity.addEffect(new MobEffectInstance(MobEffects.REGENERATION, Math.round(20 * 6 * lifeWard.power()), 1));
+            entity.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, Math.round(20 * 10 * lifeWard.power()), 1));
+            if (entity.level() instanceof ServerLevel serverLevel) {
+                serverLevel.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 45, 0.55D, 0.55D, 0.55D, 0.08D);
+                serverLevel.sendParticles(ParticleTypes.FLASH, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
+            }
+            return;
+        }
+
         HexState hex = HEXED.remove(event.getEntity().getUUID());
         if (hex == null) {
             return;
@@ -319,7 +421,17 @@ public final class MagicStatusEffects {
             REFLECTING.remove(player.getUUID());
             ANCHORED.remove(player.getUUID());
             HEXED.remove(player.getUUID());
+            MANA_SHIELDED.remove(player.getUUID());
+            LIFE_WARDED.remove(player.getUUID());
+            FALLGUARDED.remove(player.getUUID());
+            BLASTGUARDED.remove(player.getUUID());
         }
+    }
+
+    private static boolean isExplosionDamage(net.minecraft.world.damagesource.DamageSource source) {
+        return source.is(DamageTypes.EXPLOSION)
+                || source.is(DamageTypes.PLAYER_EXPLOSION)
+                || source.is(DamageTypes.BAD_RESPAWN_POINT);
     }
 
     private static void tickBound() {
@@ -388,6 +500,20 @@ public final class MagicStatusEffects {
         @Override
         public HexState withTicks(int ticks) {
             return new HexState(ticks, damageMultiplier);
+        }
+    }
+
+    private record ManaShieldState(int ticks, float absorptionRatio) implements Timed<ManaShieldState> {
+        @Override
+        public ManaShieldState withTicks(int ticks) {
+            return new ManaShieldState(ticks, absorptionRatio);
+        }
+    }
+
+    private record LifeWardState(int ticks, float power) implements Timed<LifeWardState> {
+        @Override
+        public LifeWardState withTicks(int ticks) {
+            return new LifeWardState(ticks, power);
         }
     }
 }

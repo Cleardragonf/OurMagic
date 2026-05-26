@@ -48,6 +48,10 @@ public record SpellContext(Level level, ServerPlayer player, ItemStack wand, Wan
         return data.power() * data.activeUtilityMultiplier() * focusPower(Spell.FocusEffect.UTILITY);
     }
 
+    public float healingPower() {
+        return utilityPower() * (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_HEALING) * 0.15F);
+    }
+
     public float rangeMultiplier() {
         return (1.0F + data.activeUpgradeLevel(Spell.UPGRADE_RANGE) * 0.20F) * data.rangeMultiplierFromWand() * focusPower(Spell.FocusEffect.RANGE);
     }

@@ -31,7 +31,7 @@ public class SanctuaryPayload implements PayloadEffect {
 
     @Override
     public java.util.Set<String> supportedUpgrades(SpellBuildContext context) {
-        return java.util.Set.of(Spell.UPGRADE_DURATION, Spell.UPGRADE_RADIUS);
+        return java.util.Set.of(Spell.UPGRADE_DURATION, Spell.UPGRADE_RADIUS, Spell.UPGRADE_HEALING);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class SanctuaryPayload implements PayloadEffect {
         }
         Vec3 center = target.position();
         double radius = 4.0D * context.radiusMultiplier();
-        SANCTUARIES.add(new Sanctuary(level, center, Math.round(20 * 12 * context.durationMultiplier()), radius, context.utilityPower()));
+        SANCTUARIES.add(new Sanctuary(level, center, Math.round(20 * 12 * context.durationMultiplier()), radius, context.healingPower()));
         context.ring(center, ParticleTypes.HAPPY_VILLAGER, radius, 56);
         context.burst(center, ParticleTypes.TOTEM_OF_UNDYING, 25, 0.75D, 0.04D);
         return true;
