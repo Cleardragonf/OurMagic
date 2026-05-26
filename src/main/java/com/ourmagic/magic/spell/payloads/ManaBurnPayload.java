@@ -1,6 +1,7 @@
 package com.ourmagic.magic.spell.payloads;
 
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.spell.runtime.MagicDamageSources;
 import com.ourmagic.magic.spell.runtime.SpellBuildContext;
 import com.ourmagic.magic.spell.runtime.SpellContext;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
@@ -39,7 +40,7 @@ public class ManaBurnPayload implements PayloadEffect {
         } else {
             living.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, Math.round(120 * context.durationMultiplier()), 1));
         }
-        living.hurt(context.level().damageSources().magic(), 2.0F * context.damagePower());
+        living.hurt(MagicDamageSources.playerMagic(context.level(), context.player()), 2.0F * context.damagePower());
         context.beam(target.position(), ParticleTypes.SOUL_FIRE_FLAME);
         context.burst(living.position().add(0, living.getBbHeight() * 0.55D, 0), ParticleTypes.SOUL_FIRE_FLAME, 24, 0.45D, 0.04D);
         return true;

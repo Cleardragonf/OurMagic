@@ -3,6 +3,7 @@ package com.ourmagic.client;
 import com.ourmagic.OurMagic;
 import com.ourmagic.registry.ModBlockEntities;
 import com.ourmagic.registry.ModBlocks;
+import com.ourmagic.registry.ModEntities;
 import com.ourmagic.registry.ModMenus;
 import net.minecraft.client.renderer.BiomeColors;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -10,6 +11,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.client.event.RegisterColorHandlersEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -37,5 +39,10 @@ public final class ClientSetup {
         event.register((state, level, pos, tintIndex) -> level != null && pos != null
                 ? BiomeColors.getAverageWaterColor(level, pos)
                 : 0x3F76E4, ModBlocks.WARD_BOUNDARY.get());
+    }
+
+    @SubscribeEvent
+    public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(ModEntities.WARLOCK.get(), WarlockRenderer::new);
     }
 }

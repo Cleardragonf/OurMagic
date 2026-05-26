@@ -8,6 +8,7 @@ import com.ourmagic.magic.ArcaneKnowledgeBook;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellRegistry;
+import com.ourmagic.magic.spell.runtime.MagicAllies;
 import com.ourmagic.magic.ward.WorldWards;
 import com.ourmagic.block.entity.WardStoneBlockEntity;
 import com.ourmagic.registry.ModItems;
@@ -60,6 +61,24 @@ public final class OurMagicCommands {
                         .executes(context -> dropArcaneKnowledgeBook(context.getSource(), context.getSource().getPlayerOrException(), false))
                         .then(Commands.argument("strong", BoolArgumentType.bool())
                                 .executes(context -> dropArcaneKnowledgeBook(context.getSource(), context.getSource().getPlayerOrException(), BoolArgumentType.getBool(context, "strong")))))
+                .then(Commands.literal("ally")
+                        .executes(context -> listAllies(context.getSource(), context.getSource().getPlayerOrException()))
+                        .then(Commands.literal("list")
+                                .executes(context -> listAllies(context.getSource(), context.getSource().getPlayerOrException())))
+                        .then(Commands.literal("add")
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> addAlly(context.getSource(), context.getSource().getPlayerOrException(), EntityArgument.getPlayer(context, "player")))))
+                        .then(Commands.literal("mark")
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> addAlly(context.getSource(), context.getSource().getPlayerOrException(), EntityArgument.getPlayer(context, "player")))))
+                        .then(Commands.literal("remove")
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> removeAlly(context.getSource(), context.getSource().getPlayerOrException(), EntityArgument.getPlayer(context, "player")))))
+                        .then(Commands.literal("unmark")
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> removeAlly(context.getSource(), context.getSource().getPlayerOrException(), EntityArgument.getPlayer(context, "player")))))
+                        .then(Commands.literal("clear")
+                                .executes(context -> clearAllies(context.getSource(), context.getSource().getPlayerOrException()))))
                 .then(Commands.literal("ward")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("stone")
@@ -157,6 +176,41 @@ public final class OurMagicCommands {
         target.level().addFreshEntity(item);
         source.sendSuccess(() -> Component.literal("Dropped " + stack.getHoverName().getString() + " for " + target.getGameProfile().getName()), true);
         return 1;
+    }
+
+    private static int addAlly(CommandSourceStack source, ServerPlayer owner, ServerPlayer ally) {
+        if (MagicAllies.addAlly(owner, ally)) {
+            source.sendSuccess(() -> Component.literal("Added " + ally.getGameProfile().getName() + " to your OurMagic ally list."), false);
+            return 1;
+        }
+        source.sendFailure(Component.literal(ally.getGameProfile().getName() + " is already in your OurMagic ally list."));
+        return 0;
+    }
+
+    private static int removeAlly(CommandSourceStack source, ServerPlayer owner, ServerPlayer ally) {
+        if (MagicAllies.removeAlly(owner, ally)) {
+            source.sendSuccess(() -> Component.literal("Removed " + ally.getGameProfile().getName() + " from your OurMagic ally list."), false);
+            return 1;
+        }
+        source.sendFailure(Component.literal(ally.getGameProfile().getName() + " is not in your OurMagic ally list."));
+        return 0;
+    }
+
+    private static int clearAllies(CommandSourceStack source, ServerPlayer owner) {
+        int removed = MagicAllies.clearAllies(owner);
+        source.sendSuccess(() -> Component.literal("Cleared " + removed + " OurMagic allies."), false);
+        return removed;
+    }
+
+    private static int listAllies(CommandSourceStack source, ServerPlayer owner) {
+        List<MagicAllies.AllyEntry> allies = MagicAllies.allies(owner);
+        if (allies.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("Your OurMagic ally list is empty."), false);
+            return 0;
+        }
+        String names = String.join(", ", allies.stream().map(MagicAllies.AllyEntry::name).toList());
+        source.sendSuccess(() -> Component.literal("OurMagic allies: " + names), false);
+        return allies.size();
     }
 
     private static int giveItem(CommandSourceStack source, ServerPlayer target, ItemStack stack, String name) {

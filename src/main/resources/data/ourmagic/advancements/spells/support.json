@@ -1,0 +1,141 @@
+{
+    "parent":  "ourmagic:spells/root",
+    "display":  {
+                    "icon":  {
+                                 "item":  "minecraft:golden_apple"
+                             },
+                    "title":  {
+                                  "text":  "Support Spells"
+                              },
+                    "description":  {
+                                        "text":  "Discover healing, protection, utility, and setup payloads."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  false,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "bubble":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "bubble"
+                                                   }
+                                },
+                     "charm":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "charm"
+                                                  }
+                               },
+                     "cleanse":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "cleanse"
+                                                    }
+                                 },
+                     "conjure":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "conjure"
+                                                    }
+                                 },
+                     "echo":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "echo"
+                                                 }
+                              },
+                     "heal":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "heal"
+                                                 }
+                              },
+                     "illusion":  {
+                                      "trigger":  "ourmagic:spell_payload",
+                                      "conditions":  {
+                                                         "payload":  "illusion"
+                                                     }
+                                  },
+                     "reflect":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "reflect"
+                                                    }
+                                 },
+                     "nullify":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "nullify"
+                                                    }
+                                 },
+                     "regenerate":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "regenerate"
+                                                       }
+                                    },
+                     "reveal":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "reveal"
+                                                   }
+                                },
+                     "rune":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "rune"
+                                                 }
+                              },
+                     "sanctuary":  {
+                                       "trigger":  "ourmagic:spell_payload",
+                                       "conditions":  {
+                                                          "payload":  "sanctuary"
+                                                      }
+                                   },
+                     "scry":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "scry"
+                                                 }
+                              },
+                     "shield":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "shield"
+                                                   }
+                                }
+                 },
+    "requirements":  [
+                         [
+                             "bubble",
+                             "charm",
+                             "cleanse",
+                             "conjure",
+                             "echo",
+                             "heal",
+                             "illusion",
+                             "reflect",
+                             "nullify",
+                             "regenerate",
+                             "reveal",
+                             "rune",
+                             "sanctuary",
+                             "scry",
+                             "shield"
+                         ]
+                     ],
+    "better_display":  {
+                           "completed_icon_color":  "#7DFF95",
+                           "uncompleted_icon_color":  "#2F5F3E",
+                           "completed_title_color":  "#D6FFE1",
+                           "uncompleted_title_color":  "#89C99A",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#82F7A1",
+                           "uncompleted_line_color":  "#315A3D",
+                           "pos_x":  330,
+                           "pos_y":  80,
+                           "hide_lines":  false
+                       }
+}

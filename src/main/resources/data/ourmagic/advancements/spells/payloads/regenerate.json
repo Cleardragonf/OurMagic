@@ -1,0 +1,38 @@
+{
+    "parent":  "ourmagic:spells/support",
+    "display":  {
+                    "icon":  {
+                                 "item":  "ourmagic:spell_focus"
+                             },
+                    "title":  {
+                                  "text":  "Regenerate"
+                              },
+                    "description":  {
+                                        "text":  "Applies healing over time."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  true,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "learned":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "regenerate"
+                                                    }
+                                 }
+                 },
+    "better_display":  {
+                           "completed_icon_color":  "#7DFF95",
+                           "uncompleted_icon_color":  "#2F5F3E",
+                           "completed_title_color":  "#D6FFE1",
+                           "uncompleted_title_color":  "#89C99A",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#82F7A1",
+                           "uncompleted_line_color":  "#315A3D",
+                           "pos_x":  1158,
+                           "pos_y":  355,
+                           "hide_lines":  false
+                       }
+}

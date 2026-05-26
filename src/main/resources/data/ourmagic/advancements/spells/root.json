@@ -1,0 +1,35 @@
+{
+    "display":  {
+                    "icon":  {
+                                 "item":  "ourmagic:wand"
+                             },
+                    "title":  {
+                                  "text":  "OurMagic Spellcraft"
+                              },
+                    "description":  {
+                                        "text":  "Discover spell payloads and build your spell branches."
+                                    },
+                    "background":  "minecraft:textures/block/amethyst_block.png",
+                    "frame":  "task",
+                    "show_toast":  false,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "discovered_spell":  {
+                                              "trigger":  "ourmagic:spell_payload"
+                                          }
+                 },
+    "better_display":  {
+                           "completed_icon_color":  "#D67BFF",
+                           "uncompleted_icon_color":  "#594065",
+                           "completed_title_color":  "#F2D8FF",
+                           "uncompleted_title_color":  "#C89BDD",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#C66CFF",
+                           "uncompleted_line_color":  "#5B4566",
+                           "pos_x":  0,
+                           "pos_y":  40,
+                           "hide_lines":  false
+                       }
+}

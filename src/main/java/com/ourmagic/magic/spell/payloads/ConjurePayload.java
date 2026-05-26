@@ -2,6 +2,7 @@ package com.ourmagic.magic.spell.payloads;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.spell.runtime.MagicDamageSources;
 import com.ourmagic.magic.spell.runtime.SpellBuildContext;
 import com.ourmagic.magic.spell.runtime.SpellContext;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
@@ -62,7 +63,7 @@ public class ConjurePayload implements PayloadEffect {
             }
             if (wisp.level.getGameTime() % 20 == 0) {
                 for (LivingEntity living : wisp.level.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(wisp.position, wisp.position).inflate(3.0D), living -> living.isAlive() && !living.getUUID().equals(wisp.owner))) {
-                    living.hurt(wisp.level.damageSources().magic(), 2.0F * wisp.power);
+                    living.hurt(MagicDamageSources.playerMagicOrGeneric(wisp.level, wisp.owner), 2.0F * wisp.power);
                     break;
                 }
             }

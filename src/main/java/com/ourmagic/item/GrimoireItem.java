@@ -1,5 +1,6 @@
 package com.ourmagic.item;
 
+import com.ourmagic.advancement.ModCriteriaTriggers;
 import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.network.CraftSpellPacket;
@@ -7,6 +8,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
@@ -40,6 +42,9 @@ public class GrimoireItem extends Item {
                 if (addSpell(stack, paperSpell)) {
                     if (!player.getAbilities().instabuild) {
                         otherHand.shrink(1);
+                    }
+                    if (player instanceof ServerPlayer serverPlayer) {
+                        ModCriteriaTriggers.awardSpell(serverPlayer, paperSpell.key());
                     }
                     player.displayClientMessage(Component.literal("Added " + paperSpell.displayName() + " to grimoire").withStyle(ChatFormatting.AQUA), false);
                 } else {

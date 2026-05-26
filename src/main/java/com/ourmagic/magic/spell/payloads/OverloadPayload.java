@@ -2,6 +2,7 @@ package com.ourmagic.magic.spell.payloads;
 
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.spell.runtime.DelayedSpellCasts;
+import com.ourmagic.magic.spell.runtime.MagicDamageSources;
 import com.ourmagic.magic.spell.runtime.SpellBuildContext;
 import com.ourmagic.magic.spell.runtime.SpellContext;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
@@ -36,7 +37,7 @@ public class OverloadPayload implements PayloadEffect {
             if (!living.isAlive()) {
                 return;
             }
-            living.hurt(serverLevel.damageSources().magic(), 7.0F * context.damagePower());
+            living.hurt(MagicDamageSources.playerMagic(serverLevel, context.player()), 7.0F * context.damagePower());
             serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(), 55, 0.65D, 0.65D, 0.65D, 0.08D);
             serverLevel.sendParticles(ParticleTypes.FLASH, living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
         });

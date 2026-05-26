@@ -1,0 +1,38 @@
+{
+    "parent":  "ourmagic:spells/summons",
+    "display":  {
+                    "icon":  {
+                                 "item":  "ourmagic:spell_focus"
+                             },
+                    "title":  {
+                                  "text":  "Summon Beast"
+                              },
+                    "description":  {
+                                        "text":  "Summons beast temporary allies."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  true,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "learned":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "summon_beast"
+                                                    }
+                                 }
+                 },
+    "better_display":  {
+                           "completed_icon_color":  "#D18CFF",
+                           "uncompleted_icon_color":  "#553B70",
+                           "completed_title_color":  "#F0DAFF",
+                           "uncompleted_title_color":  "#B68BD0",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#CA84FF",
+                           "uncompleted_line_color":  "#523967",
+                           "pos_x":  841,
+                           "pos_y":  398,
+                           "hide_lines":  false
+                       }
+}

@@ -20,7 +20,7 @@ public class StunPayload implements PayloadEffect {
 
     @Override
     public Set<String> supportedUpgrades(SpellBuildContext context) {
-        return Set.of(Spell.UPGRADE_DURATION, Spell.UPGRADE_RANGE, Spell.UPGRADE_CHAINING);
+        return Set.of(Spell.UPGRADE_RANGE, Spell.UPGRADE_CHAINING);
     }
 
     @Override
@@ -29,8 +29,7 @@ public class StunPayload implements PayloadEffect {
             return false;
         }
 
-        int duration = Math.round(80 * context.data().activeUtilityMultiplier() * context.durationMultiplier() * context.modifierPower());
-        MagicStatusEffects.stun(entity, duration);
+        MagicStatusEffects.stun(entity);
         context.beam(target.position(), ParticleTypes.WITCH);
         context.burst(entity.position().add(0, entity.getBbHeight() * 0.85D, 0), ParticleTypes.CRIT, 20, 0.4D, 0.04D);
         context.burst(entity.position().add(0, entity.getBbHeight() * 0.5D, 0), ParticleTypes.WITCH, 18, 0.35D, 0.02D);

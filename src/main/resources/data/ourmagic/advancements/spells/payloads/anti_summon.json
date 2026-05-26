@@ -1,0 +1,38 @@
+{
+    "parent":  "ourmagic:spells/wards",
+    "display":  {
+                    "icon":  {
+                                 "item":  "ourmagic:spell_focus"
+                             },
+                    "title":  {
+                                  "text":  "Anti Summon"
+                              },
+                    "description":  {
+                                        "text":  "Ward payload that blocks summons from appearing."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  true,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "learned":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "anti_summon"
+                                                    }
+                                 }
+                 },
+    "better_display":  {
+                           "completed_icon_color":  "#6FA8FF",
+                           "uncompleted_icon_color":  "#30466D",
+                           "completed_title_color":  "#D7E7FF",
+                           "uncompleted_title_color":  "#90AED8",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#76ABFF",
+                           "uncompleted_line_color":  "#314668",
+                           "pos_x":  1051,
+                           "pos_y":  691,
+                           "hide_lines":  false
+                       }
+}

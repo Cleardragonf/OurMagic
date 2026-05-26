@@ -7,7 +7,6 @@ import com.ourmagic.magic.spell.runtime.SpellContext;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.util.Set;
@@ -29,13 +28,7 @@ public class CleansePayload implements PayloadEffect {
             return false;
         }
 
-        MagicStatusEffects.nullify(living);
-        living.removeEffect(MobEffects.POISON);
-        living.removeEffect(MobEffects.WITHER);
-        living.removeEffect(MobEffects.HUNGER);
-        living.removeEffect(MobEffects.CONFUSION);
-        living.removeEffect(MobEffects.DIG_SLOWDOWN);
-        living.removeEffect(MobEffects.WEAKNESS);
+        MagicStatusEffects.cleanse(living);
         context.burst(living.position().add(0, living.getBbHeight() * 0.6D, 0), ParticleTypes.HAPPY_VILLAGER, 20, 0.45D, 0.02D);
         return true;
     }

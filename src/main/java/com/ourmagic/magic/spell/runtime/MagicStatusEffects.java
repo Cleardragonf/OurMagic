@@ -2,10 +2,13 @@ package com.ourmagic.magic.spell.runtime;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
+import com.ourmagic.network.ModNetwork;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,13 +21,16 @@ import net.minecraftforge.event.entity.EntityTeleportEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -49,13 +55,20 @@ public final class MagicStatusEffects {
     }
 
     public static void stun(LivingEntity entity, int ticks) {
-        STUNNED.put(entity.getUUID(), new StunState(ticks, entity.position()));
+        stun(entity);
+    }
+
+    public static void stun(LivingEntity entity) {
+        StunState existing = STUNNED.get(entity.getUUID());
+        STUNNED.put(entity.getUUID(), new StunState(existing == null ? entity.position() : existing.anchor()));
         entity.setDeltaMovement(Vec3.ZERO);
+        entity.stopRiding();
         if (entity instanceof Mob mob) {
             mob.setTarget(null);
         }
         if (entity instanceof ServerPlayer player) {
-            player.setPose(Pose.SLEEPING);
+            player.setPose(Pose.SWIMMING);
+            ModNetwork.syncStunState(player, true);
         }
     }
 
@@ -98,7 +111,7 @@ public final class MagicStatusEffects {
         }
 
         Entity attacker = context.player();
-        attacker.hurt(attacker.level().damageSources().magic(), 4.0F);
+        attacker.hurt(MagicDamageSources.playerMagic(context.level(), context.player()), 4.0F);
         if (living.level() instanceof ServerLevel serverLevel) {
             serverLevel.sendParticles(ParticleTypes.FLASH, living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
             serverLevel.sendParticles(ParticleTypes.ENCHANT, living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(), 35, 0.55D, 0.55D, 0.55D, 0.06D);
@@ -130,6 +143,7 @@ public final class MagicStatusEffects {
             player.setGameMode(warp.previousMode());
         }
 
+        removeNegativeConditions(entity);
         entity.removeEffect(MobEffects.BLINDNESS);
         entity.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
         entity.removeEffect(MobEffects.LEVITATION);
@@ -142,13 +156,37 @@ public final class MagicStatusEffects {
         entity.removeEffect(MobEffects.CONFUSION);
     }
 
+    public static void cleanse(LivingEntity entity) {
+        nullify(entity);
+        removeNegativeConditions(entity);
+    }
+
+    private static void removeNegativeConditions(LivingEntity entity) {
+        List<MobEffect> effects = new ArrayList<>();
+        for (MobEffectInstance instance : entity.getActiveEffects()) {
+            MobEffect effect = instance.getEffect();
+            if (!effect.isBeneficial()) {
+                effects.add(effect);
+            }
+        }
+        effects.forEach(entity::removeEffect);
+        entity.clearFire();
+        entity.setAirSupply(entity.getMaxAirSupply());
+        entity.setTicksFrozen(0);
+    }
+
     public static boolean isBound(Entity entity) {
         return BOUND.containsKey(entity.getUUID());
+    }
+
+    public static boolean isStunned(Entity entity) {
+        return STUNNED.containsKey(entity.getUUID());
     }
 
     public static void wake(LivingEntity entity) {
         if (STUNNED.remove(entity.getUUID()) != null && entity instanceof ServerPlayer player) {
             player.setPose(Pose.STANDING);
+            ModNetwork.syncStunState(player, false);
         }
     }
 
@@ -179,19 +217,20 @@ public final class MagicStatusEffects {
 
         StunState stun = STUNNED.get(entity.getUUID());
         if (stun != null && entity.level() instanceof ServerLevel serverLevel) {
+            if (!entity.isAlive()) {
+                STUNNED.remove(entity.getUUID());
+                if (entity instanceof ServerPlayer player) {
+                    ModNetwork.syncStunState(player, false);
+                }
+                return;
+            }
             entity.setDeltaMovement(Vec3.ZERO);
             entity.teleportTo(stun.anchor().x, stun.anchor().y, stun.anchor().z);
             if (entity instanceof Mob mob) {
                 mob.setTarget(null);
             }
             if (entity instanceof ServerPlayer player) {
-                player.setPose(Pose.SLEEPING);
-            }
-            if (stun.ticks() <= 1) {
-                STUNNED.remove(entity.getUUID());
-                wake(entity);
-            } else {
-                STUNNED.put(entity.getUUID(), new StunState(stun.ticks() - 1, stun.anchor()));
+                player.setPose(Pose.SWIMMING);
             }
             if (entity.tickCount % 10 == 0) {
                 serverLevel.sendParticles(ParticleTypes.WITCH, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 6, 0.25D, 0.2D, 0.25D, 0.01D);
@@ -219,6 +258,13 @@ public final class MagicStatusEffects {
             }
         }
 
+        StunState stun = STUNNED.get(player.getUUID());
+        if (stun != null) {
+            player.setDeltaMovement(Vec3.ZERO);
+            player.teleportTo(stun.anchor().x, stun.anchor().y, stun.anchor().z);
+            player.setPose(Pose.SWIMMING);
+        }
+
         if (SILENCED.containsKey(player.getUUID()) && player.level() instanceof ServerLevel serverLevel && player.tickCount % 10 == 0) {
             serverLevel.sendParticles(ParticleTypes.SMOKE, player.getX(), player.getY() + 1.0D, player.getZ(), 5, 0.25D, 0.25D, 0.25D, 0.01D);
         }
@@ -241,13 +287,19 @@ public final class MagicStatusEffects {
 
     @SubscribeEvent
     public static void teleport(EntityTeleportEvent event) {
-        if (isBound(event.getEntity()) || ANCHORED.containsKey(event.getEntity().getUUID())) {
+        if (isBound(event.getEntity()) || isStunned(event.getEntity()) || ANCHORED.containsKey(event.getEntity().getUUID())) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     public static void livingAttack(LivingAttackEvent event) {
+        Entity attacker = event.getSource().getEntity();
+        if (attacker != null && isStunned(attacker)) {
+            event.setCanceled(true);
+            return;
+        }
+
         if (event.getSource().is(DamageTypes.MAGIC)) {
             return;
         }
@@ -255,9 +307,8 @@ public final class MagicStatusEffects {
         TimedState reflect = REFLECTING.remove(event.getEntity().getUUID());
         if (reflect != null) {
             event.setCanceled(true);
-            Entity attacker = event.getSource().getEntity();
             if (attacker instanceof LivingEntity livingAttacker) {
-                livingAttacker.hurt(livingAttacker.level().damageSources().magic(), 4.0F);
+                livingAttacker.hurt(MagicDamageSources.reflectedMagic(attacker), 4.0F);
             }
             if (event.getEntity().level() instanceof ServerLevel serverLevel) {
                 LivingEntity entity = event.getEntity();
@@ -278,7 +329,7 @@ public final class MagicStatusEffects {
             return;
         }
 
-        if (event.getSource().getEntity() != null) {
+        if (attacker != null) {
             wake(event.getEntity());
         }
     }
@@ -299,8 +350,44 @@ public final class MagicStatusEffects {
 
     @SubscribeEvent
     public static void entityInteract(PlayerInteractEvent.EntityInteract event) {
-        if (event.getTarget() instanceof ServerPlayer player && STUNNED.containsKey(player.getUUID())) {
-            wake(player);
+        if (isStunned(event.getEntity())) {
+            event.setCanceled(true);
+            return;
+        }
+        if (event.getTarget() instanceof LivingEntity target && isStunned(target)) {
+            wake(target);
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void attackEntity(AttackEntityEvent event) {
+        if (isStunned(event.getEntity())) {
+            event.setCanceled(true);
+            return;
+        }
+        if (event.getTarget() instanceof LivingEntity target && isStunned(target)) {
+            wake(target);
+        }
+    }
+
+    @SubscribeEvent
+    public static void rightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (isStunned(event.getEntity())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void rightClickItem(PlayerInteractEvent.RightClickItem event) {
+        if (isStunned(event.getEntity())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void leftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
+        if (isStunned(event.getEntity())) {
             event.setCanceled(true);
         }
     }
@@ -357,7 +444,7 @@ public final class MagicStatusEffects {
     private record BoundState(int ticks, Vec3 anchor) {
     }
 
-    private record StunState(int ticks, Vec3 anchor) {
+    private record StunState(Vec3 anchor) {
     }
 
     private record WarpState(int ticks, GameType previousMode) {

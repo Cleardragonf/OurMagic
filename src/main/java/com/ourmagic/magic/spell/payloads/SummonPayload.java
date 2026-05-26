@@ -33,6 +33,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -90,6 +91,7 @@ public class SummonPayload implements PayloadEffect {
             mob.setPersistenceRequired();
             empower(mob, context);
             MagicAllies.markSummonOwner(mob, context.player().getUUID());
+            mob.setTarget(null);
             level.addFreshEntity(mob);
             SUMMONS.add(new SummonedEntity(level, mob.getUUID(), context.player().getUUID(), lifetime, context.damagePower(), variant));
             spawned = true;
@@ -170,7 +172,7 @@ public class SummonPayload implements PayloadEffect {
                 tickSpecial(summon, entity);
             }
             if (entity instanceof Mob mob) {
-                if (MagicAllies.sameSummonOwner(entity, mob.getTarget())) {
+                if (mob.getTarget() != null && (MagicAllies.sameSummonOwner(entity, mob.getTarget()) || MagicAllies.summonOwnerIsAlly(entity, mob.getTarget()))) {
                     mob.setTarget(null);
                 }
                 if (mob.getTarget() == null) {
@@ -186,15 +188,36 @@ public class SummonPayload implements PayloadEffect {
 
     private static java.util.Optional<LivingEntity> nearestEnemy(SummonedEntity summon, LivingEntity entity) {
         AABB area = entity.getBoundingBox().inflate(10.0D);
-        return summon.level.getEntitiesOfClass(LivingEntity.class, area, candidate -> candidate.isAlive() && !candidate.getUUID().equals(summon.owner) && !candidate.getUUID().equals(summon.entity) && !MagicAllies.sameSummonOwner(entity, candidate) && !(candidate instanceof Villager))
+        return summon.level.getEntitiesOfClass(LivingEntity.class, area, candidate -> candidate.isAlive()
+                        && !candidate.getUUID().equals(summon.entity)
+                        && !MagicAllies.isAlly(summon.level, summon.owner, candidate)
+                        && !MagicAllies.sameSummonOwner(entity, candidate)
+                        && !(candidate instanceof Villager))
                 .stream()
                 .min(java.util.Comparator.comparingDouble(candidate -> candidate.distanceToSqr(entity)));
     }
 
     @SubscribeEvent
+    public static void livingChangeTarget(LivingChangeTargetEvent event) {
+        LivingEntity newTarget = event.getNewTarget();
+        if (newTarget == null) {
+            return;
+        }
+        LivingEntity entity = event.getEntity();
+        if (MagicAllies.sameSummonOwner(entity, newTarget) || MagicAllies.summonOwnerIsAlly(entity, newTarget)) {
+            event.setNewTarget(null);
+            event.setCanceled(true);
+            if (entity instanceof Mob mob) {
+                mob.setTarget(null);
+            }
+        }
+    }
+
+    @SubscribeEvent
     public static void livingAttack(LivingAttackEvent event) {
         DamageSource source = event.getSource();
-        if (source.getEntity() instanceof LivingEntity attacker && MagicAllies.sameSummonOwner(attacker, event.getEntity())) {
+        if (source.getEntity() instanceof LivingEntity attacker
+                && (MagicAllies.sameSummonOwner(attacker, event.getEntity()) || MagicAllies.summonOwnerIsAlly(attacker, event.getEntity()))) {
             event.setCanceled(true);
             if (attacker instanceof Mob mob) {
                 mob.setTarget(null);

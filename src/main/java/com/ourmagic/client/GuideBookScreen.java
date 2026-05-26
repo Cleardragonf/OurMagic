@@ -14,14 +14,19 @@ import net.minecraft.world.item.Items;
 import java.util.List;
 
 public class GuideBookScreen extends Screen {
-    private static final int WIDTH = 342;
-    private static final int HEIGHT = 214;
-    private static final int PAGE_W = 153;
-    private static final int PAGE_H = 190;
+    private static final int WIDTH = 580;
+    private static final int HEIGHT = 320;
+    private static final int PAGE_W = 258;
+    private static final int PAGE_H = 292;
+    private static final int LEFT_PAGE_X = 18;
+    private static final int RIGHT_PAGE_X = 304;
+    private static final int PAGE_Y = 14;
+    private static final int CONTENT_Y = 23;
     private static final int INK = 0xFF180D1B;
     private static final int MUTED_INK = 0xFF4A3652;
     private static final int GOLD = 0xFF6F430E;
     private static final int PURPLE = 0xFF5B147F;
+    private static final int HEADER_BG = 0x22FFFFFF;
     private static final List<Chapter> CHAPTERS = List.of(
             new Chapter("Wands", "Using magic", List.of(
                     new Page("First Steps", "What a wand is", List.of(
@@ -84,7 +89,7 @@ public class GuideBookScreen extends Screen {
                     new Page("Modifiers", "Crafting upgrades", List.of(
                             "Craft a wand together with one modifier item to add that modifier.",
                             "The wand keeps its spells and gains one level of that modifier.",
-                            "A modifier can only be added if the wand can still accept more modifier levels."
+                            "Each modifier type uses one modifier slot and can stack up to level 25."
                     ), PageVisual.WAND_MODIFIER),
                     new Page("Modifier Items", "What each item means", List.of(
                             "Hover each item to see its modifier.",
@@ -203,6 +208,7 @@ public class GuideBookScreen extends Screen {
 
     private int chapter;
     private int page;
+    private int chapterScroll;
     private List<Component> hoveredTooltip = List.of();
 
     private GuideBookScreen() {
@@ -220,11 +226,11 @@ public class GuideBookScreen extends Screen {
 
     private void rebuildButtons() {
         clearWidgets();
-        int left = (width - WIDTH) / 2;
-        int top = (height - HEIGHT) / 2;
+        int left = layoutLeft();
+        int top = layoutTop();
         for (int i = 0; i < CHAPTERS.size(); i++) {
             int index = i;
-            BookmarkButton tab = new BookmarkButton(left - 20, top + 28 + i * 25, index, b -> {
+            BookmarkButton tab = new BookmarkButton(left - 28, top + 40 + i * 32, index, b -> {
                 chapter = index;
                 page = 0;
                 rebuildButtons();
@@ -233,32 +239,55 @@ public class GuideBookScreen extends Screen {
             addRenderableWidget(tab);
         }
 
-        addRenderableWidget(new PageArrowButton(left + 26, top + HEIGHT - 25, false, b -> {
+        addRenderableWidget(new PageArrowButton(left + 44, top + HEIGHT - 25, false, b -> {
             previousPage();
             rebuildButtons();
         }));
-        addRenderableWidget(new PageArrowButton(left + WIDTH - 48, top + HEIGHT - 25, true, b -> {
+        addRenderableWidget(new PageArrowButton(left + WIDTH - 66, top + HEIGHT - 25, true, b -> {
             nextPage();
             rebuildButtons();
         }));
         addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
-                .bounds(left + WIDTH / 2 - 24, top + HEIGHT - 24, 48, 18)
+                .bounds(left + WIDTH / 2 - 32, top + HEIGHT - 27, 64, 20)
                 .build());
+    }
+
+    private int layoutLeft() {
+        return (width - WIDTH) / 2;
+    }
+
+    private int layoutTop() {
+        return (height - HEIGHT) / 2;
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         hoveredTooltip = List.of();
         renderBackground(graphics);
-        int left = (width - WIDTH) / 2;
-        int top = (height - HEIGHT) / 2;
+        int left = layoutLeft();
+        int top = layoutTop();
         drawBook(graphics, left, top);
-        renderLeftPage(graphics, left + 18, top + 17);
-        renderRightPage(graphics, left + 174, top + 17, mouseX, mouseY);
+        renderLeftPage(graphics, left + LEFT_PAGE_X, top + CONTENT_Y);
+        renderRightPage(graphics, left + RIGHT_PAGE_X, top + CONTENT_Y, mouseX, mouseY);
         super.render(graphics, mouseX, mouseY, partialTick);
         if (!hoveredTooltip.isEmpty()) {
             graphics.renderComponentTooltip(font, hoveredTooltip, mouseX, mouseY);
         }
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        int left = layoutLeft();
+        int top = layoutTop();
+        int pageX = left + LEFT_PAGE_X;
+        int pageY = top + PAGE_Y;
+        if (mouseX >= pageX && mouseX < pageX + PAGE_W && mouseY >= pageY && mouseY < pageY + PAGE_H) {
+            int previous = chapterScroll;
+            chapterScroll -= (int) Math.signum(delta);
+            clampChapterScroll();
+            return previous != chapterScroll || super.mouseScrolled(mouseX, mouseY, delta);
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
     }
 
     private void drawBook(GuiGraphics graphics, int left, int top) {
@@ -266,12 +295,12 @@ public class GuideBookScreen extends Screen {
         graphics.fill(left + 8, top + 8, left + WIDTH - 8, top + HEIGHT - 8, 0xFF5A2D63);
         graphics.fill(left + 12, top + 12, left + WIDTH - 12, top + HEIGHT - 12, 0xFF2A1734);
 
-        drawPage(graphics, left + 16, top + 12, true);
-        drawPage(graphics, left + 172, top + 12, false);
+        drawPage(graphics, left + LEFT_PAGE_X, top + PAGE_Y, true);
+        drawPage(graphics, left + RIGHT_PAGE_X, top + PAGE_Y, false);
 
         graphics.fill(left + WIDTH / 2 - 4, top + 13, left + WIDTH / 2 + 4, top + HEIGHT - 13, 0xFF261125);
         graphics.fill(left + WIDTH / 2 - 1, top + 18, left + WIDTH / 2 + 1, top + HEIGHT - 18, 0x665C3560);
-        graphics.drawCenteredString(font, title, left + WIDTH / 2, top + 2, 0xFFE9C8FF);
+        graphics.drawCenteredString(font, title, left + WIDTH / 2, top + 3, 0xFFE9C8FF);
     }
 
     private void drawPage(GuiGraphics graphics, int x, int y, boolean leftPage) {
@@ -283,38 +312,69 @@ public class GuideBookScreen extends Screen {
     }
 
     private void renderLeftPage(GuiGraphics graphics, int x, int y) {
-        graphics.drawCenteredString(font, "Chapters", x + PAGE_W / 2, y + 6, GOLD);
-        int itemY = y + 25;
-        int spacing = CHAPTERS.size() > 5 ? 23 : 29;
-        for (int i = 0; i < CHAPTERS.size(); i++) {
+        drawPageHeader(graphics, "Chapters", "", x, y);
+        clampChapterScroll();
+        int itemY = y + 44;
+        int spacing = 36;
+        int visible = visibleChapterRows();
+        for (int row = 0; row < visible; row++) {
+            int i = chapterScroll + row;
+            if (i >= CHAPTERS.size()) {
+                break;
+            }
             Chapter entry = CHAPTERS.get(i);
             int color = i == chapter ? PURPLE : INK;
-            graphics.drawString(font, (i + 1) + ". " + entry.title(), x + 14, itemY, color, false);
-            graphics.drawString(font, entry.summary(), x + 22, itemY + 10, MUTED_INK, false);
+            graphics.drawString(font, (i + 1) + ". " + entry.title(), x + 40, itemY, color, false);
+            graphics.drawString(font, entry.summary(), x + 52, itemY + 11, MUTED_INK, false);
             itemY += spacing;
         }
+        drawChapterScrollIndicator(graphics, x, y);
         Chapter current = CHAPTERS.get(chapter);
-        graphics.drawCenteredString(font, "Page " + (page + 1) + " of " + current.pages().size(), x + PAGE_W / 2, y + PAGE_H - 24, MUTED_INK);
+        drawPageFooter(graphics, "Page " + (page + 1) + " of " + current.pages().size(), x, y);
+    }
+
+    private void drawChapterScrollIndicator(GuiGraphics graphics, int x, int y) {
+        int visible = visibleChapterRows();
+        if (CHAPTERS.size() <= visible) {
+            return;
+        }
+
+        int trackX = x + PAGE_W - 28;
+        int trackY = y + 45;
+        int trackH = visible * 36 - 8;
+        graphics.fill(trackX, trackY, trackX + 3, trackY + trackH, 0x444A3652);
+        int maxScroll = Math.max(1, CHAPTERS.size() - visible);
+        int thumbH = Math.max(18, trackH * visible / CHAPTERS.size());
+        int thumbY = trackY + (trackH - thumbH) * chapterScroll / maxScroll;
+        graphics.fill(trackX - 1, thumbY, trackX + 4, thumbY + thumbH, 0xAA5B147F);
+    }
+
+    private int visibleChapterRows() {
+        return Math.max(1, (PAGE_H - 96) / 36);
+    }
+
+    private void clampChapterScroll() {
+        int max = Math.max(0, CHAPTERS.size() - visibleChapterRows());
+        chapterScroll = Math.max(0, Math.min(chapterScroll, max));
     }
 
     private void renderRightPage(GuiGraphics graphics, int x, int y, int mouseX, int mouseY) {
         Chapter currentChapter = CHAPTERS.get(chapter);
         Page current = currentChapter.pages().get(page);
-        graphics.drawCenteredString(font, current.title(), x + PAGE_W / 2, y + 6, PURPLE);
-        graphics.drawCenteredString(font, current.summary(), x + PAGE_W / 2, y + 20, GOLD);
+        drawPageHeader(graphics, current.title(), current.summary(), x, y);
 
-        int textY = y + 44;
+        int textY = y + 58;
         if (current.visual() != PageVisual.NONE) {
             textY = renderPageVisual(graphics, current.visual(), x, textY, mouseX, mouseY);
         }
         int bottom = y + PAGE_H - 35;
         for (String line : current.lines()) {
-            List<FormattedCharSequence> wrapped = font.split(Component.literal("- " + line), PAGE_W - 28);
+            List<FormattedCharSequence> wrapped = font.split(Component.literal("- " + line), PAGE_W - 36);
             for (FormattedCharSequence row : wrapped) {
                 if (textY > bottom) {
                     break;
                 }
-                graphics.drawString(font, row, x + 14, textY, INK, false);
+                graphics.drawString(font, row, x + 34, textY, INK, false);
                 textY += 10;
             }
             textY += 5;
@@ -322,7 +382,25 @@ public class GuideBookScreen extends Screen {
                 break;
             }
         }
-        graphics.drawCenteredString(font, currentChapter.title() + " " + (page + 1) + "/" + currentChapter.pages().size(), x + PAGE_W / 2, y + PAGE_H - 23, MUTED_INK);
+        drawPageFooter(graphics, currentChapter.title() + " " + (page + 1) + "/" + currentChapter.pages().size(), x, y);
+    }
+
+    private void drawPageHeader(GuiGraphics graphics, String heading, String subheading, int pageX, int pageY) {
+        int x = pageX + 18;
+        int y = pageY + 8;
+        int w = PAGE_W - 36;
+        graphics.fill(x, y, x + w, y + 26, HEADER_BG);
+        graphics.fill(x, y + 25, x + w, y + 26, 0x66734824);
+        graphics.drawString(font, Component.literal(heading), x + 8, y + 5, PURPLE, false);
+        if (!subheading.isEmpty()) {
+            graphics.drawString(font, Component.literal(subheading), x + 8, y + 16, GOLD, false);
+        }
+    }
+
+    private void drawPageFooter(GuiGraphics graphics, String text, int pageX, int pageY) {
+        int textX = pageX + (PAGE_W - font.width(text)) / 2;
+        int textY = pageY + PAGE_H - 45;
+        graphics.drawString(font, text, textX, textY, INK, false);
     }
 
     private int renderPageVisual(GuiGraphics graphics, PageVisual visual, int x, int y, int mouseX, int mouseY) {
@@ -337,7 +415,7 @@ public class GuideBookScreen extends Screen {
     }
 
     private int renderWandShapeless(GuiGraphics graphics, int x, int y) {
-        int startX = x + 12;
+        int startX = centeredContentX(x, 133);
         drawItemBox(graphics, new ItemStack(Items.STICK, 2), startX, y);
         drawPlus(graphics, startX + 21, y + 5);
         drawItemBox(graphics, new ItemStack(Items.AMETHYST_SHARD), startX + 32, y);
@@ -345,12 +423,13 @@ public class GuideBookScreen extends Screen {
         drawItemBox(graphics, new ItemStack(Items.GLOWSTONE_DUST), startX + 64, y);
         drawArrow(graphics, startX + 88, y + 7);
         drawItemBox(graphics, new ItemStack(ModItems.WAND.get()), startX + 111, y);
-        graphics.drawCenteredString(font, "shapeless", x + PAGE_W / 2, y + 25, MUTED_INK);
+        drawCenteredPlain(graphics, "shapeless", x + PAGE_W / 2, y + 25, MUTED_INK);
         return y + 43;
     }
 
     private int renderWandGrid(GuiGraphics graphics, int x, int y) {
-        int gridX = x + 23;
+        int startX = centeredContentX(x, 115);
+        int gridX = startX;
         drawGridSlot(graphics, new ItemStack(Items.AMETHYST_SHARD), gridX, y);
         drawGridSlot(graphics, new ItemStack(Items.GLOWSTONE_DUST), gridX + 19, y);
         drawGridSlot(graphics, ItemStack.EMPTY, gridX + 38, y);
@@ -360,71 +439,80 @@ public class GuideBookScreen extends Screen {
         drawGridSlot(graphics, new ItemStack(Items.STICK), gridX, y + 38);
         drawGridSlot(graphics, ItemStack.EMPTY, gridX + 19, y + 38);
         drawGridSlot(graphics, ItemStack.EMPTY, gridX + 38, y + 38);
-        drawArrow(graphics, x + 91, y + 24);
-        drawItemBox(graphics, new ItemStack(ModItems.WAND.get()), x + 116, y + 20);
+        drawArrow(graphics, startX + 68, y + 24);
+        drawItemBox(graphics, new ItemStack(ModItems.WAND.get()), startX + 93, y + 20);
         return y + 67;
     }
 
     private int renderWandCombine(GuiGraphics graphics, int x, int y) {
-        int startX = x + 20;
+        int startX = centeredContentX(x, 110);
         drawItemBox(graphics, new ItemStack(ModItems.WAND.get()), startX, y);
         drawPlus(graphics, startX + 23, y + 5);
         drawItemBox(graphics, new ItemStack(ModItems.WAND.get()), startX + 36, y);
         drawArrow(graphics, startX + 64, y + 7);
         drawItemBox(graphics, new ItemStack(ModItems.WAND.get()), startX + 88, y);
-        graphics.drawCenteredString(font, "anvil merge", x + PAGE_W / 2, y + 25, MUTED_INK);
+        drawCenteredPlain(graphics, "anvil merge", x + PAGE_W / 2, y + 25, MUTED_INK);
         return y + 43;
     }
 
     private int renderWandModifier(GuiGraphics graphics, int x, int y) {
-        int startX = x + 17;
+        int startX = centeredContentX(x, 110);
         drawItemBox(graphics, new ItemStack(ModItems.WAND.get()), startX, y);
         drawPlus(graphics, startX + 23, y + 5);
         drawItemBox(graphics, new ItemStack(Items.REDSTONE), startX + 36, y);
         drawArrow(graphics, startX + 64, y + 7);
         drawItemBox(graphics, new ItemStack(ModItems.WAND.get()), startX + 88, y);
-        graphics.drawCenteredString(font, "wand + modifier", x + PAGE_W / 2, y + 25, MUTED_INK);
+        drawCenteredPlain(graphics, "wand + modifier", x + PAGE_W / 2, y + 25, MUTED_INK);
         return y + 43;
     }
 
     private int renderModifierItems(GuiGraphics graphics, int x, int y, int mouseX, int mouseY) {
-        drawLabeledModifier(graphics, new ItemStack(Items.DIAMOND), "Hard", x + 12, y, mouseX, mouseY, List.of(
+        int startX = centeredContentX(x, 118);
+        drawLabeledModifier(graphics, new ItemStack(Items.DIAMOND), "Hard", startX, y, mouseX, mouseY, List.of(
                 Component.literal("Hardness"),
                 Component.literal("Level 1: utility duration 1.10x"),
                 Component.literal("Each level adds another +10%"),
                 Component.literal("No hard cap except wand slots")
         ));
-        drawLabeledModifier(graphics, new ItemStack(Items.REDSTONE), "Haste", x + 53, y, mouseX, mouseY, List.of(
+        drawLabeledModifier(graphics, new ItemStack(Items.REDSTONE), "Haste", startX + 41, y, mouseX, mouseY, List.of(
                 Component.literal("Haste"),
                 Component.literal("Level 1: cooldown 0.92x"),
                 Component.literal("Each level removes another 8%"),
                 Component.literal("Minimum cooldown: 0.35x")
         ));
-        drawLabeledModifier(graphics, new ItemStack(Items.QUARTZ), "Focus", x + 94, y, mouseX, mouseY, List.of(
+        drawLabeledModifier(graphics, new ItemStack(Items.QUARTZ), "Focus", startX + 82, y, mouseX, mouseY, List.of(
                 Component.literal("Focus"),
                 Component.literal("Level 1: mana 0.94x, range 1.05x"),
                 Component.literal("Mana drops 6% per level"),
                 Component.literal("Minimum mana: 0.35x")
         ));
-        drawLabeledModifier(graphics, new ItemStack(Items.NETHERITE_INGOT), "Power", x + 12, y + 33, mouseX, mouseY, List.of(
+        drawLabeledModifier(graphics, new ItemStack(Items.NETHERITE_INGOT), "Power", startX, y + 33, mouseX, mouseY, List.of(
                 Component.literal("Potency"),
                 Component.literal("Level 1: damage 1.12x"),
                 Component.literal("Each level adds another +12%"),
                 Component.literal("No hard cap except wand slots")
         ));
-        drawLabeledModifier(graphics, new ItemStack(Items.SLIME_BALL), "Range", x + 53, y + 33, mouseX, mouseY, List.of(
+        drawLabeledModifier(graphics, new ItemStack(Items.SLIME_BALL), "Range", startX + 41, y + 33, mouseX, mouseY, List.of(
                 Component.literal("Elasticity"),
                 Component.literal("Level 1: radius 1.10x"),
                 Component.literal("Each level adds another +10%"),
                 Component.literal("Helps area and spread effects")
         ));
-        drawLabeledModifier(graphics, new ItemStack(Items.LAPIS_LAZULI), "XP", x + 94, y + 33, mouseX, mouseY, List.of(
+        drawLabeledModifier(graphics, new ItemStack(Items.LAPIS_LAZULI), "XP", startX + 82, y + 33, mouseX, mouseY, List.of(
                 Component.literal("Wisdom"),
                 Component.literal("Level 1: spell XP 1.15x"),
                 Component.literal("Each level adds another +15%"),
                 Component.literal("No hard cap except wand slots")
         ));
         return y + 72;
+    }
+
+    private int centeredContentX(int pageX, int contentWidth) {
+        return pageX + (PAGE_W - contentWidth) / 2;
+    }
+
+    private void drawCenteredPlain(GuiGraphics graphics, String text, int centerX, int y, int color) {
+        graphics.drawString(font, text, centerX - font.width(text) / 2, y, color, false);
     }
 
     private void drawGridSlot(GuiGraphics graphics, ItemStack stack, int x, int y) {

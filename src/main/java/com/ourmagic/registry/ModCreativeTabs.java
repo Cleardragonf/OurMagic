@@ -41,6 +41,7 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.MAGIC_FLOW_CONVERTER.get());
                 output.accept(ModItems.CREATIVE_RF_GENERATOR.get());
                 output.accept(ModItems.WARD_PERIMETER_STONE.get());
+                output.accept(ModItems.WARLOCK_SPAWN_EGG.get());
             })
             .build());
 

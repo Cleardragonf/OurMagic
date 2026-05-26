@@ -1,0 +1,38 @@
+{
+    "parent":  "ourmagic:spells/combat",
+    "display":  {
+                    "icon":  {
+                                 "item":  "ourmagic:spell_focus"
+                             },
+                    "title":  {
+                                  "text":  "Gravity"
+                              },
+                    "description":  {
+                                        "text":  "Pulls or slams targets with gravity force."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  true,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "learned":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "gravity"
+                                                    }
+                                 }
+                 },
+    "better_display":  {
+                           "completed_icon_color":  "#FF6B45",
+                           "uncompleted_icon_color":  "#67313A",
+                           "completed_title_color":  "#FFD0B8",
+                           "uncompleted_title_color":  "#D78A80",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#FF8A5C",
+                           "uncompleted_line_color":  "#6B3038",
+                           "pos_x":  1378,
+                           "pos_y":  -380,
+                           "hide_lines":  false
+                       }
+}

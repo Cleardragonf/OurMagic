@@ -1,0 +1,99 @@
+{
+    "parent":  "ourmagic:spells/root",
+    "display":  {
+                    "icon":  {
+                                 "item":  "ourmagic:waypoint_talisman"
+                             },
+                    "title":  {
+                                  "text":  "Movement \u0026 Utility"
+                              },
+                    "description":  {
+                                        "text":  "Discover travel, positioning, and world interaction payloads."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  false,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "anchor":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "anchor"
+                                                   }
+                                },
+                     "blink":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "blink"
+                                                  }
+                               },
+                     "fire_place":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "fire_place"
+                                                       }
+                                    },
+                     "gather":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "gather"
+                                                   }
+                                },
+                     "levitate":  {
+                                      "trigger":  "ourmagic:spell_payload",
+                                      "conditions":  {
+                                                         "payload":  "levitate"
+                                                     }
+                                  },
+                     "phase":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "phase"
+                                                  }
+                               },
+                     "recall":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "recall"
+                                                   }
+                                },
+                     "transmute":  {
+                                       "trigger":  "ourmagic:spell_payload",
+                                       "conditions":  {
+                                                          "payload":  "transmute"
+                                                      }
+                                   },
+                     "warp":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "warp"
+                                                 }
+                              }
+                 },
+    "requirements":  [
+                         [
+                             "anchor",
+                             "blink",
+                             "fire_place",
+                             "gather",
+                             "levitate",
+                             "phase",
+                             "recall",
+                             "transmute",
+                             "warp"
+                         ]
+                     ],
+    "better_display":  {
+                           "completed_icon_color":  "#4EDBFF",
+                           "uncompleted_icon_color":  "#254A63",
+                           "completed_title_color":  "#C7F6FF",
+                           "uncompleted_title_color":  "#78BDD1",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#63D9FF",
+                           "uncompleted_line_color":  "#285166",
+                           "pos_x":  470,
+                           "pos_y":  -135,
+                           "hide_lines":  false
+                       }
+}

@@ -1,5 +1,6 @@
 package com.ourmagic.item;
 
+import com.ourmagic.advancement.ModCriteriaTriggers;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.PlayerChanting;
@@ -153,6 +154,7 @@ public class WandItem extends Item {
             data.setCooldownUntil(level.getGameTime() + cooldownTicks);
             data.save(stack);
             player.getInventory().setChanged();
+            ModCriteriaTriggers.awardSpell(player, data.activeSpell());
             if (chantingBonus != null) {
                 celebrateChant(player, chantingBonus.level());
             }
@@ -195,6 +197,9 @@ public class WandItem extends Item {
             source.shrink(1);
         }
         player.getInventory().setChanged();
+        if (player instanceof ServerPlayer serverPlayer) {
+            ModCriteriaTriggers.awardSpell(serverPlayer, sourceSpell.key());
+        }
         player.displayClientMessage(Component.literal("Added " + sourceSpell.displayName() + " to wand").withStyle(ChatFormatting.AQUA), false);
         return true;
     }

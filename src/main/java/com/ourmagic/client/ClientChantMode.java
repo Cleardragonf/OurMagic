@@ -9,6 +9,8 @@ import com.ourmagic.wand.WandData;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
@@ -48,20 +50,6 @@ public final class ClientChantMode {
 
     @SubscribeEvent
     public static void interaction(InputEvent.InteractionKeyMappingTriggered event) {
-        if (active) {
-            Minecraft minecraft = Minecraft.getInstance();
-            if (event.isUseItem()
-                    && minecraft.player != null
-                    && hasWand(minecraft.player.getItemInHand(event.getHand()))) {
-                finishForCast();
-                return;
-            }
-            if (event.isCancelable()) {
-                event.setCanceled(true);
-            }
-            return;
-        }
-
         if (!charged || !event.isUseItem()) {
             return;
         }
@@ -75,46 +63,24 @@ public final class ClientChantMode {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void mouseClicked(InputEvent.MouseButton.Pre event) {
-        if (!active) {
-            return;
-        }
-        if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-            Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft.player != null && activeWandHand(minecraft) != null) {
-                finishForCast();
-                return;
-            }
-        }
-        if (event.isCancelable()) {
-            event.setCanceled(true);
-        }
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void mouseScrolled(InputEvent.MouseScrollingEvent event) {
-        if (!active) {
-            return;
-        }
-        if (event.isCancelable()) {
-            event.setCanceled(true);
-        }
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void keyPressed(InputEvent.Key event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.screen != null || event.getAction() != GLFW.GLFW_PRESS) {
+        if (minecraft.player == null || event.getAction() != GLFW.GLFW_PRESS) {
             return;
         }
 
-        if (active && event.getKey() == GLFW.GLFW_KEY_C && altDown(minecraft)) {
-            releaseBlockedKeyMappings(minecraft);
-            lockCharge();
-            cancelEvent(event);
+        if (minecraft.screen instanceof ChantScreen) {
             return;
         }
 
-        if (!active && event.getKey() == GLFW.GLFW_KEY_C && altDown(minecraft)) {
+        if (minecraft.screen == null && event.getKey() == GLFW.GLFW_KEY_C && altDown(minecraft)) {
             InteractionHand wandHand = activeWandHand(minecraft);
             if (wandHand == null) {
                 return;
@@ -123,52 +89,9 @@ public final class ClientChantMode {
                 send(ChantingPacket.Mode.CANCEL);
             }
             start(minecraft, wandHand);
+            minecraft.setScreen(new ChantScreen());
             cancelEvent(event);
-            return;
         }
-
-        if (!active) {
-            return;
-        }
-
-        if (isSpellSlotKey(event.getKey())) {
-            return;
-        }
-        if (event.getKey() == GLFW.GLFW_KEY_ESCAPE) {
-            releaseBlockedKeyMappings(minecraft);
-            cancel();
-            cancelEvent(event);
-            return;
-        }
-        if (event.getKey() == GLFW.GLFW_KEY_ENTER || event.getKey() == GLFW.GLFW_KEY_KP_ENTER) {
-            lockCharge();
-            cancelEvent(event);
-            return;
-        }
-        if (event.getKey() == GLFW.GLFW_KEY_BACKSPACE) {
-            if (!typed.isEmpty()) {
-                typed = typed.substring(0, typed.length() - 1);
-            }
-            cancelEvent(event);
-            return;
-        }
-
-        char letter = letter(event.getKey());
-        if (letter != 0) {
-            typed += letter;
-            if (!prompt.startsWith(typed)) {
-                typed = "";
-                progress = Math.max(0, progress - 1);
-            } else if (typed.equals(prompt)) {
-                completeWord();
-            }
-            releaseBlockedKeyMappings(minecraft);
-            cancelEvent(event);
-            return;
-        }
-
-        cancelEvent(event);
-        releaseBlockedKeyMappings(minecraft);
     }
 
     @SubscribeEvent
@@ -185,6 +108,9 @@ public final class ClientChantMode {
 
         if (active && !hasWand(minecraft.player.getItemInHand(hand))) {
             cancel();
+            if (minecraft.screen instanceof ChantScreen) {
+                minecraft.setScreen(null);
+            }
             return;
         }
 
@@ -321,10 +247,6 @@ public final class ClientChantMode {
         return 0;
     }
 
-    private static boolean isSpellSlotKey(int key) {
-        return key >= GLFW.GLFW_KEY_1 && key <= GLFW.GLFW_KEY_6;
-    }
-
     private static void releaseBlockedKeyMappings(Minecraft minecraft) {
         for (KeyMapping mapping : minecraft.options.keyMappings) {
             while (mapping.consumeClick()) {
@@ -337,6 +259,123 @@ public final class ClientChantMode {
     private static void cancelEvent(InputEvent.Key event) {
         if (event.isCancelable()) {
             event.setCanceled(true);
+        }
+    }
+
+    private static final class ChantScreen extends Screen {
+        private static final int PANEL_W = 248;
+        private static final int PANEL_H = 118;
+        private boolean closingFromAction;
+
+        private ChantScreen() {
+            super(Component.literal("Chant"));
+        }
+
+        @Override
+        protected void init() {
+            int x = (width - PANEL_W) / 2;
+            int y = (height - PANEL_H) / 2;
+            addRenderableWidget(Button.builder(Component.literal("X"), button -> closeAndCancel())
+                    .bounds(x + PANEL_W - 22, y + 6, 16, 16)
+                    .build());
+        }
+
+        @Override
+        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            renderBackground(graphics);
+            int x = (width - PANEL_W) / 2;
+            int y = (height - PANEL_H) / 2;
+            graphics.fill(x, y, x + PANEL_W, y + PANEL_H, 0xEE0B0812);
+            graphics.fill(x, y, x + PANEL_W, y + 1, 0xFFC66CFF);
+            graphics.fill(x, y + PANEL_H - 1, x + PANEL_W, y + PANEL_H, 0xFF6F4A96);
+            graphics.fill(x, y, x + 1, y + PANEL_H, 0xFF6F4A96);
+            graphics.fill(x + PANEL_W - 1, y, x + PANEL_W, y + PANEL_H, 0xFF6F4A96);
+
+            String title = "Chanting " + level + "/" + MAX_LEVEL;
+            graphics.drawCenteredString(font, title, width / 2, y + 14, 0xFFFFD84D);
+
+            int split = Math.min(typed.length(), prompt.length());
+            String shown = prompt.substring(0, split).toUpperCase(Locale.ROOT) + prompt.substring(split);
+            graphics.drawCenteredString(font, shown, width / 2, y + 45, 0xFFE9D7FF);
+
+            int barW = 168;
+            int barX = x + (PANEL_W - barW) / 2;
+            int barY = y + 66;
+            graphics.fill(barX, barY, barX + barW, barY + 8, 0xFF181321);
+            int fill = Math.round(barW * (progress / (float) Math.max(1, wordsPerLevel)));
+            graphics.fill(barX, barY, barX + fill, barY + 8, 0xFF66FFAA);
+            graphics.drawCenteredString(font, "Enter locks charge", width / 2, y + 86, 0xFF9D8FB1);
+
+            super.render(graphics, mouseX, mouseY, partialTick);
+        }
+
+        @Override
+        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                closeAndCancel();
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                closingFromAction = true;
+                lockCharge();
+                Minecraft.getInstance().setScreen(null);
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+                if (!typed.isEmpty()) {
+                    typed = typed.substring(0, typed.length() - 1);
+                }
+                return true;
+            }
+            char letter = letter(keyCode);
+            if (letter != 0) {
+                typed += letter;
+                if (!prompt.startsWith(typed)) {
+                    typed = "";
+                    progress = Math.max(0, progress - 1);
+                } else if (typed.equals(prompt)) {
+                    completeWord();
+                    if (!active) {
+                        closingFromAction = true;
+                        Minecraft.getInstance().setScreen(null);
+                    }
+                }
+                return true;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean charTyped(char codePoint, int modifiers) {
+            return true;
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            return super.mouseClicked(mouseX, mouseY, button) || true;
+        }
+
+        @Override
+        public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+            return true;
+        }
+
+        @Override
+        public void onClose() {
+            closeAndCancel();
+        }
+
+        @Override
+        public boolean isPauseScreen() {
+            return false;
+        }
+
+        private void closeAndCancel() {
+            if (!closingFromAction) {
+                cancel();
+            }
+            closingFromAction = true;
+            Minecraft.getInstance().setScreen(null);
         }
     }
 }
