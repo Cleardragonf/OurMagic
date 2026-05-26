@@ -2,26 +2,13 @@ package com.ourmagic.magic.spell.runtime;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 import com.ourmagic.mana.PlayerMana;
->>>>>>> ```markdown
-=======
->>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
 import com.ourmagic.network.ModNetwork;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
-<<<<<<< HEAD
-<<<<<<< HEAD
 import net.minecraft.world.effect.MobEffect;
-=======
->>>>>>> ```markdown
-=======
-import net.minecraft.world.effect.MobEffect;
->>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -78,14 +65,14 @@ public final class MagicStatusEffects {
 
     public static void stun(LivingEntity entity) {
         StunState existing = STUNNED.get(entity.getUUID());
-        STUNNED.put(entity.getUUID(), new StunState(existing == null ? entity.position() : existing.anchor()));
+        STUNNED.put(entity.getUUID(), new StunState(existing == null ? entity.position() : existing.anchor(), existing == null ? entity.getPose() : existing.previousPose()));
         entity.setDeltaMovement(Vec3.ZERO);
         entity.stopRiding();
         if (entity instanceof Mob mob) {
             mob.setTarget(null);
         }
+        applyStunPose(entity);
         if (entity instanceof ServerPlayer player) {
-            player.setPose(Pose.SWIMMING);
             ModNetwork.syncStunState(player, true);
         }
     }
@@ -235,10 +222,17 @@ public final class MagicStatusEffects {
     }
 
     public static void wake(LivingEntity entity) {
-        if (STUNNED.remove(entity.getUUID()) != null && entity instanceof ServerPlayer player) {
-            player.setPose(Pose.STANDING);
-            ModNetwork.syncStunState(player, false);
+        StunState stun = STUNNED.remove(entity.getUUID());
+        if (stun != null) {
+            entity.setPose(stun.previousPose());
+            if (entity instanceof ServerPlayer player) {
+                ModNetwork.syncStunState(player, false);
+            }
         }
+    }
+
+    private static void applyStunPose(LivingEntity entity) {
+        entity.setPose(entity instanceof ServerPlayer ? Pose.SWIMMING : Pose.SLEEPING);
     }
 
     @SubscribeEvent
@@ -280,9 +274,7 @@ public final class MagicStatusEffects {
             if (entity instanceof Mob mob) {
                 mob.setTarget(null);
             }
-            if (entity instanceof ServerPlayer player) {
-                player.setPose(Pose.SWIMMING);
-            }
+            applyStunPose(entity);
             if (entity.tickCount % 10 == 0) {
                 serverLevel.sendParticles(ParticleTypes.WITCH, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 6, 0.25D, 0.2D, 0.25D, 0.01D);
             }
@@ -320,7 +312,7 @@ public final class MagicStatusEffects {
         if (stun != null) {
             player.setDeltaMovement(Vec3.ZERO);
             player.teleportTo(stun.anchor().x, stun.anchor().y, stun.anchor().z);
-            player.setPose(Pose.SWIMMING);
+            applyStunPose(player);
         }
 
         if (SILENCED.containsKey(player.getUUID()) && player.level() instanceof ServerLevel serverLevel && player.tickCount % 10 == 0) {
@@ -356,12 +348,8 @@ public final class MagicStatusEffects {
 
     @SubscribeEvent
     public static void livingAttack(LivingAttackEvent event) {
-<<<<<<< HEAD
-<<<<<<< HEAD
         Entity attacker = event.getSource().getEntity();
-        if (attacker != null && isStunned(attacker)) {
-            event.setCanceled(true);
-=======
+
         if (event.getSource().is(DamageTypes.FALL) && FALLGUARDED.containsKey(event.getEntity().getUUID())) {
             event.getEntity().fallDistance = 0.0F;
             event.setCanceled(true);
@@ -379,12 +367,6 @@ public final class MagicStatusEffects {
                 serverLevel.sendParticles(ParticleTypes.EXPLOSION, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
                 serverLevel.sendParticles(ParticleTypes.SMOKE, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 32, 0.55D, 0.55D, 0.55D, 0.035D);
             }
->>>>>>> ```markdown
-=======
-        Entity attacker = event.getSource().getEntity();
-        if (attacker != null && isStunned(attacker)) {
-            event.setCanceled(true);
->>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
             return;
         }
 
@@ -573,7 +555,7 @@ public final class MagicStatusEffects {
     private record BoundState(int ticks, Vec3 anchor) {
     }
 
-    private record StunState(Vec3 anchor) {
+    private record StunState(Vec3 anchor, Pose previousPose) {
     }
 
     private record WarpState(int ticks, GameType previousMode) {

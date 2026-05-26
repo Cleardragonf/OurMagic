@@ -86,23 +86,15 @@ public final class ModNetwork {
                 .decoder(WardLightStatePacket::decode)
                 .consumerMainThread(WardLightStatePacket::handle)
                 .add();
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
-        CHANNEL.messageBuilder(StunStatePacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(StunStatePacket::encode)
-                .decoder(StunStatePacket::decode)
-                .consumerMainThread(StunStatePacket::handle)
-<<<<<<< HEAD
-=======
         CHANNEL.messageBuilder(IllusionDecoyPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(IllusionDecoyPacket::encode)
                 .decoder(IllusionDecoyPacket::decode)
                 .consumerMainThread(IllusionDecoyPacket::handle)
->>>>>>> ```markdown
-=======
->>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
+                .add();
+        CHANNEL.messageBuilder(StunStatePacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(StunStatePacket::encode)
+                .decoder(StunStatePacket::decode)
+                .consumerMainThread(StunStatePacket::handle)
                 .add();
     }
 
@@ -123,11 +115,10 @@ public final class ModNetwork {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new WardLightStatePacket(active));
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     public static void syncStunState(ServerPlayer player, boolean active) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new StunStatePacket(active));
-=======
+    }
+
     public static void sendIllusionDecoy(ServerLevel level, Vec3 position, IllusionDecoyPacket packet) {
         double maxDistanceSqr = 128.0D * 128.0D;
         for (ServerPlayer player : level.players()) {
@@ -135,10 +126,5 @@ public final class ModNetwork {
                 CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
             }
         }
->>>>>>> ```markdown
-=======
-    public static void syncStunState(ServerPlayer player, boolean active) {
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new StunStatePacket(active));
->>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
     }
 }

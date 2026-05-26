@@ -624,15 +624,7 @@ public final class SpellRegistry {
         return switch (key) {
             case "blink", "conjure", "fire_place", "gather", "phase", "recall", "scry", "transmute", "warp" -> Spell.FocusEffect.RANGE;
             case "cleanse", "illusion", "rune", "sanctuary" -> Spell.FocusEffect.RADIUS;
-<<<<<<< HEAD
-<<<<<<< HEAD
-            case "anchor", "alarm", "anti_decay", "anti_explosion", "anti_fire", "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water", "air", "air_bubble", "bind", "blind", "bubble", "camouflage", "charm", "curse", "dark", "dispel", "entry_filter", "fertility", "freeze", "frost", "grow", "hex", "item_guard", "levitate", "light", "lockdown", "mana_drain", "overload", "reflect", "reflect_projectile", "reveal", "shield", "silence", "stasis", "storage_lock", "temporal", "thaw", "ward", "weakening", "weather" -> Spell.FocusEffect.DURATION;
-=======
             case "agility", "anchor", "alarm", "anti_decay", "anti_explosion", "anti_fire", "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water", "air", "air_bubble", "bind", "blastguard", "blind", "bubble", "camouflage", "charm", "curse", "dark", "dispel", "entry_filter", "fallguard", "fertility", "fireguard", "fortify", "freeze", "frost", "grow", "hex", "item_guard", "levitate", "life_ward", "light", "lockdown", "mana_drain", "mana_shield", "overload", "reflect", "reflect_projectile", "reveal", "shield", "silence", "stasis", "storage_lock", "stun", "temporal", "thaw", "ward", "weakening", "weather" -> Spell.FocusEffect.DURATION;
->>>>>>> ```markdown
-=======
-            case "anchor", "alarm", "anti_decay", "anti_explosion", "anti_fire", "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water", "air", "air_bubble", "bind", "blind", "bubble", "camouflage", "charm", "curse", "dark", "dispel", "entry_filter", "fertility", "freeze", "frost", "grow", "hex", "item_guard", "levitate", "light", "lockdown", "mana_drain", "overload", "reflect", "reflect_projectile", "reveal", "shield", "silence", "stasis", "storage_lock", "temporal", "thaw", "ward", "weakening", "weather" -> Spell.FocusEffect.DURATION;
->>>>>>> 66d784116cfd50799180a63552b78a7b327bba34
             case "nullify" -> Spell.FocusEffect.RANGE;
             case "heal", "lifedrain", "manaburn", "regenerate", "summon", "summon_random", "summon_undead", "summon_beast", "summon_guardian", "summon_arcane", "summon_swarm" -> Spell.FocusEffect.UTILITY;
             default -> physical ? Spell.FocusEffect.DAMAGE : Spell.FocusEffect.UTILITY;
