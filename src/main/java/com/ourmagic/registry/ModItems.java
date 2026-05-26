@@ -6,6 +6,7 @@ import com.ourmagic.item.GrimoireItem;
 import com.ourmagic.item.SpellFocusItem;
 import com.ourmagic.item.WandItem;
 import com.ourmagic.item.WardTunerItem;
+import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -39,6 +40,7 @@ public final class ModItems {
     public static final RegistryObject<Item> MAGIC_FLOW_CONVERTER = ITEMS.register("magic_flow_converter", () -> new BlockItem(ModBlocks.MAGIC_FLOW_CONVERTER.get(), new Item.Properties()));
     public static final RegistryObject<Item> CREATIVE_RF_GENERATOR = ITEMS.register("creative_rf_generator", () -> new BlockItem(ModBlocks.CREATIVE_RF_GENERATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> WARD_PERIMETER_STONE = ITEMS.register("ward_perimeter_stone", () -> new BlockItem(ModBlocks.WARD_PERIMETER_STONE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> WARLOCK_SPAWN_EGG = ITEMS.register("warlock_spawn_egg", () -> new ForgeSpawnEggItem(ModEntities.WARLOCK, 0x2A1734, 0xC66CFF, new Item.Properties()));
 
     private ModItems() {
     }

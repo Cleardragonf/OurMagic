@@ -7,6 +7,7 @@ import com.ourmagic.wand.WandModifier;
 import com.ourmagic.wand.WandTemplates;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -30,6 +31,10 @@ public class WandCraftingRecipe extends CustomRecipe {
             return true;
         }
 
+        return matchesBasicWand(container);
+    }
+
+    private static boolean matchesBasicWand(CraftingContainer container) {
         int sticks = 0;
         int crystals = 0;
         int dust = 0;
@@ -60,7 +65,11 @@ public class WandCraftingRecipe extends CustomRecipe {
             return upgrade;
         }
 
-        return WandTemplates.applyRandom(new ItemStack(ModItems.WAND.get()), RandomSource.create());
+        if (!matchesBasicWand(container)) {
+            return ItemStack.EMPTY;
+        }
+
+        return WandTemplates.applyRandom(new ItemStack(ModItems.WAND.get()), RandomSource.create(wandSeed(container)));
     }
 
     @Override
@@ -143,6 +152,23 @@ public class WandCraftingRecipe extends CustomRecipe {
 
     private static boolean isWand(ItemStack stack) {
         return stack.is(ModItems.WAND.get()) || stack.is(ModItems.ADMIN_WAND.get());
+    }
+
+    private static long wandSeed(CraftingContainer container) {
+        long seed = 0x4F75724D61676963L;
+        for (int i = 0; i < container.getContainerSize(); i++) {
+            ItemStack stack = container.getItem(i);
+            seed = seed * 31L + i;
+            if (stack.isEmpty()) {
+                continue;
+            }
+            seed = seed * 31L + BuiltInRegistries.ITEM.getKey(stack.getItem()).hashCode();
+            seed = seed * 31L + stack.getCount();
+            if (stack.hasTag()) {
+                seed = seed * 31L + stack.getTag().hashCode();
+            }
+        }
+        return seed;
     }
 
     public static class Serializer implements RecipeSerializer<WandCraftingRecipe> {

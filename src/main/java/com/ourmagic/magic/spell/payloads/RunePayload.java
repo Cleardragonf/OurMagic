@@ -2,6 +2,7 @@ package com.ourmagic.magic.spell.payloads;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.spell.runtime.MagicDamageSources;
 import com.ourmagic.magic.spell.runtime.SpellBuildContext;
 import com.ourmagic.magic.spell.runtime.SpellContext;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
@@ -84,7 +85,7 @@ public class RunePayload implements PayloadEffect {
             rune.context.burst(rune.position, ParticleTypes.FLASH, 1, 0.0D, 0.0D);
             rune.context.burst(rune.position, ParticleTypes.ENCHANT, 45, 0.75D, 0.04D);
             if (rune.payloads.isEmpty()) {
-                trigger.hurt(rune.level.damageSources().magic(), 3.0F * rune.context.damagePower());
+                trigger.hurt(MagicDamageSources.playerMagic(rune.level, rune.context.player()), 3.0F * rune.context.damagePower());
             } else {
                 SpellContext triggerContext = rune.context.withCastIteration(rune.context.castIndex(), rune.context.castCount(), rune.context.modifierPower()).withoutBeams();
                 for (PayloadEffect payload : rune.payloads) {

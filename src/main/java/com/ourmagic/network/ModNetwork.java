@@ -84,6 +84,11 @@ public final class ModNetwork {
                 .decoder(WardLightStatePacket::decode)
                 .consumerMainThread(WardLightStatePacket::handle)
                 .add();
+        CHANNEL.messageBuilder(StunStatePacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(StunStatePacket::encode)
+                .decoder(StunStatePacket::decode)
+                .consumerMainThread(StunStatePacket::handle)
+                .add();
     }
 
     public static void syncMana(ServerPlayer player, PlayerMana mana) {
@@ -101,5 +106,9 @@ public final class ModNetwork {
 
     public static void syncWardLight(ServerPlayer player, boolean active) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new WardLightStatePacket(active));
+    }
+
+    public static void syncStunState(ServerPlayer player, boolean active) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new StunStatePacket(active));
     }
 }

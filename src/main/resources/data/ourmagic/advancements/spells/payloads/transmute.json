@@ -1,0 +1,38 @@
+{
+    "parent":  "ourmagic:spells/movement",
+    "display":  {
+                    "icon":  {
+                                 "item":  "ourmagic:spell_focus"
+                             },
+                    "title":  {
+                                  "text":  "Transmute"
+                              },
+                    "description":  {
+                                        "text":  "Changes targeted blocks into related materials."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  true,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "learned":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "transmute"
+                                                    }
+                                 }
+                 },
+    "better_display":  {
+                           "completed_icon_color":  "#4EDBFF",
+                           "uncompleted_icon_color":  "#254A63",
+                           "completed_title_color":  "#C7F6FF",
+                           "uncompleted_title_color":  "#78BDD1",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#63D9FF",
+                           "uncompleted_line_color":  "#285166",
+                           "pos_x":  1275,
+                           "pos_y":  112,
+                           "hide_lines":  false
+                       }
+}

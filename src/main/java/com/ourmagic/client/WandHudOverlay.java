@@ -33,8 +33,13 @@ public final class WandHudOverlay {
     private static final int SLOT = 18;
     private static final int GAP = 2;
     private static final int HUD_X = 8;
+    private static final int SCROLLBAR_W = 4;
     private static int spellScrollOffset;
     private static int selectedForAssignment = -1;
+    private static boolean draggingSpellList;
+    private static boolean draggingSpellScrollbar;
+    private static double dragStartY;
+    private static int dragStartOffset;
 
     private WandHudOverlay() {
     }
@@ -58,8 +63,14 @@ public final class WandHudOverlay {
         WandData data = WandData.read(active.stack());
         int spellCost = data.activeManaCost();
 
-        int x = activePanelX();
-        int y = activePanelY(screenHeight);
+        float scale = hudScale(minecraft, screenWidth, screenHeight);
+        int virtualScreenWidth = virtualSize(screenWidth, scale);
+        int virtualScreenHeight = virtualSize(screenHeight, scale);
+        graphics.pose().pushPose();
+        graphics.pose().scale(scale, scale, 1.0F);
+
+        int x = activePanelX(virtualScreenWidth);
+        int y = activePanelY(virtualScreenHeight);
         int panelHeight = 23;
         graphics.fill(x - PADDING, y - PADDING, x + WIDTH + PADDING, y + panelHeight, 0x99000000);
 
@@ -72,13 +83,15 @@ public final class WandHudOverlay {
         graphics.drawString(minecraft.font, Component.literal("Mana " + ClientManaData.mana() + "/" + ClientManaData.maxMana() + "  +" + ClientManaData.regen() + "/s"), x + 3, manaY - 1, 0xFFFFFFFF, false);
 
         if (shiftDown(minecraft)) {
-            renderSpellList(graphics, minecraft, data, screenWidth, screenHeight);
+            renderSpellList(graphics, minecraft, data, virtualScreenWidth, virtualScreenHeight);
         }
-        renderAssignedBar(graphics, minecraft, data, screenWidth, screenHeight);
-        renderHoverTooltip(graphics, minecraft, data, screenWidth, screenHeight);
+        renderAssignedBar(graphics, minecraft, data, virtualScreenWidth, virtualScreenHeight);
+        renderHoverTooltip(graphics, minecraft, data, virtualScreenWidth, virtualScreenHeight);
+        ClientFocusMode.render(graphics, minecraft, virtualScreenWidth, virtualScreenHeight);
+        ClientChantMode.render(graphics, minecraft, virtualScreenWidth, virtualScreenHeight);
+        graphics.pose().popPose();
+
         renderHotbarCooldowns(graphics, minecraft, screenWidth, screenHeight);
-        ClientFocusMode.render(graphics, minecraft, screenWidth, screenHeight);
-        ClientChantMode.render(graphics, minecraft, screenWidth, screenHeight);
     }
 
     static boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -94,16 +107,34 @@ public final class WandHudOverlay {
         WandData data = WandData.read(active.stack());
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
+        float scale = hudScale(minecraft, screenWidth, screenHeight);
+        int virtualScreenWidth = virtualSize(screenWidth, scale);
+        int virtualScreenHeight = virtualSize(screenHeight, scale);
+        double scaledMouseX = mouseX / scale;
+        double scaledMouseY = mouseY / scale;
         if (shiftDown(minecraft)) {
-            int spellIndex = spellListIndexAt(mouseX, mouseY, data.spells().size(), screenWidth, screenHeight);
+            int maxOffset = maxScrollOffset(data.spells().size());
+            if (maxOffset > 0 && spellScrollbarContains(scaledMouseX, scaledMouseY, virtualScreenWidth, virtualScreenHeight)) {
+                startSpellListDrag(scaledMouseY, true);
+                updateSpellListDrag(scaledMouseY, data.spells().size(), virtualScreenHeight);
+                return true;
+            }
+
+            int spellIndex = spellListIndexAt(scaledMouseX, scaledMouseY, data.spells().size(), virtualScreenWidth, virtualScreenHeight);
             if (spellIndex >= 0) {
+                startSpellListDrag(scaledMouseY, false);
                 selectedForAssignment = spellIndex;
                 send(active.hand(), WandSelectSpellPacket.Mode.SELECT_INDEX, 0, spellIndex);
                 return true;
             }
+
+            if (maxOffset > 0 && spellListPanelContains(scaledMouseX, scaledMouseY, virtualScreenWidth, virtualScreenHeight)) {
+                startSpellListDrag(scaledMouseY, false);
+                return true;
+            }
         }
 
-        int assignedSlot = assignedSlotAt(mouseX, mouseY, screenWidth, screenHeight);
+        int assignedSlot = assignedSlotAt(scaledMouseX, scaledMouseY, virtualScreenWidth, virtualScreenHeight);
         if (assignedSlot >= 0) {
             if (selectedForAssignment >= 0) {
                 send(active.hand(), WandSelectSpellPacket.Mode.ASSIGN, assignedSlot, selectedForAssignment);
@@ -115,6 +146,44 @@ public final class WandHudOverlay {
         return false;
     }
 
+    static void mouseReleased(int button) {
+        if (button == 0) {
+            draggingSpellList = false;
+            draggingSpellScrollbar = false;
+        }
+    }
+
+    static boolean tickDrag() {
+        if (!draggingSpellList) {
+            return false;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        ActiveWand active = activeWand(minecraft);
+        if (active.stack().isEmpty() || !shiftDown(minecraft)) {
+            draggingSpellList = false;
+            draggingSpellScrollbar = false;
+            return false;
+        }
+
+        int screenWidth = minecraft.getWindow().getGuiScaledWidth();
+        int screenHeight = minecraft.getWindow().getGuiScaledHeight();
+        float scale = hudScale(minecraft, screenWidth, screenHeight);
+        int virtualScreenHeight = virtualSize(screenHeight, scale);
+        double mouseY = minecraft.mouseHandler.ypos() * screenHeight / minecraft.getWindow().getScreenHeight() / scale;
+        int previous = spellScrollOffset;
+        updateSpellListDrag(mouseY, WandData.read(active.stack()).spells().size(), virtualScreenHeight);
+        return previous != spellScrollOffset;
+    }
+
+    private static float hudScale(Minecraft minecraft, int screenWidth, int screenHeight) {
+        return ScreenScale.forDesign(minecraft, screenWidth, screenHeight, 360, 170);
+    }
+
+    private static int virtualSize(int screenSize, float scale) {
+        return Math.max(1, Math.round(screenSize / scale));
+    }
+
     static boolean mouseScrolled(double delta) {
         Minecraft minecraft = Minecraft.getInstance();
         ActiveWand active = activeWand(minecraft);
@@ -123,9 +192,8 @@ public final class WandHudOverlay {
         }
 
         int spellCount = WandData.read(active.stack()).spells().size();
-        int maxOffset = Math.max(0, rowsFor(spellCount) - VISIBLE_ROWS);
         int previous = spellScrollOffset;
-        spellScrollOffset = Math.max(0, Math.min(maxOffset, spellScrollOffset - (int) Math.signum(delta)));
+        setSpellScrollOffset(spellScrollOffset - (int) Math.signum(delta), spellCount);
         return previous != spellScrollOffset;
     }
 
@@ -167,11 +235,12 @@ public final class WandHudOverlay {
         int height = rows * SLOT + (rows - 1) * GAP;
         int leftX = spellListX(screenWidth);
         int leftY = spellListY(screenHeight);
-        graphics.fill(leftX - 4, leftY - 15, leftX + width + 4, leftY + height + 4, 0x99000000);
+        int maxOffset = maxScrollOffset(spells.size());
+        int panelRight = leftX + width + 4 + (maxOffset > 0 ? SCROLLBAR_W + 5 : 0);
+        graphics.fill(leftX - 4, leftY - 15, panelRight, leftY + height + 4, 0x99000000);
         graphics.drawString(minecraft.font, Component.literal("Spells"), leftX, leftY - 12, 0xFFE6D6FF, false);
 
-        int maxOffset = Math.max(0, rowsFor(spells.size()) - VISIBLE_ROWS);
-        spellScrollOffset = Math.max(0, Math.min(spellScrollOffset, maxOffset));
+        setSpellScrollOffset(spellScrollOffset, spells.size());
         int firstIndex = spellScrollOffset * SPELL_COLUMNS;
         for (int i = 0; i < SPELL_COLUMNS * VISIBLE_ROWS; i++) {
             int spellIndex = firstIndex + i;
@@ -181,6 +250,19 @@ public final class WandHudOverlay {
             int y = leftY + row * (SLOT + GAP);
             drawSpellSlot(graphics, minecraft, spells, data.activeIndex(), spellIndex, x, y, spellIndex == selectedForAssignment);
         }
+        if (maxOffset > 0) {
+            drawSpellScrollbar(graphics, leftX, leftY, width, height, rowsFor(spells.size()), maxOffset);
+        }
+    }
+
+    private static void drawSpellScrollbar(GuiGraphics graphics, int leftX, int leftY, int listWidth, int listHeight, int totalRows, int maxOffset) {
+        int trackX = leftX + listWidth + 5;
+        graphics.fill(trackX, leftY, trackX + SCROLLBAR_W, leftY + listHeight, 0xAA0A0810);
+        int thumbHeight = Math.max(12, listHeight * VISIBLE_ROWS / Math.max(VISIBLE_ROWS, totalRows));
+        int travel = Math.max(1, listHeight - thumbHeight);
+        int thumbY = leftY + travel * spellScrollOffset / Math.max(1, maxOffset);
+        graphics.fill(trackX, thumbY, trackX + SCROLLBAR_W, thumbY + thumbHeight, 0xFFC66CFF);
+        graphics.fill(trackX, thumbY, trackX + SCROLLBAR_W, thumbY + 1, 0xFFFFFFFF);
     }
 
     private static void renderAssignedBar(GuiGraphics graphics, Minecraft minecraft, WandData data, int screenWidth, int screenHeight) {
@@ -266,6 +348,56 @@ public final class WandHudOverlay {
         return index >= 0 && index < spellCount ? index : -1;
     }
 
+    private static boolean spellListPanelContains(double mouseX, double mouseY, int screenWidth, int screenHeight) {
+        int width = SPELL_COLUMNS * SLOT + (SPELL_COLUMNS - 1) * GAP;
+        int height = VISIBLE_ROWS * SLOT + (VISIBLE_ROWS - 1) * GAP;
+        int leftX = spellListX(screenWidth);
+        int leftY = spellListY(screenHeight);
+        return mouseX >= leftX - 4 && mouseX < leftX + width + 4 && mouseY >= leftY - 15 && mouseY < leftY + height + 4;
+    }
+
+    private static boolean spellScrollbarContains(double mouseX, double mouseY, int screenWidth, int screenHeight) {
+        int width = SPELL_COLUMNS * SLOT + (SPELL_COLUMNS - 1) * GAP;
+        int height = VISIBLE_ROWS * SLOT + (VISIBLE_ROWS - 1) * GAP;
+        int leftX = spellListX(screenWidth);
+        int leftY = spellListY(screenHeight);
+        int trackX = leftX + width + 5;
+        return mouseX >= trackX - 2 && mouseX < trackX + SCROLLBAR_W + 2 && mouseY >= leftY && mouseY < leftY + height;
+    }
+
+    private static void startSpellListDrag(double mouseY, boolean scrollbar) {
+        draggingSpellList = true;
+        draggingSpellScrollbar = scrollbar;
+        dragStartY = mouseY;
+        dragStartOffset = spellScrollOffset;
+    }
+
+    private static void updateSpellListDrag(double mouseY, int spellCount, int screenHeight) {
+        int maxOffset = maxScrollOffset(spellCount);
+        if (maxOffset <= 0) {
+            setSpellScrollOffset(0, spellCount);
+            return;
+        }
+
+        if (draggingSpellScrollbar) {
+            int listHeight = VISIBLE_ROWS * SLOT + (VISIBLE_ROWS - 1) * GAP;
+            int leftY = spellListY(screenHeight);
+            int totalRows = rowsFor(spellCount);
+            int thumbHeight = Math.max(12, listHeight * VISIBLE_ROWS / Math.max(VISIBLE_ROWS, totalRows));
+            int travel = Math.max(1, listHeight - thumbHeight);
+            int relative = (int) Math.round(mouseY - leftY - thumbHeight / 2.0D);
+            setSpellScrollOffset(Math.round(maxOffset * (relative / (float) travel)), spellCount);
+            return;
+        }
+
+        int rowDelta = (int) Math.round((dragStartY - mouseY) / (SLOT + GAP));
+        setSpellScrollOffset(dragStartOffset + rowDelta, spellCount);
+    }
+
+    private static void setSpellScrollOffset(int offset, int spellCount) {
+        spellScrollOffset = Math.max(0, Math.min(maxScrollOffset(spellCount), offset));
+    }
+
     private static int assignedSlotAt(double mouseX, double mouseY, int screenWidth, int screenHeight) {
         int startX = assignedBarX();
         int y = assignedBarY(screenHeight);
@@ -285,8 +417,8 @@ public final class WandHudOverlay {
         return screenHeight - 144;
     }
 
-    private static int activePanelX() {
-        return (Minecraft.getInstance().getWindow().getGuiScaledWidth() - WIDTH) / 2;
+    private static int activePanelX(int screenWidth) {
+        return (screenWidth - WIDTH) / 2;
     }
 
     private static int activePanelY(int screenHeight) {
@@ -309,6 +441,10 @@ public final class WandHudOverlay {
 
     private static int rowsFor(int spellCount) {
         return Math.max(1, (spellCount + SPELL_COLUMNS - 1) / SPELL_COLUMNS);
+    }
+
+    private static int maxScrollOffset(int spellCount) {
+        return Math.max(0, rowsFor(spellCount) - VISIBLE_ROWS);
     }
 
     private static int iconColor(String key) {

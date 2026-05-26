@@ -34,6 +34,7 @@ public final class WandData {
     private static final String TAG_SPELL_POINTS = "AttributePoints";
     private static final String TAG_SPELL_UPGRADES = "Upgrades";
     private static final int MAX_SPELL_LEVEL = 100;
+    private static final int MAX_WAND_MODIFIER_LEVEL = 25;
     private static final int ASSIGNED_SLOTS = 6;
     private static final String SHAPE_UPGRADE_PREFIX = "shape:";
 
@@ -63,7 +64,7 @@ public final class WandData {
         this.spells = new ArrayList<>(spells);
         this.wandLevel = Math.max(1, Math.min(MAX_SPELL_LEVEL, wandLevel));
         this.wandXp = Math.max(0, wandXp);
-        this.modifiers = new LinkedHashMap<>(modifiers);
+        this.modifiers = sanitizeModifiers(modifiers);
         this.activeIndex = Math.max(0, Math.min(activeIndex, Math.max(0, spells.size() - 1)));
         this.assignedSpells = normalizeAssignments(assignedSpells, spells.size());
         this.cooldownUntil = cooldownUntil;
@@ -73,7 +74,7 @@ public final class WandData {
         return new WandData(template.key(), template.displayName(), template.power(), template.spells(), 0, 0);
     }
 
-    public static WandData combine(WandData primary, WandData secondary, int maxSpells) {
+    public static WandData combine(WandData primary, WandData secondary) {
         Map<String, WandSpellData> merged = new LinkedHashMap<>();
         for (WandSpellData spell : primary.spells) {
             merged.put(spell.key(), spell);
@@ -82,9 +83,7 @@ public final class WandData {
             merged.merge(spell.key(), spell, WandSpellData::merge);
         }
 
-        List<WandSpellData> spells = merged.values().stream()
-                .limit(Math.max(1, maxSpells))
-                .toList();
+        List<WandSpellData> spells = new ArrayList<>(merged.values());
         float power = Math.min(2.0F, Math.max(primary.power, secondary.power) + Math.min(primary.power, secondary.power) * 0.10F);
         Map<String, Integer> modifiers = new LinkedHashMap<>(primary.modifiers);
         secondary.modifiers.forEach((key, level) -> modifiers.merge(key, level, Math::max));
@@ -118,7 +117,7 @@ public final class WandData {
         for (String key : modifierTags.getAllKeys()) {
             int level = modifierTags.getInt(key);
             if (level > 0) {
-                modifiers.put(key, level);
+                modifiers.put(key, Math.min(level, MAX_WAND_MODIFIER_LEVEL));
             }
         }
 
@@ -214,7 +213,7 @@ public final class WandData {
     }
 
     public int usedWandModifierSlots() {
-        return modifiers.values().stream().mapToInt(Integer::intValue).sum();
+        return modifiers.size();
     }
 
     public Map<String, Integer> modifiers() {
@@ -370,7 +369,16 @@ public final class WandData {
     }
 
     public boolean canAddWandModifier(String key) {
-        return WandModifier.byKey(key).isPresent() && usedWandModifierSlots() < wandModifierSlots();
+        if (WandModifier.byKey(key).isEmpty()) {
+            return false;
+        }
+
+        int currentLevel = modifierLevel(key);
+        if (currentLevel > 0) {
+            return currentLevel < MAX_WAND_MODIFIER_LEVEL;
+        }
+
+        return usedWandModifierSlots() < wandModifierSlots();
     }
 
     public boolean addWandModifier(String key) {
@@ -406,6 +414,24 @@ public final class WandData {
 
     public List<WandSpellData> spells() {
         return List.copyOf(spells);
+    }
+
+    public boolean removeSpell(int spellIndex) {
+        if (spellIndex < 0 || spellIndex >= spells.size() || spells.size() <= 1) {
+            return false;
+        }
+
+        spells.remove(spellIndex);
+        activeIndex = Math.max(0, Math.min(activeIndex >= spellIndex ? activeIndex - 1 : activeIndex, spells.size() - 1));
+        for (int i = 0; i < assignedSpells.length; i++) {
+            if (assignedSpells[i] == spellIndex) {
+                assignedSpells[i] = activeIndex;
+            } else if (assignedSpells[i] > spellIndex) {
+                assignedSpells[i]--;
+            }
+            assignedSpells[i] = Math.max(0, Math.min(assignedSpells[i], spells.size() - 1));
+        }
+        return true;
     }
 
     public long cooldownUntil() {
@@ -479,6 +505,16 @@ public final class WandData {
             assignments[i] = Math.max(0, Math.min(input[i], Math.max(0, spellCount - 1)));
         }
         return assignments;
+    }
+
+    private static Map<String, Integer> sanitizeModifiers(Map<String, Integer> input) {
+        Map<String, Integer> sanitized = new LinkedHashMap<>();
+        input.forEach((key, level) -> {
+            if (WandModifier.byKey(key).isPresent() && level != null && level > 0) {
+                sanitized.put(key, Math.min(level, MAX_WAND_MODIFIER_LEVEL));
+            }
+        });
+        return sanitized;
     }
 
     public static float damageMultiplier(int level) {

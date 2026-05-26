@@ -1,0 +1,85 @@
+{
+    "parent":  "ourmagic:spells/root",
+    "display":  {
+                    "icon":  {
+                                 "item":  "minecraft:spider_eye"
+                             },
+                    "title":  {
+                                  "text":  "Summoning"
+                              },
+                    "description":  {
+                                        "text":  "Discover temporary magical ally payloads."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  false,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "summon":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "summon"
+                                                   }
+                                },
+                     "summon_random":  {
+                                           "trigger":  "ourmagic:spell_payload",
+                                           "conditions":  {
+                                                              "payload":  "summon_random"
+                                                          }
+                                       },
+                     "summon_undead":  {
+                                           "trigger":  "ourmagic:spell_payload",
+                                           "conditions":  {
+                                                              "payload":  "summon_undead"
+                                                          }
+                                       },
+                     "summon_beast":  {
+                                          "trigger":  "ourmagic:spell_payload",
+                                          "conditions":  {
+                                                             "payload":  "summon_beast"
+                                                         }
+                                      },
+                     "summon_guardian":  {
+                                             "trigger":  "ourmagic:spell_payload",
+                                             "conditions":  {
+                                                                "payload":  "summon_guardian"
+                                                            }
+                                         },
+                     "summon_arcane":  {
+                                           "trigger":  "ourmagic:spell_payload",
+                                           "conditions":  {
+                                                              "payload":  "summon_arcane"
+                                                          }
+                                       },
+                     "summon_swarm":  {
+                                          "trigger":  "ourmagic:spell_payload",
+                                          "conditions":  {
+                                                             "payload":  "summon_swarm"
+                                                         }
+                                      }
+                 },
+    "requirements":  [
+                         [
+                             "summon",
+                             "summon_random",
+                             "summon_undead",
+                             "summon_beast",
+                             "summon_guardian",
+                             "summon_arcane",
+                             "summon_swarm"
+                         ]
+                     ],
+    "better_display":  {
+                           "completed_icon_color":  "#D18CFF",
+                           "uncompleted_icon_color":  "#553B70",
+                           "completed_title_color":  "#F0DAFF",
+                           "uncompleted_title_color":  "#B68BD0",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#CA84FF",
+                           "uncompleted_line_color":  "#523967",
+                           "pos_x":  500,
+                           "pos_y":  285,
+                           "hide_lines":  false
+                       }
+}

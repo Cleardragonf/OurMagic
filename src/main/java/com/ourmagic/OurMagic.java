@@ -1,14 +1,17 @@
 package com.ourmagic;
 
 import com.mojang.logging.LogUtils;
+import com.ourmagic.advancement.ModCriteriaTriggers;
 import com.ourmagic.command.OurMagicCommands;
 import com.ourmagic.network.ModNetwork;
 import com.ourmagic.recipe.ModRecipeSerializers;
 import com.ourmagic.registry.ModBlockEntities;
 import com.ourmagic.registry.ModBlocks;
 import com.ourmagic.registry.ModCreativeTabs;
+import com.ourmagic.registry.ModEntities;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.registry.ModMenus;
+import com.ourmagic.registry.ModVillagers;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -25,10 +28,13 @@ public class OurMagic {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModBlocks.register(modBus);
         ModBlockEntities.register(modBus);
+        ModEntities.register(modBus);
         ModItems.register(modBus);
         ModCreativeTabs.register(modBus);
         ModMenus.register(modBus);
+        ModVillagers.register(modBus);
         ModRecipeSerializers.register(modBus);
+        ModCriteriaTriggers.register();
         ModNetwork.register();
 
         MinecraftForge.EVENT_BUS.addListener(this::registerCommands);

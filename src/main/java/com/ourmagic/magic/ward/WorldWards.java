@@ -1164,14 +1164,7 @@ public class WorldWards extends SavedData {
     }
 
     private static void cleanseEntity(LivingEntity entity) {
-        MagicStatusEffects.nullify(entity);
-        entity.removeEffect(MobEffects.POISON);
-        entity.removeEffect(MobEffects.WITHER);
-        entity.removeEffect(MobEffects.HUNGER);
-        entity.removeEffect(MobEffects.CONFUSION);
-        entity.removeEffect(MobEffects.DIG_SLOWDOWN);
-        entity.removeEffect(MobEffects.WEAKNESS);
-        entity.removeEffect(MobEffects.DARKNESS);
+        MagicStatusEffects.cleanse(entity);
     }
 
     private static void applySanctuary(ServerLevel level, ActiveWard ward, LivingEntity entity) {

@@ -1,6 +1,7 @@
 package com.ourmagic.magic.spell.payloads;
 
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.spell.runtime.MagicDamageSources;
 import com.ourmagic.magic.spell.runtime.SpellBuildContext;
 import com.ourmagic.magic.spell.runtime.SpellContext;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
@@ -28,7 +29,7 @@ public class LifedrainPayload implements PayloadEffect {
         }
 
         float amount = 4.0F * context.damagePower();
-        boolean hurt = living.hurt(context.level().damageSources().magic(), amount);
+        boolean hurt = living.hurt(MagicDamageSources.playerMagic(context.level(), context.player()), amount);
         if (!hurt) {
             return false;
         }

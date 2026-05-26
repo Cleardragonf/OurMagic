@@ -1,11 +1,13 @@
 package com.ourmagic.event;
 
 import com.ourmagic.OurMagic;
+import com.ourmagic.advancement.SpellAdvancementEvents;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.ui.PlayerUpgradeMenu;
 import com.ourmagic.ui.SpellcraftMenu;
 import com.ourmagic.ui.WandMenu;
 import com.ourmagic.wand.WandData;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -14,9 +16,12 @@ import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.event.AnvilUpdateEvent;
+import net.minecraftforge.event.entity.player.AnvilRepairEvent;
+import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -25,8 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 @Mod.EventBusSubscriber(modid = OurMagic.MOD_ID)
 public final class WandAnvilEvents {
-    private static final int NORMAL_COMBINED_SPELL_LIMIT = 12;
-    private static final int ADMIN_COMBINED_SPELL_LIMIT = 20;
+    private static final String TAG_TEMP_ANVIL_LEVEL = "OurMagicTempAnvilLevel";
 
     private WandAnvilEvents() {
     }
@@ -36,21 +40,41 @@ public final class WandAnvilEvents {
         ItemStack left = event.getLeft();
         ItemStack right = event.getRight();
         if (!isWand(left) || !isWand(right)) {
+            releaseTemporaryAnvilLevel(event.getPlayer());
             return;
         }
 
         WandData leftData = WandData.read(left);
         WandData rightData = WandData.read(right);
-        int maxSpells = left.is(ModItems.ADMIN_WAND.get()) || right.is(ModItems.ADMIN_WAND.get())
-                ? ADMIN_COMBINED_SPELL_LIMIT
-                : NORMAL_COMBINED_SPELL_LIMIT;
 
         ItemStack output = left.copy();
         output.setCount(1);
-        WandData.combine(leftData, rightData, maxSpells).save(output);
+        WandData.combine(leftData, rightData).save(output);
         event.setOutput(output);
-        event.setCost(combineCost(leftData, rightData));
+        grantTemporaryAnvilLevel(event.getPlayer());
+        event.setCost(1);
         event.setMaterialCost(1);
+    }
+
+    @SubscribeEvent
+    public static void repairAnvil(AnvilRepairEvent event) {
+        if (!isWand(event.getLeft()) || !isWand(event.getRight()) || !isWand(event.getOutput())) {
+            return;
+        }
+        boolean usedTemporaryLevel = consumeTemporaryAnvilLevel(event.getEntity());
+        if (!usedTemporaryLevel && !event.getEntity().getAbilities().instabuild) {
+            event.getEntity().giveExperienceLevels(1);
+        }
+        if (event.getEntity() instanceof ServerPlayer player) {
+            SpellAdvancementEvents.awardKnownSpells(player, event.getOutput());
+        }
+    }
+
+    @SubscribeEvent
+    public static void closeContainer(PlayerContainerEvent.Close event) {
+        if (event.getContainer() instanceof AnvilMenu) {
+            releaseTemporaryAnvilLevel(event.getEntity());
+        }
     }
 
     @SubscribeEvent
@@ -162,21 +186,28 @@ public final class WandAnvilEvents {
         return stack.is(ModItems.WAND.get()) || stack.is(ModItems.ADMIN_WAND.get());
     }
 
-    private static int combineCost(WandData left, WandData right) {
-        int newSpellCount = 0;
-        int duplicateCount = 0;
-        int rightLevels = 0;
-
-        for (WandData.WandSpellData rightSpell : right.spells()) {
-            rightLevels += rightSpell.level();
-            boolean duplicate = left.spells().stream().anyMatch(leftSpell -> leftSpell.key().equals(rightSpell.key()));
-            if (duplicate) {
-                duplicateCount++;
-            } else {
-                newSpellCount++;
-            }
+    private static void grantTemporaryAnvilLevel(Player player) {
+        if (player.getAbilities().instabuild || player.experienceLevel > 0 || player.getPersistentData().getBoolean(TAG_TEMP_ANVIL_LEVEL)) {
+            return;
         }
-
-        return Math.min(39, 6 + newSpellCount * 3 + duplicateCount * 2 + rightLevels / 25);
+        player.getPersistentData().putBoolean(TAG_TEMP_ANVIL_LEVEL, true);
+        player.giveExperienceLevels(1);
     }
+
+    private static boolean consumeTemporaryAnvilLevel(Player player) {
+        CompoundTag data = player.getPersistentData();
+        boolean temporary = data.getBoolean(TAG_TEMP_ANVIL_LEVEL);
+        if (temporary) {
+            data.remove(TAG_TEMP_ANVIL_LEVEL);
+        }
+        return temporary;
+    }
+
+    private static void releaseTemporaryAnvilLevel(Player player) {
+        if (!consumeTemporaryAnvilLevel(player) || player.getAbilities().instabuild || player.experienceLevel <= 0) {
+            return;
+        }
+        player.giveExperienceLevels(-1);
+    }
+
 }

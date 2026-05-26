@@ -1,6 +1,7 @@
 package com.ourmagic.mana;
 
 import com.ourmagic.OurMagic;
+import com.ourmagic.magic.spell.runtime.MagicAllies;
 import com.ourmagic.network.ModNetwork;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.TickEvent;
@@ -44,6 +45,7 @@ public final class ManaEvents {
     @SubscribeEvent
     public static void clone(PlayerEvent.Clone event) {
         PlayerMana.copy(event.getOriginal(), event.getEntity());
+        MagicAllies.copy(event.getOriginal(), event.getEntity());
         if (event.getEntity() instanceof ServerPlayer player) {
             ModNetwork.syncMana(player, PlayerMana.get(player));
         }

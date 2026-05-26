@@ -25,7 +25,14 @@ public final class WandHudInput {
     @SubscribeEvent
     public static void mouseClicked(InputEvent.MouseButton.Pre event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen != null || event.getAction() != GLFW.GLFW_PRESS) {
+        if (minecraft.screen != null) {
+            return;
+        }
+        if (event.getAction() == GLFW.GLFW_RELEASE) {
+            WandHudOverlay.mouseReleased(event.getButton());
+            return;
+        }
+        if (event.getAction() != GLFW.GLFW_PRESS) {
             return;
         }
 
@@ -110,6 +117,8 @@ public final class WandHudInput {
             minecraft.mouseHandler.grabMouse();
             cursorReleasedForWand = false;
         }
+
+        WandHudOverlay.tickDrag();
     }
 
     private static boolean isHoldingWand(Minecraft minecraft) {

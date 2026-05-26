@@ -1,0 +1,176 @@
+{
+    "parent":  "ourmagic:spells/root",
+    "display":  {
+                    "icon":  {
+                                 "item":  "minecraft:iron_sword"
+                             },
+                    "title":  {
+                                  "text":  "Combat Spells"
+                              },
+                    "description":  {
+                                        "text":  "Discover offensive and disabling payloads."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  false,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "arrow":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "arrow"
+                                                  }
+                               },
+                     "bind":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "bind"
+                                                 }
+                              },
+                     "blast":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "blast"
+                                                  }
+                               },
+                     "blind":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "blind"
+                                                  }
+                               },
+                     "curse":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "curse"
+                                                  }
+                               },
+                     "disarm":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "disarm"
+                                                   }
+                                },
+                     "explode":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "explode"
+                                                    }
+                                 },
+                     "fire":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "fire"
+                                                 }
+                              },
+                     "fireball":  {
+                                      "trigger":  "ourmagic:spell_payload",
+                                      "conditions":  {
+                                                         "payload":  "fireball"
+                                                     }
+                                  },
+                     "frost":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "frost"
+                                                  }
+                               },
+                     "gravity":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "gravity"
+                                                    }
+                                 },
+                     "hex":  {
+                                 "trigger":  "ourmagic:spell_payload",
+                                 "conditions":  {
+                                                    "payload":  "hex"
+                                                }
+                             },
+                     "lifedrain":  {
+                                       "trigger":  "ourmagic:spell_payload",
+                                       "conditions":  {
+                                                          "payload":  "lifedrain"
+                                                      }
+                                   },
+                     "lightning":  {
+                                       "trigger":  "ourmagic:spell_payload",
+                                       "conditions":  {
+                                                          "payload":  "lightning"
+                                                      }
+                                   },
+                     "manaburn":  {
+                                      "trigger":  "ourmagic:spell_payload",
+                                      "conditions":  {
+                                                         "payload":  "manaburn"
+                                                     }
+                                  },
+                     "missile":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "missile"
+                                                    }
+                                 },
+                     "overload":  {
+                                      "trigger":  "ourmagic:spell_payload",
+                                      "conditions":  {
+                                                         "payload":  "overload"
+                                                     }
+                                  },
+                     "push":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "push"
+                                                 }
+                              },
+                     "silence":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "silence"
+                                                    }
+                                 },
+                     "stun":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "stun"
+                                                 }
+                              }
+                 },
+    "requirements":  [
+                         [
+                             "arrow",
+                             "bind",
+                             "blast",
+                             "blind",
+                             "curse",
+                             "disarm",
+                             "explode",
+                             "fire",
+                             "fireball",
+                             "frost",
+                             "gravity",
+                             "hex",
+                             "lifedrain",
+                             "lightning",
+                             "manaburn",
+                             "missile",
+                             "overload",
+                             "push",
+                             "silence",
+                             "stun"
+                         ]
+                     ],
+    "better_display":  {
+                           "completed_icon_color":  "#FF6B45",
+                           "uncompleted_icon_color":  "#67313A",
+                           "completed_title_color":  "#FFD0B8",
+                           "uncompleted_title_color":  "#D78A80",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#FF8A5C",
+                           "uncompleted_line_color":  "#6B3038",
+                           "pos_x":  320,
+                           "pos_y":  -330,
+                           "hide_lines":  false
+                       }
+}

@@ -1,5 +1,6 @@
 package com.ourmagic.network;
 
+import com.ourmagic.advancement.ModCriteriaTriggers;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellIngredients;
@@ -71,6 +72,7 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
                     consumeSpellcraftCost(context.getSender().getInventory(), packet.spellKey, hasIngredients);
                     data.save(wand);
                     context.getSender().getInventory().setChanged();
+                    ModCriteriaTriggers.awardSpell(context.getSender(), craftedSpell.key());
                     context.getSender().displayClientMessage(Component.literal("Added " + craftedSpell.displayName() + " to wand").withStyle(ChatFormatting.AQUA), false);
                 } else {
                     context.getSender().displayClientMessage(Component.literal("That wand already knows " + craftedSpell.displayName()).withStyle(ChatFormatting.YELLOW), false);
@@ -88,6 +90,7 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
                 if (GrimoireItem.addSpell(grimoire, craftedSpell)) {
                     consumeSpellcraftCost(context.getSender().getInventory(), packet.spellKey, hasIngredients);
                     context.getSender().getInventory().setChanged();
+                    ModCriteriaTriggers.awardSpell(context.getSender(), craftedSpell.key());
                     context.getSender().displayClientMessage(Component.literal("Added " + craftedSpell.displayName() + " to grimoire").withStyle(ChatFormatting.AQUA), false);
                 } else {
                     context.getSender().displayClientMessage(Component.literal("That grimoire already contains " + craftedSpell.displayName()).withStyle(ChatFormatting.YELLOW), false);
@@ -98,6 +101,7 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
             consumeSpellcraftCost(context.getSender().getInventory(), packet.spellKey, hasIngredients);
             ItemStack paper = new ItemStack(Items.PAPER);
             craftedSpell.writeToItem(paper);
+            ModCriteriaTriggers.awardSpell(context.getSender(), craftedSpell.key());
             if (!context.getSender().getInventory().add(paper)) {
                 context.getSender().drop(paper, false);
             }

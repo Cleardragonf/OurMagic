@@ -15,6 +15,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
+import com.ourmagic.magic.spell.runtime.MagicDamageSources;
+
 import java.util.Optional;
 import java.util.Set;
 
@@ -81,7 +83,7 @@ public class MissilePayload implements PayloadEffect {
 
         if (distance <= HIT_RADIUS || ticks >= MAX_FLIGHT_TICKS) {
             targetEntity.filter(Entity::isAlive).ifPresent(entity -> {
-                entity.hurt(level.damageSources().magic(), (float) (6.0D * context.damagePower()));
+                entity.hurt(MagicDamageSources.playerMagic(level, context.player()), (float) (6.0D * context.damagePower()));
                 level.sendParticles(ParticleTypes.WITCH, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 18, 0.35D, 0.35D, 0.35D, 0.05D);
                 level.sendParticles(PURPLE_PARTICLE, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 16, 0.3D, 0.3D, 0.3D, 0.02D);
             });

@@ -1,0 +1,253 @@
+{
+    "parent":  "ourmagic:spells/root",
+    "display":  {
+                    "icon":  {
+                                 "item":  "ourmagic:ward_stone"
+                             },
+                    "title":  {
+                                  "text":  "Wards"
+                              },
+                    "description":  {
+                                        "text":  "Discover ward payloads for protected spaces."
+                                    },
+                    "frame":  "task",
+                    "show_toast":  false,
+                    "announce_to_chat":  false,
+                    "hidden":  false
+                },
+    "criteria":  {
+                     "ward":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "ward"
+                                                 }
+                              },
+                     "anti_fire":  {
+                                       "trigger":  "ourmagic:spell_payload",
+                                       "conditions":  {
+                                                          "payload":  "anti_fire"
+                                                      }
+                                   },
+                     "anti_water":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "anti_water"
+                                                       }
+                                    },
+                     "anti_explosion":  {
+                                            "trigger":  "ourmagic:spell_payload",
+                                            "conditions":  {
+                                                               "payload":  "anti_explosion"
+                                                           }
+                                        },
+                     "anti_magic":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "anti_magic"
+                                                       }
+                                    },
+                     "anti_grief":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "anti_grief"
+                                                       }
+                                    },
+                     "anti_projectile":  {
+                                             "trigger":  "ourmagic:spell_payload",
+                                             "conditions":  {
+                                                                "payload":  "anti_projectile"
+                                                            }
+                                         },
+                     "anti_teleport":  {
+                                           "trigger":  "ourmagic:spell_payload",
+                                           "conditions":  {
+                                                              "payload":  "anti_teleport"
+                                                          }
+                                       },
+                     "anti_decay":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "anti_decay"
+                                                       }
+                                    },
+                     "anti_summon":  {
+                                         "trigger":  "ourmagic:spell_payload",
+                                         "conditions":  {
+                                                            "payload":  "anti_summon"
+                                                        }
+                                     },
+                     "air":  {
+                                 "trigger":  "ourmagic:spell_payload",
+                                 "conditions":  {
+                                                    "payload":  "air"
+                                                }
+                             },
+                     "air_bubble":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "air_bubble"
+                                                       }
+                                    },
+                     "alarm":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "alarm"
+                                                  }
+                               },
+                     "entry_filter":  {
+                                          "trigger":  "ourmagic:spell_payload",
+                                          "conditions":  {
+                                                             "payload":  "entry_filter"
+                                                         }
+                                      },
+                     "weather":  {
+                                     "trigger":  "ourmagic:spell_payload",
+                                     "conditions":  {
+                                                        "payload":  "weather"
+                                                    }
+                                 },
+                     "lockdown":  {
+                                      "trigger":  "ourmagic:spell_payload",
+                                      "conditions":  {
+                                                         "payload":  "lockdown"
+                                                     }
+                                  },
+                     "item_guard":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "item_guard"
+                                                       }
+                                    },
+                     "storage_lock":  {
+                                          "trigger":  "ourmagic:spell_payload",
+                                          "conditions":  {
+                                                             "payload":  "storage_lock"
+                                                         }
+                                      },
+                     "grow":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "grow"
+                                                 }
+                              },
+                     "freeze":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "freeze"
+                                                   }
+                                },
+                     "thaw":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "thaw"
+                                                 }
+                              },
+                     "weakening":  {
+                                       "trigger":  "ourmagic:spell_payload",
+                                       "conditions":  {
+                                                          "payload":  "weakening"
+                                                      }
+                                   },
+                     "mana_drain":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "mana_drain"
+                                                       }
+                                    },
+                     "reflect_projectile":  {
+                                                "trigger":  "ourmagic:spell_payload",
+                                                "conditions":  {
+                                                                   "payload":  "reflect_projectile"
+                                                               }
+                                            },
+                     "dispel":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "dispel"
+                                                   }
+                                },
+                     "light":  {
+                                   "trigger":  "ourmagic:spell_payload",
+                                   "conditions":  {
+                                                      "payload":  "light"
+                                                  }
+                               },
+                     "dark":  {
+                                  "trigger":  "ourmagic:spell_payload",
+                                  "conditions":  {
+                                                     "payload":  "dark"
+                                                 }
+                              },
+                     "temporal":  {
+                                      "trigger":  "ourmagic:spell_payload",
+                                      "conditions":  {
+                                                         "payload":  "temporal"
+                                                     }
+                                  },
+                     "stasis":  {
+                                    "trigger":  "ourmagic:spell_payload",
+                                    "conditions":  {
+                                                       "payload":  "stasis"
+                                                   }
+                                },
+                     "fertility":  {
+                                       "trigger":  "ourmagic:spell_payload",
+                                       "conditions":  {
+                                                          "payload":  "fertility"
+                                                      }
+                                   },
+                     "camouflage":  {
+                                        "trigger":  "ourmagic:spell_payload",
+                                        "conditions":  {
+                                                           "payload":  "camouflage"
+                                                       }
+                                    }
+                 },
+    "requirements":  [
+                         [
+                             "ward",
+                             "anti_fire",
+                             "anti_water",
+                             "anti_explosion",
+                             "anti_magic",
+                             "anti_grief",
+                             "anti_projectile",
+                             "anti_teleport",
+                             "anti_decay",
+                             "anti_summon",
+                             "air",
+                             "air_bubble",
+                             "alarm",
+                             "entry_filter",
+                             "weather",
+                             "lockdown",
+                             "item_guard",
+                             "storage_lock",
+                             "grow",
+                             "freeze",
+                             "thaw",
+                             "weakening",
+                             "mana_drain",
+                             "reflect_projectile",
+                             "dispel",
+                             "light",
+                             "dark",
+                             "temporal",
+                             "stasis",
+                             "fertility",
+                             "camouflage"
+                         ]
+                     ],
+    "better_display":  {
+                           "completed_icon_color":  "#6FA8FF",
+                           "uncompleted_icon_color":  "#30466D",
+                           "completed_title_color":  "#D7E7FF",
+                           "uncompleted_title_color":  "#90AED8",
+                           "draw_direct_lines":  true,
+                           "completed_line_color":  "#76ABFF",
+                           "uncompleted_line_color":  "#314668",
+                           "pos_x":  340,
+                           "pos_y":  560,
+                           "hide_lines":  false
+                       }
+}
