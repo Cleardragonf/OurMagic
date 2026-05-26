@@ -3,10 +3,10 @@ plugins {
 }
 
 group = 'com.ourmagic'
-version = '1.0.0'
+version = '1.1.1'
 
 base {
-    archivesName = 'ourmagic-forge-1.20.1'
+    archivesName = 'OurMagic'
 }
 
 java {
