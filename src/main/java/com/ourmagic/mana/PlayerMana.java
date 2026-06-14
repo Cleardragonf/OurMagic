@@ -14,6 +14,8 @@ public final class PlayerMana {
 
     public static final int DEFAULT_MAX_MANA = 50;
     public static final int DEFAULT_REGEN = 5;
+    private static final int BASE_MAGIC_XP_TO_LEVEL = 50;
+    private static final int MAGIC_LEVELS_PER_XP_BAND = 10;
 
     private final CompoundTag tag;
 
@@ -55,7 +57,11 @@ public final class PlayerMana {
     }
 
     public int magicXpToNextLevel() {
-        return 25 + magicLevel() * 10;
+        int xpBand = (Math.max(1, magicLevel()) - 1) / MAGIC_LEVELS_PER_XP_BAND;
+        if (xpBand >= Integer.numberOfLeadingZeros(BASE_MAGIC_XP_TO_LEVEL)) {
+            return Integer.MAX_VALUE;
+        }
+        return BASE_MAGIC_XP_TO_LEVEL << xpBand;
     }
 
     public int magicPoints() {

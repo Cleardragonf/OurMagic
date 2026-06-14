@@ -544,6 +544,11 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             case Spell.UPGRADE_RANGE -> spell.range();
             case Spell.UPGRADE_RADIUS -> spell.radius();
             case Spell.UPGRADE_DURATION -> spell.duration();
+            case Spell.UPGRADE_SUMMON_HEALTH -> spell.summonHealth();
+            case Spell.UPGRADE_SUMMON_DEFENSE -> spell.summonDefense();
+            case Spell.UPGRADE_SUMMON_ARMOR -> spell.summonArmor();
+            case Spell.UPGRADE_SUMMON_ATTACK -> spell.summonAttack();
+            case Spell.UPGRADE_SUMMON_SPEED -> spell.summonSpeed();
             default -> 0;
         };
     }
@@ -590,6 +595,11 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             case Spell.UPGRADE_RANGE -> index == 0 ? Spell.UPGRADE_RANGE : null;
             case Spell.UPGRADE_RADIUS -> index == 0 ? Spell.UPGRADE_RADIUS : null;
             case Spell.UPGRADE_DURATION -> index == 0 ? Spell.UPGRADE_DURATION : null;
+            case Spell.UPGRADE_SUMMON_HEALTH -> index == 0 ? Spell.UPGRADE_SUMMON_HEALTH : null;
+            case Spell.UPGRADE_SUMMON_DEFENSE -> index == 0 ? Spell.UPGRADE_SUMMON_DEFENSE : null;
+            case Spell.UPGRADE_SUMMON_ARMOR -> index == 0 ? Spell.UPGRADE_SUMMON_ARMOR : null;
+            case Spell.UPGRADE_SUMMON_ATTACK -> index == 0 ? Spell.UPGRADE_SUMMON_ATTACK : null;
+            case Spell.UPGRADE_SUMMON_SPEED -> index == 0 ? Spell.UPGRADE_SUMMON_SPEED : null;
             default -> null;
         };
     }
@@ -612,6 +622,11 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             case Spell.UPGRADE_RANGE -> "Reach";
             case Spell.UPGRADE_RADIUS -> "Radius";
             case Spell.UPGRADE_DURATION -> "Duration";
+            case Spell.UPGRADE_SUMMON_HEALTH -> "Health";
+            case Spell.UPGRADE_SUMMON_DEFENSE -> "Defense";
+            case Spell.UPGRADE_SUMMON_ARMOR -> "Armor";
+            case Spell.UPGRADE_SUMMON_ATTACK -> "Attack";
+            case Spell.UPGRADE_SUMMON_SPEED -> "Speed";
             default -> "Stat";
         };
     }
@@ -627,6 +642,11 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             case Spell.UPGRADE_HEALING -> "Healing";
             case Spell.UPGRADE_RANGE -> "Reach";
             case Spell.UPGRADE_DURATION -> "Duration";
+            case Spell.UPGRADE_SUMMON_HEALTH -> "Health";
+            case Spell.UPGRADE_SUMMON_DEFENSE -> "Defense";
+            case Spell.UPGRADE_SUMMON_ARMOR -> "Armor";
+            case Spell.UPGRADE_SUMMON_ATTACK -> "Attack";
+            case Spell.UPGRADE_SUMMON_SPEED -> "Speed";
             default -> titleCase(upgrade);
         };
     }
@@ -652,6 +672,11 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             case Spell.UPGRADE_HEALING -> "Healing bonus.";
             case Spell.UPGRADE_RANGE -> "Spell reach.";
             case Spell.UPGRADE_DURATION -> "Effect time.";
+            case Spell.UPGRADE_SUMMON_HEALTH -> "Summon maximum health.";
+            case Spell.UPGRADE_SUMMON_DEFENSE -> "Summon armor toughness.";
+            case Spell.UPGRADE_SUMMON_ARMOR -> "Summon armor points.";
+            case Spell.UPGRADE_SUMMON_ATTACK -> "Summon attack damage.";
+            case Spell.UPGRADE_SUMMON_SPEED -> "Summon movement speed.";
             default -> "Upgrade stat.";
         };
     }
@@ -668,6 +693,10 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             case Spell.UPGRADE_HEALING -> arrowValue("+" + (spell.healing() * 15) + "%", showNext ? "+" + ((spell.healing() + 1) * 15) + "%" : null);
             case Spell.UPGRADE_RANGE -> arrowValue("+" + (rank * 20) + "%", showNext ? "+" + (nextRank * 20) + "%" : null);
             case Spell.UPGRADE_DURATION -> arrowValue("+" + (rank * 20) + "%", showNext ? "+" + (nextRank * 20) + "%" : null);
+            case Spell.UPGRADE_SUMMON_HEALTH -> arrowValue("+" + (rank * 20) + "%", showNext ? "+" + (nextRank * 20) + "%" : null);
+            case Spell.UPGRADE_SUMMON_DEFENSE, Spell.UPGRADE_SUMMON_ARMOR -> arrowValue("+" + (rank * 2), showNext ? "+" + (nextRank * 2) : null);
+            case Spell.UPGRADE_SUMMON_ATTACK -> arrowValue("+" + (rank * 15) + "%", showNext ? "+" + (nextRank * 15) + "%" : null);
+            case Spell.UPGRADE_SUMMON_SPEED -> arrowValue("+" + (rank * 10) + "%", showNext ? "+" + (nextRank * 10) + "%" : null);
             default -> "";
         };
     }
@@ -690,6 +719,11 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             case Spell.UPGRADE_RANGE -> "Extends how far the spell can reach.";
             case Spell.UPGRADE_RADIUS -> "Expands area and chain radius.";
             case Spell.UPGRADE_DURATION -> "Keeps spell effects active longer.";
+            case Spell.UPGRADE_SUMMON_HEALTH -> "Increases summoned entity health.";
+            case Spell.UPGRADE_SUMMON_DEFENSE -> "Increases summoned entity armor toughness.";
+            case Spell.UPGRADE_SUMMON_ARMOR -> "Increases summoned entity armor.";
+            case Spell.UPGRADE_SUMMON_ATTACK -> "Increases summoned entity attack damage.";
+            case Spell.UPGRADE_SUMMON_SPEED -> "Increases summoned entity movement speed.";
             default -> "Improves this spell.";
         };
     }
@@ -716,6 +750,11 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
         addIfSupported(upgrades, spell, Spell.UPGRADE_RANGE);
         addIfSupported(upgrades, spell, Spell.UPGRADE_RADIUS);
         addIfSupported(upgrades, spell, Spell.UPGRADE_DURATION);
+        addIfSupported(upgrades, spell, Spell.UPGRADE_SUMMON_HEALTH);
+        addIfSupported(upgrades, spell, Spell.UPGRADE_SUMMON_DEFENSE);
+        addIfSupported(upgrades, spell, Spell.UPGRADE_SUMMON_ARMOR);
+        addIfSupported(upgrades, spell, Spell.UPGRADE_SUMMON_ATTACK);
+        addIfSupported(upgrades, spell, Spell.UPGRADE_SUMMON_SPEED);
         return upgrades;
     }
 
@@ -747,12 +786,22 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
             case Spell.UPGRADE_RANGE -> "Range";
             case Spell.UPGRADE_RADIUS -> "Radius";
             case Spell.UPGRADE_DURATION -> "Duration";
+            case Spell.UPGRADE_SUMMON_HEALTH -> "Summon Health";
+            case Spell.UPGRADE_SUMMON_DEFENSE -> "Summon Defense";
+            case Spell.UPGRADE_SUMMON_ARMOR -> "Summon Armor";
+            case Spell.UPGRADE_SUMMON_ATTACK -> "Summon Attack";
+            case Spell.UPGRADE_SUMMON_SPEED -> "Summon Speed";
             default -> titleCase(upgrade);
         };
     }
 
     private static String upgradeTooltip(WandData.WandSpellData spell, String upgrade) {
-        return upgradeLabel(upgrade) + " " + getUpgradeRank(spell, upgrade) + " | Cost: 1 point | " + upgradeCostDetails(spell, upgrade);
+        String tooltip = upgradeLabel(upgrade) + " " + getUpgradeRank(spell, upgrade) + " | Cost: 1 point | " + upgradeCostDetails(spell, upgrade);
+        if (upgrade.equals(Spell.UPGRADE_ENTITIES)
+                && SpellRegistry.payloadParts(spell.key()).stream().anyMatch(payload -> payload.startsWith("summon"))) {
+            tooltip += " | Rank cap: " + (spell.level() / 5) + " (one per 5 spell levels)";
+        }
+        return tooltip;
     }
 
     private static String upgradeCostDetails(WandData.WandSpellData spell, String upgrade) {
@@ -772,12 +821,13 @@ public class WandScreen extends AbstractContainerScreen<WandMenu> {
 
     private static int manaIncrease(WandData.WandSpellData spell, String upgrade) {
         float multiplier = switch (upgrade) {
-            case Spell.UPGRADE_CHAINING, Spell.UPGRADE_ENTITIES, Spell.UPGRADE_CHAIN_DAMAGE, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_DURATION -> 0.15F;
-            case Spell.UPGRADE_HEALING -> 0.12F;
-            case Spell.UPGRADE_CHAIN_RADIUS, Spell.UPGRADE_RADIUS -> 0.10F;
+            case Spell.UPGRADE_CHAINING, Spell.UPGRADE_ENTITIES, Spell.UPGRADE_CHAIN_DAMAGE, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_DURATION, Spell.UPGRADE_SUMMON_HEALTH -> 0.15F;
+            case Spell.UPGRADE_HEALING, Spell.UPGRADE_SUMMON_DEFENSE, Spell.UPGRADE_SUMMON_ARMOR -> 0.12F;
+            case Spell.UPGRADE_CHAIN_RADIUS, Spell.UPGRADE_RADIUS, Spell.UPGRADE_SUMMON_SPEED -> 0.10F;
             case Spell.UPGRADE_MULTISTRIKE -> 0.35F;
             case Spell.UPGRADE_CASTS -> 0.25F;
             case Spell.UPGRADE_RANGE -> 0.20F;
+            case Spell.UPGRADE_SUMMON_ATTACK -> 0.18F;
             default -> 0.0F;
         };
         return increase(spell.manaCost(), multiplier);

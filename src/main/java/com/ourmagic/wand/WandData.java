@@ -180,6 +180,11 @@ public final class WandData {
             upgrades.putInt("multistrike_casts", spell.multistrikeCasts());
             upgrades.putInt("range", spell.range());
             upgrades.putInt("duration", spell.duration());
+            upgrades.putInt("summon_health", spell.summonHealth());
+            upgrades.putInt("summon_defense", spell.summonDefense());
+            upgrades.putInt("summon_armor", spell.summonArmor());
+            upgrades.putInt("summon_attack", spell.summonAttack());
+            upgrades.putInt("summon_speed", spell.summonSpeed());
             spellTag.put(TAG_SPELL_UPGRADES, upgrades);
             spellTags.add(spellTag);
         }
@@ -355,7 +360,7 @@ public final class WandData {
         Spell spell = SpellRegistry.get(current.key());
         return spell != null
                 && spell.supportsUpgrade(upgrade)
-                && current.attributePoints() >= current.upgradeCost(upgrade);
+                && current.canUpgrade(upgrade);
     }
 
     public int addWandXp(int amount) {
@@ -414,7 +419,7 @@ public final class WandData {
             return false;
         }
 
-        spells.add(new WandSpellData(instance.key(), instance.displayName(), instance.manaCost(), instance.cooldownTicks()));
+        spells.add(instance.toWandSpellData());
         return true;
     }
 
@@ -544,17 +549,17 @@ public final class WandData {
         return 1.0F + (Math.max(1, Math.min(MAX_SPELL_LEVEL, level)) - 1) * 0.01F;
     }
 
-    public record WandSpellData(String key, String displayName, int manaCost, int cooldownTicks, int level, int xp, int attributePoints, int chaining, int chainingEntities, int chainingRadius, int chainingDamage, int damage, int healing, int radius, int multistrike, int multistrikeCasts, int range, int duration, long cooldownUntil) {
+    public record WandSpellData(String key, String displayName, int manaCost, int cooldownTicks, int level, int xp, int attributePoints, int chaining, int chainingEntities, int chainingRadius, int chainingDamage, int damage, int healing, int radius, int multistrike, int multistrikeCasts, int range, int duration, int summonHealth, int summonDefense, int summonArmor, int summonAttack, int summonSpeed, long cooldownUntil) {
         public WandSpellData(String key, int manaCost, int cooldownTicks) {
             this(key, manaCost, cooldownTicks, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
 
         public WandSpellData(String key, String displayName, int manaCost, int cooldownTicks) {
-            this(key, displayName, manaCost, cooldownTicks, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
+            this(key, displayName, manaCost, cooldownTicks, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
         }
 
         public WandSpellData(String key, int manaCost, int cooldownTicks, int level, int xp, int attributePoints, int chaining, int chainingEntities, int chainingRadius, int chainingDamage, int damage, int healing, int radius, int multistrike, int multistrikeCasts, int range, int duration) {
-            this(key, SpellInstance.fixed(key).displayName(), manaCost, cooldownTicks, level, xp, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, 0L);
+            this(key, SpellInstance.fixed(key).displayName(), manaCost, cooldownTicks, level, xp, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, 0, 0, 0, 0, 0, 0L);
         }
 
         private static WandSpellData fromLegacyKey(String key) {
@@ -575,6 +580,9 @@ public final class WandData {
             int damage = upgrades.getInt("damage");
             int healing = upgrades.getInt("healing");
             int radius = upgrades.getInt("radius");
+            boolean summonSpell = SpellRegistry.payloadParts(key).stream().anyMatch(payload -> payload.startsWith("summon"));
+            int summonDefense = upgrades.contains("summon_defense") ? upgrades.getInt("summon_defense") : summonSpell ? damage / 2 : 0;
+            int summonAttack = upgrades.contains("summon_attack") ? upgrades.getInt("summon_attack") : summonSpell ? damage : 0;
 
             if (spell != null && spell.supportsUpgrade(Spell.UPGRADE_CHAINING)) {
                 if (!upgrades.contains("chaining_radius") && !spell.supportsUpgrade(Spell.UPGRADE_RADIUS)) {
@@ -606,6 +614,11 @@ public final class WandData {
                     upgrades.getInt("multistrike_casts"),
                     upgrades.getInt("range"),
                     upgrades.getInt("duration"),
+                    upgrades.getInt("summon_health"),
+                    summonDefense,
+                    upgrades.getInt("summon_armor"),
+                    summonAttack,
+                    upgrades.getInt("summon_speed"),
                     tag.getLong(TAG_SPELL_COOLDOWN_UNTIL)
             );
         }
@@ -619,7 +632,7 @@ public final class WandData {
 
         private WandSpellData addXp(int amount) {
             if (level >= MAX_SPELL_LEVEL) {
-                return new WandSpellData(key, displayName, manaCost, cooldownTicks, MAX_SPELL_LEVEL, 0, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, cooldownUntil);
+                return new WandSpellData(key, displayName, manaCost, cooldownTicks, MAX_SPELL_LEVEL, 0, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
             }
 
             int nextLevel = level;
@@ -637,7 +650,7 @@ public final class WandData {
             if (nextLevel >= MAX_SPELL_LEVEL) {
                 nextXp = 0;
             }
-            return new WandSpellData(key, displayName, manaCost, cooldownTicks, nextLevel, nextXp, attributePoints + earnedPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, cooldownUntil);
+            return new WandSpellData(key, displayName, manaCost, cooldownTicks, nextLevel, nextXp, attributePoints + earnedPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
         }
 
         private WandSpellData merge(WandSpellData other) {
@@ -660,6 +673,11 @@ public final class WandData {
                     Math.max(multistrikeCasts, other.multistrikeCasts),
                     Math.max(range, other.range),
                     Math.max(duration, other.duration),
+                    Math.max(summonHealth, other.summonHealth),
+                    Math.max(summonDefense, other.summonDefense),
+                    Math.max(summonArmor, other.summonArmor),
+                    Math.max(summonAttack, other.summonAttack),
+                    Math.max(summonSpeed, other.summonSpeed),
                     Math.max(cooldownUntil, other.cooldownUntil)
             );
         }
@@ -677,6 +695,11 @@ public final class WandData {
                 case "multistrike.casts" -> multistrikeCasts;
                 case "range" -> range;
                 case "duration" -> duration;
+                case "summon.health" -> summonHealth;
+                case "summon.defense" -> summonDefense;
+                case "summon.armor" -> summonArmor;
+                case "summon.attack" -> summonAttack;
+                case "summon.speed" -> summonSpeed;
                 default -> 0;
             };
         }
@@ -686,7 +709,12 @@ public final class WandData {
         }
 
         public boolean canUpgrade(String upgrade) {
-            return attributePoints >= upgradeCost(upgrade);
+            return attributePoints >= upgradeCost(upgrade)
+                    && (!upgrade.equals(Spell.UPGRADE_ENTITIES) || !isSummonSpell() || chainingEntities < level / 5);
+        }
+
+        private boolean isSummonSpell() {
+            return SpellRegistry.payloadParts(key).stream().anyMatch(payload -> payload.startsWith("summon"));
         }
 
         private WandSpellData changeShape(String shape) {
@@ -700,11 +728,11 @@ public final class WandData {
                 return this;
             }
 
-            return new WandSpellData(key, displayName, manaCost, cooldownTicks, level, xp, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, cooldownUntil);
+            return new WandSpellData(key, displayName, manaCost, cooldownTicks, level, xp, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
         }
 
         private WandSpellData withCooldownUntil(long cooldownUntil) {
-            return new WandSpellData(key, displayName, manaCost, cooldownTicks, level, xp, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, Math.max(0L, cooldownUntil));
+            return new WandSpellData(key, displayName, manaCost, cooldownTicks, level, xp, attributePoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, Math.max(0L, cooldownUntil));
         }
 
         private WandSpellData upgrade(String upgrade) {
@@ -714,17 +742,22 @@ public final class WandData {
 
             int nextPoints = attributePoints - upgradeCost(upgrade);
             return switch (upgrade) {
-                case "chaining" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks, level, xp, nextPoints, chaining + 1, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, cooldownUntil);
-                case "chaining.entities" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities + 1, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, cooldownUntil);
-                case "chaining.radius" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.10F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.05F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius + 1, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, cooldownUntil);
-                case "chaining.damage" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage + 1, damage, healing, radius, multistrike, multistrikeCasts, range, duration, cooldownUntil);
-                case "damage" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage + 1, healing, radius, multistrike, multistrikeCasts, range, duration, cooldownUntil);
-                case "healing" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.12F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing + 1, radius, multistrike, multistrikeCasts, range, duration, cooldownUntil);
-                case "multistrike" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.35F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.10F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike + 1, multistrikeCasts, range, duration, cooldownUntil);
-                case "multistrike.casts" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.25F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.08F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts + 1, range, duration, cooldownUntil);
-                case "range" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.20F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.05F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range + 1, duration, cooldownUntil);
-                case "radius" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.10F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.05F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius + 1, multistrike, multistrikeCasts, range, duration, cooldownUntil);
-                case "duration" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.05F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration + 1, cooldownUntil);
+                case "chaining" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks, level, xp, nextPoints, chaining + 1, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "chaining.entities" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities + 1, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "chaining.radius" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.10F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.05F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius + 1, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "chaining.damage" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage + 1, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "damage" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage + 1, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "healing" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.12F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing + 1, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "multistrike" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.35F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.10F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike + 1, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "multistrike.casts" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.25F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.08F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts + 1, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "range" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.20F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.05F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range + 1, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "radius" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.10F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.05F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius + 1, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "duration" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks + Math.max(1, Math.round(cooldownTicks * 0.05F)), level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration + 1, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "summon.health" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.15F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth + 1, summonDefense, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "summon.defense" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.12F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense + 1, summonArmor, summonAttack, summonSpeed, cooldownUntil);
+                case "summon.armor" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.12F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor + 1, summonAttack, summonSpeed, cooldownUntil);
+                case "summon.attack" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.18F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack + 1, summonSpeed, cooldownUntil);
+                case "summon.speed" -> new WandSpellData(key, displayName, manaCost + Math.max(1, Math.round(manaCost * 0.10F)), cooldownTicks, level, xp, nextPoints, chaining, chainingEntities, chainingRadius, chainingDamage, damage, healing, radius, multistrike, multistrikeCasts, range, duration, summonHealth, summonDefense, summonArmor, summonAttack, summonSpeed + 1, cooldownUntil);
                 default -> this;
             };
         }

@@ -20,6 +20,11 @@ public interface Spell {
     String UPGRADE_CASTS = "multistrike.casts";
     String UPGRADE_EXPLOSION_POWER = "explosion.power";
     String UPGRADE_EXPLOSION_RADIUS = "explosion.radius";
+    String UPGRADE_SUMMON_HEALTH = "summon.health";
+    String UPGRADE_SUMMON_DEFENSE = "summon.defense";
+    String UPGRADE_SUMMON_ARMOR = "summon.armor";
+    String UPGRADE_SUMMON_ATTACK = "summon.attack";
+    String UPGRADE_SUMMON_SPEED = "summon.speed";
 
     String key();
 

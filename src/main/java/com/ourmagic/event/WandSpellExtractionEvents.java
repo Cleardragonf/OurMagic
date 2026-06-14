@@ -63,7 +63,7 @@ public final class WandSpellExtractionEvents {
         }
 
         ItemStack spellPaper = new ItemStack(Items.PAPER);
-        new SpellInstance(active.key(), active.displayName(), active.manaCost(), active.cooldownTicks()).writeToItem(spellPaper);
+        SpellInstance.fromWandSpell(active).writeToItem(spellPaper);
         if (!data.removeSpell(spellIndex)) {
             player.displayClientMessage(Component.literal("Could not remove that spell.").withStyle(ChatFormatting.RED), false);
             return;

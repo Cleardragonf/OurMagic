@@ -17,6 +17,9 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.monster.Skeleton;
 import net.minecraft.world.entity.monster.Spider;
@@ -71,7 +74,16 @@ public class SummonPayload implements PayloadEffect {
 
     @Override
     public java.util.Set<String> supportedUpgrades(SpellBuildContext context) {
-        return java.util.Set.of(Spell.UPGRADE_ENTITIES, Spell.UPGRADE_DURATION, Spell.UPGRADE_DAMAGE, Spell.UPGRADE_RANGE);
+        return java.util.Set.of(
+                Spell.UPGRADE_ENTITIES,
+                Spell.UPGRADE_DURATION,
+                Spell.UPGRADE_RANGE,
+                Spell.UPGRADE_SUMMON_HEALTH,
+                Spell.UPGRADE_SUMMON_DEFENSE,
+                Spell.UPGRADE_SUMMON_ARMOR,
+                Spell.UPGRADE_SUMMON_ATTACK,
+                Spell.UPGRADE_SUMMON_SPEED
+        );
     }
 
     @Override
@@ -82,7 +94,11 @@ public class SummonPayload implements PayloadEffect {
 
         int lifetime = Math.round(BASE_LIFETIME_TICKS * context.durationMultiplier());
         Vec3 center = target.position();
-        int count = 1 + context.data().activeUpgradeLevel(Spell.UPGRADE_ENTITIES);
+        int extraEntities = Math.min(
+                context.data().activeUpgradeLevel(Spell.UPGRADE_ENTITIES),
+                context.data().activeSpellLevel() / 5
+        );
+        int count = 1 + extraEntities;
         boolean spawned = false;
         for (int i = 0; i < count; i++) {
             Mob mob = createMob(level, context.player().getRandom(), variant);
@@ -137,10 +153,12 @@ public class SummonPayload implements PayloadEffect {
     private static void empower(Mob mob, SpellContext context) {
         int duration = Math.round(BASE_LIFETIME_TICKS * context.durationMultiplier());
         mob.addEffect(new MobEffectInstance(MobEffects.GLOWING, duration, 0));
-        mob.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, duration, Math.max(0, context.data().activeUpgradeLevel(Spell.UPGRADE_DAMAGE) / 2)));
-        if (mob instanceof Zombie || mob instanceof ZombieVillager || mob instanceof Skeleton || mob instanceof Stray || mob instanceof Spider || mob instanceof Vex || mob instanceof Witch) {
-            mob.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, duration, Math.max(0, context.data().activeUpgradeLevel(Spell.UPGRADE_DAMAGE))));
-        }
+        multiplyAttribute(mob, Attributes.MAX_HEALTH, 1.0D + context.data().activeUpgradeLevel(Spell.UPGRADE_SUMMON_HEALTH) * 0.20D);
+        addAttribute(mob, Attributes.ARMOR_TOUGHNESS, context.data().activeUpgradeLevel(Spell.UPGRADE_SUMMON_DEFENSE) * 2.0D);
+        addAttribute(mob, Attributes.ARMOR, context.data().activeUpgradeLevel(Spell.UPGRADE_SUMMON_ARMOR) * 2.0D);
+        multiplyAttribute(mob, Attributes.ATTACK_DAMAGE, 1.0D + context.data().activeUpgradeLevel(Spell.UPGRADE_SUMMON_ATTACK) * 0.15D);
+        multiplyAttribute(mob, Attributes.MOVEMENT_SPEED, 1.0D + context.data().activeUpgradeLevel(Spell.UPGRADE_SUMMON_SPEED) * 0.10D);
+        mob.setHealth(mob.getMaxHealth());
         if (mob instanceof Wolf wolf) {
             wolf.setTame(true);
             wolf.setOwnerUUID(context.player().getUUID());
@@ -150,6 +168,20 @@ public class SummonPayload implements PayloadEffect {
         }
         if (mob instanceof Zombie zombie) {
             zombie.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
+        }
+    }
+
+    private static void addAttribute(Mob mob, Attribute attribute, double amount) {
+        AttributeInstance instance = mob.getAttribute(attribute);
+        if (instance != null) {
+            instance.setBaseValue(instance.getBaseValue() + amount);
+        }
+    }
+
+    private static void multiplyAttribute(Mob mob, Attribute attribute, double multiplier) {
+        AttributeInstance instance = mob.getAttribute(attribute);
+        if (instance != null) {
+            instance.setBaseValue(instance.getBaseValue() * multiplier);
         }
     }
 
