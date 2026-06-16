@@ -84,11 +84,15 @@ public final class ArcaneKnowledgeBook {
     private static List<String> randomSpells(RandomSource random, int count) {
         Set<String> spells = new LinkedHashSet<>();
         int attempts = 0;
-        while (spells.size() < count && attempts++ < count * 8) {
+        while (spells.size() < count && attempts++ < count * 64) {
             Spell spell = SpellRegistry.randomArcaneKnowledgeSpell(random);
             if (spell != null) {
                 spells.add(spell.key());
             }
+        }
+        List<String> fallbackRecipes = new ArrayList<>(SpellRegistry.arcaneKnowledgeRecipes());
+        while (spells.size() < count && !fallbackRecipes.isEmpty()) {
+            spells.add(fallbackRecipes.remove(random.nextInt(fallbackRecipes.size())));
         }
         if (spells.isEmpty()) {
             spells.add("arrow@target");

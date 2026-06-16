@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ACA",
+    "CWC",
+    "ACA"
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_block"
+    },
+    "C": {
+      "item": "minecraft:crying_obsidian"
+    },
+    "W": {
+      "item": "ourmagic:ward_stone"
+    }
+  },
+  "result": {
+    "item": "ourmagic:magic_battery"
+  }
+}

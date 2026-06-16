@@ -2,12 +2,15 @@ package com.ourmagic.registry;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.block.CreativeRfGeneratorBlock;
+import com.ourmagic.block.MagicAccumulatorBlock;
+import com.ourmagic.block.MagicBatteryBlock;
 import com.ourmagic.block.MagicFlowConverterBlock;
 import com.ourmagic.block.TemporaryShieldBlock;
 import com.ourmagic.block.WardBoundaryBlock;
 import com.ourmagic.block.WardCamouflageBlock;
 import com.ourmagic.block.WardPerimeterStoneBlock;
 import com.ourmagic.block.WardStoneBlock;
+import com.ourmagic.magic.energy.MagicEnergyType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -32,6 +35,34 @@ public final class ModBlocks {
             () -> new MagicFlowConverterBlock(BlockBehaviour.Properties.copy(Blocks.LODESTONE)
                     .strength(4.0F, 18.0F)
                     .lightLevel(state -> 5)));
+    public static final RegistryObject<Block> MAGIC_BATTERY = BLOCKS.register("magic_battery",
+            () -> new MagicBatteryBlock(BlockBehaviour.Properties.copy(Blocks.RESPAWN_ANCHOR)
+                    .strength(8.0F, 1200.0F)
+                    .lightLevel(state -> 7)));
+    public static final RegistryObject<Block> ARCANE_ACCUMULATOR = BLOCKS.register("arcane_accumulator",
+            () -> new MagicAccumulatorBlock(MagicEnergyType.ARCANE, BlockBehaviour.Properties.copy(Blocks.AMETHYST_BLOCK)
+                    .strength(3.0F, 9.0F)
+                    .lightLevel(state -> 8)));
+    public static final RegistryObject<Block> FIRE_ACCUMULATOR = BLOCKS.register("fire_accumulator",
+            () -> new MagicAccumulatorBlock(MagicEnergyType.FIRE, BlockBehaviour.Properties.copy(Blocks.AMETHYST_BLOCK)
+                    .strength(3.0F, 9.0F)
+                    .lightLevel(state -> 9)));
+    public static final RegistryObject<Block> WATER_ACCUMULATOR = BLOCKS.register("water_accumulator",
+            () -> new MagicAccumulatorBlock(MagicEnergyType.WATER, BlockBehaviour.Properties.copy(Blocks.AMETHYST_BLOCK)
+                    .strength(3.0F, 9.0F)
+                    .lightLevel(state -> 7)));
+    public static final RegistryObject<Block> EARTH_ACCUMULATOR = BLOCKS.register("earth_accumulator",
+            () -> new MagicAccumulatorBlock(MagicEnergyType.EARTH, BlockBehaviour.Properties.copy(Blocks.AMETHYST_BLOCK)
+                    .strength(3.0F, 9.0F)
+                    .lightLevel(state -> 5)));
+    public static final RegistryObject<Block> LIFE_ACCUMULATOR = BLOCKS.register("life_accumulator",
+            () -> new MagicAccumulatorBlock(MagicEnergyType.LIFE, BlockBehaviour.Properties.copy(Blocks.AMETHYST_BLOCK)
+                    .strength(3.0F, 9.0F)
+                    .lightLevel(state -> 7)));
+    public static final RegistryObject<Block> STORM_ACCUMULATOR = BLOCKS.register("storm_accumulator",
+            () -> new MagicAccumulatorBlock(MagicEnergyType.STORM, BlockBehaviour.Properties.copy(Blocks.AMETHYST_BLOCK)
+                    .strength(3.0F, 9.0F)
+                    .lightLevel(state -> 10)));
     public static final RegistryObject<Block> CREATIVE_RF_GENERATOR = BLOCKS.register("creative_rf_generator",
             () -> new CreativeRfGeneratorBlock(BlockBehaviour.Properties.copy(Blocks.REDSTONE_BLOCK)
                     .strength(4.0F, 18.0F)

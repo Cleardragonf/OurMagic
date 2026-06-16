@@ -393,19 +393,19 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     private List<String> craftableEffects() {
         return SpellRegistry.payloadKeys().stream()
                 .filter(effect -> !SpellRegistry.allowedShapesForPayloads(List.of(effect)).isEmpty())
-                .filter(effect -> hasPayloadIngredients(effect) || hasGrimoirePayload(effect))
+                .filter(effect -> hasPayloadIngredients(effect) || hasKnownPayload(effect))
                 .toList();
     }
 
     private List<String> craftableShapes(List<String> effects) {
         if (selectedEffects.isEmpty() && !effects.isEmpty()) {
             return SpellRegistry.allowedShapesForPayloads(List.of(effects.get(0))).stream()
-                    .filter(this::hasAnyShapeRequirement)
+                    .filter(shape -> canUseShape(List.of(effects.get(0)), shape))
                     .toList();
         }
         return SpellRegistry.allowedShapesForPayloads(selectedEffects).stream()
                 .filter(shape -> !selectedEffects.isEmpty())
-                .filter(this::hasAnyShapeRequirement)
+                .filter(shape -> canUseShape(selectedEffects, shape))
                 .toList();
     }
 
@@ -421,12 +421,17 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         return minecraft != null && minecraft.player != null && SpellIngredients.hasPayloadRequirements(minecraft.player.getInventory(), payload + "@self");
     }
 
-    private boolean hasGrimoirePayload(String payload) {
-        return minecraft != null && minecraft.player != null && SpellIngredients.grimoirePayloads(minecraft.player.getInventory()).contains(payload);
+    private boolean hasKnownPayload(String payload) {
+        return minecraft != null && minecraft.player != null && SpellIngredients.knownPayloads(minecraft.player.getInventory()).contains(payload);
     }
 
-    private boolean hasAnyShapeRequirement(String shape) {
-        return minecraft != null && minecraft.player != null && SpellIngredients.hasAnyShapeRequirement(minecraft.player.getInventory(), shape);
+    private boolean canUseShape(List<String> payloads, String shape) {
+        if (minecraft == null || minecraft.player == null) {
+            return false;
+        }
+        String key = String.join("+", payloads) + "@" + shape;
+        return SpellIngredients.hasKnownSpell(minecraft.player.getInventory(), key)
+                || SpellIngredients.hasAnyShapeRequirement(minecraft.player.getInventory(), shape);
     }
 
     private void renderRequirements(GuiGraphics graphics, String key) {
@@ -472,8 +477,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     }
 
     private int maxEffects() {
-        int highestLevel = menu.wandData().spells().stream().mapToInt(spell -> spell.level()).max().orElse(1);
-        return highestLevel >= 50 ? 3 : highestLevel >= 20 ? 2 : 1;
+        return 3;
     }
 
     private void clampScrolls() {

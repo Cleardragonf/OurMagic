@@ -9,6 +9,7 @@ import com.ourmagic.registry.ModItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.MerchantScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -47,21 +48,25 @@ public final class ArcaneKnowledgeTooltipEvents {
 
         List<String> spells = ArcaneKnowledgeBook.spellKeys(stack);
         event.getToolTip().add(Component.literal("Spellcraft notes").withStyle(ChatFormatting.DARK_PURPLE));
+        boolean detailed = Screen.hasShiftDown();
         for (int i = 0; i < Math.min(4, spells.size()); i++) {
             String spell = spells.get(i);
             event.getToolTip().add(Component.literal("- " + spell).withStyle(ChatFormatting.LIGHT_PURPLE));
+            if (!detailed) {
+                continue;
+            }
             event.getToolTip().add(Component.literal("  1x " + ModItems.WAND.get().getDescription().getString()).withStyle(ChatFormatting.GRAY));
             List<SpellIngredients.Requirement> requirements = SpellIngredients.requirementsFor(spell);
-            for (int r = 0; r < Math.min(3, requirements.size()); r++) {
+            for (int r = 0; r < requirements.size(); r++) {
                 SpellIngredients.Requirement requirement = requirements.get(r);
                 event.getToolTip().add(Component.literal("  " + requirement.count() + "x " + requirement.displayName().getString()).withStyle(ChatFormatting.GRAY));
-            }
-            if (requirements.size() > 3) {
-                event.getToolTip().add(Component.literal("  ...").withStyle(ChatFormatting.DARK_GRAY));
             }
         }
         if (spells.size() > 4) {
             event.getToolTip().add(Component.literal("...").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        if (!detailed) {
+            event.getToolTip().add(Component.literal("Hold Shift for ingredients").withStyle(ChatFormatting.DARK_GRAY));
         }
     }
 }

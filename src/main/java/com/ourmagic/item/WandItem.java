@@ -193,8 +193,12 @@ public class WandItem extends Item {
         }
 
         data.save(wand);
-        if (!grimoire && !player.getAbilities().instabuild) {
-            source.shrink(1);
+        if (!player.getAbilities().instabuild) {
+            if (grimoire) {
+                GrimoireItem.consumeMagicCharge(source);
+            } else {
+                source.shrink(1);
+            }
         }
         player.getInventory().setChanged();
         if (player instanceof ServerPlayer serverPlayer) {

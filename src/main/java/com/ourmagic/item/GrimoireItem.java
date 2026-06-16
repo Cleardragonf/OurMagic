@@ -17,6 +17,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -35,32 +37,39 @@ public class GrimoireItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!level.isClientSide) {
-            ItemStack otherHand = player.getItemInHand(hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
-            SpellInstance paperSpell = spellPaper(otherHand);
-            if (paperSpell != null) {
-                if (addSpell(stack, paperSpell)) {
-                    if (!player.getAbilities().instabuild) {
-                        otherHand.shrink(1);
-                    }
-                    if (player instanceof ServerPlayer serverPlayer) {
-                        ModCriteriaTriggers.awardSpell(serverPlayer, paperSpell.key());
-                    }
-                    player.displayClientMessage(Component.literal("Added " + paperSpell.displayName() + " to grimoire").withStyle(ChatFormatting.AQUA), false);
-                } else {
-                    player.displayClientMessage(Component.literal("That grimoire already contains " + paperSpell.displayName()).withStyle(ChatFormatting.YELLOW), false);
-                }
-                return InteractionResultHolder.success(stack);
+        if (level.isClientSide) {
+            if (!player.isShiftKeyDown()) {
+                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> com.ourmagic.client.GrimoireScreen.open(stack));
             }
+            return InteractionResultHolder.success(stack);
+        }
 
+        ItemStack otherHand = player.getItemInHand(hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
+        SpellInstance paperSpell = spellPaper(otherHand);
+        if (paperSpell != null) {
+            if (addSpell(stack, paperSpell)) {
+                if (!player.getAbilities().instabuild) {
+                    otherHand.shrink(1);
+                }
+                if (player instanceof ServerPlayer serverPlayer) {
+                    ModCriteriaTriggers.awardSpell(serverPlayer, paperSpell.key());
+                }
+                player.displayClientMessage(Component.literal("Added " + paperSpell.displayName() + " to grimoire").withStyle(ChatFormatting.AQUA), false);
+            } else {
+                player.displayClientMessage(Component.literal("That grimoire already contains " + paperSpell.displayName()).withStyle(ChatFormatting.YELLOW), false);
+            }
+            return InteractionResultHolder.success(stack);
+        }
+
+        if (player.isShiftKeyDown()) {
             if (spellCount(stack) <= 0) {
                 player.displayClientMessage(Component.literal("This grimoire has no spells.").withStyle(ChatFormatting.GRAY), false);
             } else {
-                cycle(stack, player.isShiftKeyDown() ? -1 : 1);
+                cycle(stack, 1);
                 player.displayClientMessage(Component.literal("Selected " + selectedSpellDisplayName(stack)).withStyle(ChatFormatting.AQUA), true);
             }
         }
-        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
+        return InteractionResultHolder.success(stack);
     }
 
     @Override
@@ -75,8 +84,8 @@ public class GrimoireItem extends Item {
                 tooltip.add(Component.literal("Mana: " + selected.manaCost()).withStyle(ChatFormatting.BLUE));
                 tooltip.add(Component.literal(String.format("Cooldown: %.1fs", selected.cooldownTicks() / 20.0F)).withStyle(ChatFormatting.GOLD));
             }
-            tooltip.add(Component.literal("Right click cycles spells").withStyle(ChatFormatting.DARK_GRAY));
-            tooltip.add(Component.literal("Sneak + right click cycles backward").withStyle(ChatFormatting.DARK_GRAY));
+            tooltip.add(Component.literal("Right click opens spell index").withStyle(ChatFormatting.DARK_GRAY));
+            tooltip.add(Component.literal("Sneak + right click cycles selected spell").withStyle(ChatFormatting.DARK_GRAY));
         }
     }
 
@@ -135,6 +144,15 @@ public class GrimoireItem extends Item {
             keys.add(spellAt(spells, i).key());
         }
         return List.copyOf(keys);
+    }
+
+    public static List<SpellInstance> spellInstances(ItemStack stack) {
+        ListTag spells = spells(stack);
+        java.util.ArrayList<SpellInstance> instances = new java.util.ArrayList<>();
+        for (int i = 0; i < spells.size(); i++) {
+            instances.add(spellAt(spells, i));
+        }
+        return List.copyOf(instances);
     }
 
     public static boolean containsSpell(ItemStack stack, String spellKey) {

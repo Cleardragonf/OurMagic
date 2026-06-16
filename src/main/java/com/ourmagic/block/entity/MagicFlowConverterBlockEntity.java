@@ -1,6 +1,9 @@
 package com.ourmagic.block.entity;
 
 import com.ourmagic.registry.ModBlockEntities;
+import com.ourmagic.magic.energy.MagicEnergyReceiver;
+import com.ourmagic.magic.energy.MagicEnergyType;
+import com.ourmagic.magic.energy.MagicTransferParticles;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -18,9 +21,10 @@ import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.Set;
 
-public class MagicFlowConverterBlockEntity extends BlockEntity {
+public class MagicFlowConverterBlockEntity extends BlockEntity implements MagicEnergyReceiver {
     private static final int RF_MAX_RECEIVE = 2_000;
     private static final int RF_PER_MAGIC_FLOW = 4;
+    private static final int MAGIC_ENERGY_PER_MAGIC_FLOW = 1;
 
     private final ConverterEnergyStorage energyStorage = new ConverterEnergyStorage();
     private final LazyOptional<IEnergyStorage> energyCapability = LazyOptional.of(() -> energyStorage);
@@ -67,6 +71,14 @@ public class MagicFlowConverterBlockEntity extends BlockEntity {
             return "No linked Ward Stone core.";
         }
         return stones + " Ward Stones linked, MF " + stored + "/" + capacity + ".";
+    }
+
+    @Override
+    public int receiveMagicEnergy(MagicEnergyType type, int amount, boolean simulate) {
+        if (type != MagicEnergyType.ARCANE || amount < MAGIC_ENERGY_PER_MAGIC_FLOW) {
+            return 0;
+        }
+        return receiveArcaneMagic(amount, simulate);
     }
 
     @Override
@@ -123,8 +135,37 @@ public class MagicFlowConverterBlockEntity extends BlockEntity {
             int accepted = wardStone.receiveMagicFlow(remainingMagicFlow, simulate);
             acceptedMagicFlow += accepted;
             remainingMagicFlow -= accepted;
+            if (accepted > 0 && !simulate) {
+                MagicTransferParticles.emit(serverLevel, worldPosition, wardStone.getBlockPos(), MagicEnergyType.ARCANE, accepted);
+            }
         }
         return acceptedMagicFlow * RF_PER_MAGIC_FLOW;
+    }
+
+    private int receiveArcaneMagic(int amount, boolean simulate) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return 0;
+        }
+        int remainingMagicFlow = amount / MAGIC_ENERGY_PER_MAGIC_FLOW;
+        int acceptedMagicFlow = 0;
+        Set<BlockPos> seenMasters = new HashSet<>();
+        for (Direction direction : Direction.values()) {
+            if (remainingMagicFlow <= 0) {
+                break;
+            }
+            BlockPos targetPos = worldPosition.relative(direction);
+            WardStoneBlockEntity wardStone = WardStoneBlockEntity.getOrCreate(serverLevel, targetPos).orElse(null);
+            if (wardStone == null || !seenMasters.add(wardStone.getBlockPos())) {
+                continue;
+            }
+            int accepted = wardStone.receiveMagicFlow(remainingMagicFlow, simulate);
+            acceptedMagicFlow += accepted;
+            remainingMagicFlow -= accepted;
+        }
+        if (acceptedMagicFlow > 0 && !simulate) {
+            setChangedAndUpdate();
+        }
+        return acceptedMagicFlow * MAGIC_ENERGY_PER_MAGIC_FLOW;
     }
 
     private void setChangedAndUpdate() {

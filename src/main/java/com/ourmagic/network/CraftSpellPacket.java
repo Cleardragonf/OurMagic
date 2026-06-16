@@ -55,10 +55,6 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
                 context.getSender().displayClientMessage(Component.literal("Unsupported spell effect and shape recipe.").withStyle(ChatFormatting.RED), false);
                 return;
             }
-            if (craftCheck.effectCount() > maxCraftEffects(data)) {
-                context.getSender().displayClientMessage(Component.literal("This recipe needs a stronger known spell before combining that many effects.").withStyle(ChatFormatting.RED), false);
-                return;
-            }
             boolean hasIngredients = SpellIngredients.has(context.getSender().getInventory(), packet.spellKey);
             if (!hasIngredients && !SpellIngredients.isUnlocked(context.getSender().getInventory(), packet.spellKey)) {
                 context.getSender().displayClientMessage(Component.literal("Missing spellcraft ingredients or grimoire knowledge.").withStyle(ChatFormatting.RED), false);
@@ -124,37 +120,17 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
         return new CraftCheck(SpellRegistry.isValidRecipe(spellKey), requestedPayloads.size());
     }
 
-    private static int maxCraftEffects(WandData data) {
-        int highestLevel = data.spells().stream().mapToInt(WandData.WandSpellData::level).max().orElse(1);
-        if (highestLevel >= 50) {
-            return 3;
-        }
-        if (highestLevel >= 20) {
-            return 2;
-        }
-        return 1;
-    }
-
     private static void consumeSpellcraftCost(net.minecraft.world.Container inventory, String spellKey, boolean hasIngredients) {
-        if (consumeGrimoireCharge(inventory, spellKey)) {
-            return;
-        }
         if (hasIngredients) {
             SpellIngredients.consume(inventory, spellKey);
-        } else {
+            return;
+        }
+        if (SpellIngredients.consumeExactKnowledge(inventory, spellKey)) {
+            return;
+        }
+        if (SpellIngredients.consumePayloadKnowledge(inventory, spellKey)) {
             SpellIngredients.consumeShapeRequirements(inventory, spellKey);
         }
-    }
-
-    private static boolean consumeGrimoireCharge(net.minecraft.world.Container inventory, String spellKey) {
-        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
-            ItemStack stack = inventory.getItem(slot);
-            if (stack.is(ModItems.GRIMOIRE.get()) && GrimoireItem.containsSpell(stack, spellKey) && GrimoireItem.consumeMagicCharge(stack)) {
-                inventory.setChanged();
-                return true;
-            }
-        }
-        return false;
     }
 
     private record CraftCheck(boolean allowed, int effectCount) {
