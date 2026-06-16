@@ -1,6 +1,6 @@
 package com.ourmagic.block;
 
-import com.ourmagic.block.entity.MagicFlowConverterBlockEntity;
+import com.ourmagic.block.entity.MagicBatteryBlockEntity;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.util.PlayerTitles;
 import net.minecraft.ChatFormatting;
@@ -20,15 +20,15 @@ import net.minecraft.world.phys.BlockHitResult;
 
 import javax.annotation.Nullable;
 
-public class MagicFlowConverterBlock extends BaseEntityBlock {
-    public MagicFlowConverterBlock(Properties properties) {
+public class MagicBatteryBlock extends BaseEntityBlock {
+    public MagicBatteryBlock(Properties properties) {
         super(properties);
     }
 
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new MagicFlowConverterBlockEntity(pos, state);
+        return new MagicBatteryBlockEntity(pos, state);
     }
 
     @Override
@@ -37,18 +37,21 @@ public class MagicFlowConverterBlock extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, net.minecraft.world.phys.BlockHitResult hit) {
         if (player.getItemInHand(hand).is(ModItems.MAGIC_LINKER.get())) {
             return InteractionResult.PASS;
         }
         if (level.isClientSide) {
             return InteractionResult.SUCCESS;
         }
-        if (level instanceof ServerLevel && player instanceof ServerPlayer serverPlayer
-                && level.getBlockEntity(pos) instanceof MagicFlowConverterBlockEntity converter) {
-            PlayerTitles.show(serverPlayer,
-                    Component.literal("Magic Flow Converter").withStyle(ChatFormatting.AQUA),
-                    Component.literal("Direct RF or Arcane ME -> MF. " + converter.linkedWardCoreSummary()).withStyle(ChatFormatting.GRAY));
+        if (level instanceof ServerLevel serverLevel && player instanceof ServerPlayer serverPlayer) {
+            MagicBatteryBlockEntity.getOrCreate(serverLevel, pos).ifPresentOrElse(
+                    battery -> PlayerTitles.show(serverPlayer,
+                            Component.literal("Magic Battery").withStyle(ChatFormatting.LIGHT_PURPLE),
+                            Component.literal(battery.statusLine()).withStyle(ChatFormatting.GRAY)),
+                    () -> PlayerTitles.show(serverPlayer,
+                            Component.literal("Magic Battery").withStyle(ChatFormatting.RED),
+                            Component.literal("No valid battery multiblock found.").withStyle(ChatFormatting.GRAY)));
         }
         return InteractionResult.CONSUME;
     }

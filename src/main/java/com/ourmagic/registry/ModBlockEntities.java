@@ -2,6 +2,8 @@ package com.ourmagic.registry;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.block.entity.CreativeRfGeneratorBlockEntity;
+import com.ourmagic.block.entity.MagicAccumulatorBlockEntity;
+import com.ourmagic.block.entity.MagicBatteryBlockEntity;
 import com.ourmagic.block.entity.MagicFlowConverterBlockEntity;
 import com.ourmagic.block.entity.WardCamouflageBlockEntity;
 import com.ourmagic.block.entity.WardStoneBlockEntity;
@@ -18,6 +20,16 @@ public final class ModBlockEntities {
             () -> BlockEntityType.Builder.of(WardStoneBlockEntity::new, ModBlocks.WARD_STONE.get()).build(null));
     public static final RegistryObject<BlockEntityType<MagicFlowConverterBlockEntity>> MAGIC_FLOW_CONVERTER = BLOCK_ENTITIES.register("magic_flow_converter",
             () -> BlockEntityType.Builder.of(MagicFlowConverterBlockEntity::new, ModBlocks.MAGIC_FLOW_CONVERTER.get()).build(null));
+    public static final RegistryObject<BlockEntityType<MagicBatteryBlockEntity>> MAGIC_BATTERY = BLOCK_ENTITIES.register("magic_battery",
+            () -> BlockEntityType.Builder.of(MagicBatteryBlockEntity::new, ModBlocks.MAGIC_BATTERY.get()).build(null));
+    public static final RegistryObject<BlockEntityType<MagicAccumulatorBlockEntity>> MAGIC_ACCUMULATOR = BLOCK_ENTITIES.register("magic_accumulator",
+            () -> BlockEntityType.Builder.of(MagicAccumulatorBlockEntity::new,
+                    ModBlocks.ARCANE_ACCUMULATOR.get(),
+                    ModBlocks.FIRE_ACCUMULATOR.get(),
+                    ModBlocks.WATER_ACCUMULATOR.get(),
+                    ModBlocks.EARTH_ACCUMULATOR.get(),
+                    ModBlocks.LIFE_ACCUMULATOR.get(),
+                    ModBlocks.STORM_ACCUMULATOR.get()).build(null));
     public static final RegistryObject<BlockEntityType<CreativeRfGeneratorBlockEntity>> CREATIVE_RF_GENERATOR = BLOCK_ENTITIES.register("creative_rf_generator",
             () -> BlockEntityType.Builder.of(CreativeRfGeneratorBlockEntity::new, ModBlocks.CREATIVE_RF_GENERATOR.get()).build(null));
     public static final RegistryObject<BlockEntityType<WardCamouflageBlockEntity>> WARD_CAMOUFLAGE = BLOCK_ENTITIES.register("ward_camouflage",

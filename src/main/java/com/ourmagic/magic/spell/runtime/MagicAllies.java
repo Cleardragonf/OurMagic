@@ -108,6 +108,10 @@ public final class MagicAllies {
         tag.putUUID(TAG_SUMMON_OWNER, owner);
     }
 
+    public static boolean isPlayerSummon(LivingEntity entity) {
+        return summonOwner(entity).isPresent();
+    }
+
     public static boolean sameSummonOwner(LivingEntity first, LivingEntity second) {
         if (first == null || second == null) {
             return false;

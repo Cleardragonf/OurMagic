@@ -67,8 +67,12 @@ public final class SpellIngredients {
             return false;
         }
         return has(inventory, spellKey)
-                || hasGrimoireSpell(inventory, spellKey)
-                || grimoirePayloads(inventory).containsAll(requestedPayloads) && hasShapeRequirements(inventory, spellKey);
+                || hasKnownSpell(inventory, spellKey)
+                || knownPayloads(inventory).containsAll(requestedPayloads) && hasShapeRequirements(inventory, spellKey);
+    }
+
+    public static boolean hasKnownSpell(Container inventory, String spellKey) {
+        return hasGrimoireSpell(inventory, spellKey) || hasArcaneKnowledgeSpell(inventory, spellKey);
     }
 
     public static boolean hasGrimoireSpell(Container inventory, String spellKey) {
@@ -81,6 +85,23 @@ public final class SpellIngredients {
         return false;
     }
 
+    public static boolean hasArcaneKnowledgeSpell(Container inventory, String spellKey) {
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (ArcaneKnowledgeBook.containsSpell(stack, spellKey)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static Set<String> knownPayloads(Container inventory) {
+        Set<String> payloads = new LinkedHashSet<>();
+        payloads.addAll(grimoirePayloads(inventory));
+        payloads.addAll(arcaneKnowledgePayloads(inventory));
+        return Set.copyOf(payloads);
+    }
+
     public static Set<String> grimoirePayloads(Container inventory) {
         Set<String> payloads = new LinkedHashSet<>();
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
@@ -90,6 +111,141 @@ public final class SpellIngredients {
             }
         }
         return Set.copyOf(payloads);
+    }
+
+    public static Set<String> arcaneKnowledgePayloads(Container inventory) {
+        Set<String> payloads = new LinkedHashSet<>();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (ArcaneKnowledgeBook.isKnowledgeBook(stack)) {
+                ArcaneKnowledgeBook.spellKeys(stack).forEach(spell -> payloads.addAll(SpellRegistry.payloadParts(spell)));
+            }
+        }
+        return Set.copyOf(payloads);
+    }
+
+    public static boolean consumeExactKnowledge(Container inventory, String spellKey) {
+        return consumeExactGrimoireKnowledge(inventory, spellKey)
+                || consumeExactArcaneKnowledge(inventory, spellKey);
+    }
+
+    public static boolean consumePayloadKnowledge(Container inventory, String spellKey) {
+        Set<String> remaining = new LinkedHashSet<>(SpellRegistry.payloadParts(spellKey));
+        if (remaining.isEmpty()) {
+            return false;
+        }
+
+        List<KnowledgeSource> sources = new ArrayList<>();
+        for (int slot = 0; slot < inventory.getContainerSize() && !remaining.isEmpty(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            Set<String> stackPayloads = new LinkedHashSet<>();
+            boolean grimoire = stack.is(ModItems.GRIMOIRE.get()) && GrimoireItem.hasMagicCharge(stack);
+            boolean arcaneKnowledge = ArcaneKnowledgeBook.isKnowledgeBook(stack);
+            if (grimoire) {
+                GrimoireItem.spellKeys(stack).forEach(spell -> stackPayloads.addAll(SpellRegistry.payloadParts(spell)));
+            } else if (arcaneKnowledge) {
+                ArcaneKnowledgeBook.spellKeys(stack).forEach(spell -> stackPayloads.addAll(SpellRegistry.payloadParts(spell)));
+            } else {
+                continue;
+            }
+
+            if (remaining.removeIf(stackPayloads::contains)) {
+                sources.add(new KnowledgeSource(stack, grimoire));
+            }
+        }
+        if (!remaining.isEmpty()) {
+            return false;
+        }
+
+        for (KnowledgeSource source : sources) {
+            if (source.grimoire()) {
+                GrimoireItem.consumeMagicCharge(source.stack());
+            } else {
+                source.stack().shrink(1);
+            }
+        }
+        inventory.setChanged();
+        return true;
+    }
+
+    private static boolean consumeExactGrimoireKnowledge(Container inventory, String spellKey) {
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack.is(ModItems.GRIMOIRE.get()) && GrimoireItem.containsSpell(stack, spellKey) && GrimoireItem.consumeMagicCharge(stack)) {
+                inventory.setChanged();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean consumeExactArcaneKnowledge(Container inventory, String spellKey) {
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (ArcaneKnowledgeBook.containsSpell(stack, spellKey)) {
+                stack.shrink(1);
+                inventory.setChanged();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean consumePayloadGrimoireKnowledge(Container inventory, String spellKey) {
+        Set<String> remaining = new LinkedHashSet<>(SpellRegistry.payloadParts(spellKey));
+        if (remaining.isEmpty()) {
+            return false;
+        }
+
+        List<ItemStack> grimoires = new ArrayList<>();
+        for (int slot = 0; slot < inventory.getContainerSize() && !remaining.isEmpty(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (!stack.is(ModItems.GRIMOIRE.get()) || !GrimoireItem.hasMagicCharge(stack)) {
+                continue;
+            }
+            Set<String> stackPayloads = new LinkedHashSet<>();
+            GrimoireItem.spellKeys(stack).forEach(spell -> stackPayloads.addAll(SpellRegistry.payloadParts(spell)));
+            if (remaining.removeIf(stackPayloads::contains)) {
+                grimoires.add(stack);
+            }
+        }
+        if (!remaining.isEmpty()) {
+            return false;
+        }
+        for (ItemStack grimoire : grimoires) {
+            GrimoireItem.consumeMagicCharge(grimoire);
+        }
+        inventory.setChanged();
+        return true;
+    }
+
+    private static boolean consumePayloadArcaneKnowledge(Container inventory, String spellKey) {
+        Set<String> remaining = new LinkedHashSet<>(SpellRegistry.payloadParts(spellKey));
+        if (remaining.isEmpty()) {
+            return false;
+        }
+
+        List<ItemStack> books = new ArrayList<>();
+        for (int slot = 0; slot < inventory.getContainerSize() && !remaining.isEmpty(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (!ArcaneKnowledgeBook.isKnowledgeBook(stack)) {
+                continue;
+            }
+            Set<String> stackPayloads = new LinkedHashSet<>();
+            ArcaneKnowledgeBook.spellKeys(stack).forEach(spell -> stackPayloads.addAll(SpellRegistry.payloadParts(spell)));
+            if (remaining.removeIf(stackPayloads::contains)) {
+                books.add(stack);
+            }
+        }
+        if (!remaining.isEmpty()) {
+            return false;
+        }
+        books.forEach(stack -> stack.shrink(1));
+        inventory.setChanged();
+        return true;
+    }
+
+    private record KnowledgeSource(ItemStack stack, boolean grimoire) {
     }
 
     public static void consume(Container inventory, String spellKey) {

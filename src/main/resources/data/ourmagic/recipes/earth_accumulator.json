@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " A ",
+    "ACA",
+    " A "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "C": {
+      "item": "minecraft:deepslate_bricks"
+    }
+  },
+  "result": {
+    "item": "ourmagic:earth_accumulator"
+  }
+}

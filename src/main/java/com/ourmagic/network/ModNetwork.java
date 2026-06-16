@@ -96,6 +96,16 @@ public final class ModNetwork {
                 .decoder(StunStatePacket::decode)
                 .consumerMainThread(StunStatePacket::handle)
                 .add();
+        CHANNEL.messageBuilder(MagicLinkHudQueryPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(MagicLinkHudQueryPacket::encode)
+                .decoder(MagicLinkHudQueryPacket::decode)
+                .consumerMainThread(MagicLinkHudQueryPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(MagicLinkHudDataPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(MagicLinkHudDataPacket::encode)
+                .decoder(MagicLinkHudDataPacket::decode)
+                .consumerMainThread(MagicLinkHudDataPacket::handle)
+                .add();
     }
 
     public static void syncMana(ServerPlayer player, PlayerMana mana) {

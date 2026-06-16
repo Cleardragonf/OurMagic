@@ -3,6 +3,7 @@ package com.ourmagic.entity;
 import com.mojang.authlib.GameProfile;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellRegistry;
+import com.ourmagic.magic.spell.runtime.MagicAllies;
 import com.ourmagic.registry.ModItems;
 import com.ourmagic.wand.WandData;
 import com.ourmagic.wand.WandTemplates;
@@ -29,7 +30,9 @@ import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
@@ -51,7 +54,10 @@ public class WarlockEntity extends Monster {
             "blind@target",
             "bind@target",
             "hex@target",
-            "stun@target"
+            "stun@target",
+            "heal@target",
+            "regenerate@target",
+            "shield@self"
     );
     private static final GameProfile CAST_PROFILE = new GameProfile(UUID.fromString("9c9db3d0-6f4c-405a-a291-55c57379ed4c"), "[OurMagicWarlock]");
     private int mana = MAX_MANA;
@@ -71,12 +77,15 @@ public class WarlockEntity extends Monster {
     @Override
     protected void registerGoals() {
         goalSelector.addGoal(1, new FloatGoal(this));
-        goalSelector.addGoal(2, new WarlockCastGoal(this));
+        goalSelector.addGoal(2, new WarlockDefensiveGoal(this));
+        goalSelector.addGoal(3, new WarlockHealAllyGoal(this));
+        goalSelector.addGoal(4, new WarlockCastGoal(this));
         goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.8D));
         goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0F));
         goalSelector.addGoal(8, new RandomLookAroundGoal(this));
         targetSelector.addGoal(1, new HurtByTargetGoal(this));
         targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+        targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false, WarlockEntity::isWarlockEnemy));
     }
 
     @Override
@@ -166,6 +175,44 @@ public class WarlockEntity extends Monster {
         return cast;
     }
 
+    private boolean hasSupportSpell() {
+        return isSupportSpell(activeSpellKey());
+    }
+
+    private boolean hasShieldSpell() {
+        return SpellRegistry.payloadParts(activeSpellKey()).contains("shield");
+    }
+
+    private String activeSpellKey() {
+        ItemStack wand = getMainHandItem();
+        if (!wand.is(ModItems.WAND.get()) && !wand.is(ModItems.ADMIN_WAND.get())) {
+            return "";
+        }
+        if (!wand.getOrCreateTag().contains(WandData.TAG_TEMPLATE)) {
+            wand = createWarlockWand(getRandom());
+            setItemSlot(EquipmentSlot.MAINHAND, wand);
+        }
+        return WandData.read(wand).activeSpell();
+    }
+
+    private static boolean isSupportSpell(String spellKey) {
+        List<String> payloads = SpellRegistry.payloadParts(spellKey);
+        return payloads.contains("heal") || payloads.contains("regenerate") || payloads.contains("life_ward");
+    }
+
+    private static boolean isWarlockAlly(WarlockEntity warlock, LivingEntity entity) {
+        return entity != warlock
+                && entity.isAlive()
+                && entity.getHealth() < entity.getMaxHealth()
+                && entity instanceof Monster
+                && !(entity instanceof Player)
+                && !MagicAllies.isPlayerSummon(entity);
+    }
+
+    private static boolean isWarlockEnemy(LivingEntity entity) {
+        return entity instanceof Player || MagicAllies.isPlayerSummon(entity);
+    }
+
     private void aimFakeCaster(ServerPlayer caster, LivingEntity target) {
         Vec3 eye = getEyePosition();
         Vec3 targetEye = target.getEyePosition();
@@ -193,7 +240,7 @@ public class WarlockEntity extends Monster {
 
         @Override
         public boolean canUse() {
-            return warlock.getTarget() != null && warlock.getTarget().isAlive();
+            return !warlock.hasSupportSpell() && warlock.getTarget() != null && warlock.getTarget().isAlive();
         }
 
         @Override
@@ -225,6 +272,158 @@ public class WarlockEntity extends Monster {
                     attackTime = 20;
                 }
             }
+        }
+    }
+
+    private static final class WarlockDefensiveGoal extends Goal {
+        private final WarlockEntity warlock;
+        private Projectile threat;
+        private int dodgeTicks;
+        private int shieldTime;
+
+        private WarlockDefensiveGoal(WarlockEntity warlock) {
+            this.warlock = warlock;
+            setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+        }
+
+        @Override
+        public boolean canUse() {
+            threat = findIncomingProjectile();
+            return threat != null || warlock.hasShieldSpell() && warlock.getHealth() < warlock.getMaxHealth() * 0.55F;
+        }
+
+        @Override
+        public boolean canContinueToUse() {
+            return dodgeTicks > 0 && threat != null && threat.isAlive();
+        }
+
+        @Override
+        public void start() {
+            dodgeTicks = threat == null ? 0 : 12;
+        }
+
+        @Override
+        public void stop() {
+            threat = null;
+            dodgeTicks = 0;
+        }
+
+        @Override
+        public void tick() {
+            if (warlock.hasShieldSpell() && --shieldTime <= 0 && (threat != null || warlock.getHealth() < warlock.getMaxHealth() * 0.55F)) {
+                if (warlock.tryCastAt(warlock)) {
+                    shieldTime = 80;
+                } else {
+                    shieldTime = 20;
+                }
+            }
+
+            if (threat == null || !threat.isAlive()) {
+                threat = findIncomingProjectile();
+            }
+            if (threat == null) {
+                return;
+            }
+
+            Vec3 projectileVelocity = threat.getDeltaMovement();
+            Vec3 toWarlock = warlock.position().subtract(threat.position());
+            Vec3 dodge = new Vec3(-projectileVelocity.z, 0.0D, projectileVelocity.x);
+            if (dodge.lengthSqr() < 0.001D) {
+                dodge = new Vec3(-toWarlock.z, 0.0D, toWarlock.x);
+            }
+            dodge = dodge.normalize();
+            if (warlock.getRandom().nextBoolean()) {
+                dodge = dodge.scale(-1.0D);
+            }
+
+            Vec3 destination = warlock.position().add(dodge.scale(4.0D));
+            warlock.getNavigation().moveTo(destination.x, destination.y, destination.z, 1.05D);
+            warlock.getLookControl().setLookAt(threat, 30.0F, 30.0F);
+            dodgeTicks--;
+        }
+
+        @Nullable
+        private Projectile findIncomingProjectile() {
+            return warlock.level().getEntitiesOfClass(Projectile.class, warlock.getBoundingBox().inflate(8.0D),
+                            projectile -> projectile.isAlive() && projectile.getOwner() != warlock && isIncoming(projectile))
+                    .stream()
+                    .min(java.util.Comparator.comparingDouble(warlock::distanceToSqr))
+                    .orElse(null);
+        }
+
+        private boolean isIncoming(Projectile projectile) {
+            Vec3 velocity = projectile.getDeltaMovement();
+            if (velocity.lengthSqr() < 0.0025D) {
+                return false;
+            }
+            Vec3 toWarlock = warlock.getEyePosition().subtract(projectile.position());
+            if (toWarlock.lengthSqr() < 0.01D) {
+                return true;
+            }
+            return velocity.normalize().dot(toWarlock.normalize()) > 0.65D;
+        }
+    }
+
+    private static final class WarlockHealAllyGoal extends Goal {
+        private final WarlockEntity warlock;
+        private LivingEntity ally;
+        private int supportTime;
+
+        private WarlockHealAllyGoal(WarlockEntity warlock) {
+            this.warlock = warlock;
+            setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+        }
+
+        @Override
+        public boolean canUse() {
+            if (!warlock.hasSupportSpell()) {
+                return false;
+            }
+            ally = findInjuredAlly();
+            return ally != null;
+        }
+
+        @Override
+        public boolean canContinueToUse() {
+            return ally != null && isWarlockAlly(warlock, ally) && warlock.hasSupportSpell();
+        }
+
+        @Override
+        public void stop() {
+            ally = null;
+            warlock.getNavigation().stop();
+        }
+
+        @Override
+        public void tick() {
+            if (ally == null) {
+                return;
+            }
+
+            double distance = warlock.distanceToSqr(ally);
+            warlock.getLookControl().setLookAt(ally, 30.0F, 30.0F);
+            if (distance > 64.0D) {
+                warlock.getNavigation().moveTo(ally, 0.9D);
+            } else {
+                warlock.getNavigation().stop();
+            }
+
+            if (--supportTime <= 0 && distance < 625.0D && warlock.hasLineOfSight(ally)) {
+                if (warlock.tryCastAt(ally)) {
+                    supportTime = 30;
+                } else {
+                    supportTime = 20;
+                }
+            }
+        }
+
+        @Nullable
+        private LivingEntity findInjuredAlly() {
+            return warlock.level().getEntitiesOfClass(LivingEntity.class, warlock.getBoundingBox().inflate(18.0D),
+                            entity -> isWarlockAlly(warlock, entity))
+                    .stream()
+                    .min(java.util.Comparator.comparingDouble(warlock::distanceToSqr))
+                    .orElse(null);
         }
     }
 }
