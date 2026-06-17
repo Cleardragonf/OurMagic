@@ -9,11 +9,15 @@ import com.ourmagic.magic.spell.runtime.SpellBuildContext;
 import com.ourmagic.magic.spell.runtime.SpellContext;
 import com.ourmagic.magic.spell.shapes.SpellTarget;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
@@ -126,29 +130,80 @@ public class WardPayload implements PayloadEffect {
         }
     }
 
-    private enum TargetRule {
-        HOSTILE,
-        PLAYERS,
-        ALLIES,
-        ANY;
-
+    private record TargetRule(TargetMode mode, String parameter) {
         private static TargetRule fromShape(String shape) {
-            return switch (shape) {
-                case "ward_players" -> PLAYERS;
-                case "ward_allies" -> ALLIES;
-                case "ward_any" -> ANY;
-                default -> HOSTILE;
+            if (shape.startsWith("ward_player_")) {
+                return new TargetRule(TargetMode.PLAYER_NAME, shape.substring("ward_player_".length()));
+            }
+            if (shape.startsWith("ward_mob_")) {
+                return new TargetRule(TargetMode.ENTITY_TYPE, shape.substring("ward_mob_".length()));
+            }
+            if (shape.startsWith("ward_entity_type_")) {
+                return new TargetRule(TargetMode.ENTITY_TYPE, shape.substring("ward_entity_type_".length()));
+            }
+            if (shape.startsWith("ward_entity_")) {
+                return new TargetRule(TargetMode.ENTITY_TYPE, shape.substring("ward_entity_".length()));
+            }
+            TargetMode mode = switch (shape) {
+                case "ward_non_allied" -> TargetMode.NON_ALLIED;
+                case "ward_hostile" -> TargetMode.HOSTILE;
+                case "ward_players" -> TargetMode.PLAYERS;
+                case "ward_allies" -> TargetMode.ALLIES;
+                case "ward_mobs" -> TargetMode.MOBS;
+                case "ward_monsters" -> TargetMode.MONSTERS;
+                case "ward_passive" -> TargetMode.PASSIVE;
+                case "ward_animals" -> TargetMode.ANIMALS;
+                case "ward_any" -> TargetMode.ANY;
+                default -> TargetMode.NON_ALLIED;
             };
+            return new TargetRule(mode, "");
         }
 
         private boolean matches(ServerPlayer caster, LivingEntity entity) {
-            return switch (this) {
-                case HOSTILE -> entity != caster && !MagicAllies.isAlly(caster, entity);
+            return switch (mode) {
+                case NON_ALLIED -> entity != caster && !MagicAllies.isAlly(caster, entity);
+                case HOSTILE -> entity != caster && !MagicAllies.isAlly(caster, entity) && entity.getType().getCategory() == MobCategory.MONSTER;
                 case PLAYERS -> entity instanceof ServerPlayer player && player != caster && !MagicAllies.isAlly(caster, player);
                 case ALLIES -> MagicAllies.isAlly(caster, entity);
+                case MOBS -> entity instanceof Mob && entity != caster && !MagicAllies.isAlly(caster, entity);
+                case MONSTERS -> entity != caster && !MagicAllies.isAlly(caster, entity) && entity.getType().getCategory() == MobCategory.MONSTER;
+                case PASSIVE -> entity != caster && !MagicAllies.isAlly(caster, entity) && isPassiveCategory(entity.getType().getCategory());
+                case ANIMALS -> entity != caster && !MagicAllies.isAlly(caster, entity) && isAnimalCategory(entity.getType().getCategory());
+                case PLAYER_NAME -> entity instanceof ServerPlayer player && player.getGameProfile().getName().equalsIgnoreCase(parameter);
+                case ENTITY_TYPE -> entityTypeMatches(entity, parameter);
                 case ANY -> entity != caster;
             };
         }
+
+        private static boolean isPassiveCategory(MobCategory category) {
+            return category != MobCategory.MONSTER;
+        }
+
+        private static boolean isAnimalCategory(MobCategory category) {
+            return switch (category) {
+                case CREATURE, WATER_CREATURE, WATER_AMBIENT, UNDERGROUND_WATER_CREATURE, AXOLOTLS, AMBIENT -> true;
+                default -> false;
+            };
+        }
+
+        private static boolean entityTypeMatches(LivingEntity entity, String parameter) {
+            ResourceLocation targetType = ResourceLocation.tryParse(parameter.contains(":") ? parameter : "minecraft:" + parameter);
+            return targetType != null && BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).equals(targetType);
+        }
+    }
+
+    private enum TargetMode {
+        NON_ALLIED,
+        HOSTILE,
+        PLAYERS,
+        ALLIES,
+        MOBS,
+        MONSTERS,
+        PASSIVE,
+        ANIMALS,
+        PLAYER_NAME,
+        ENTITY_TYPE,
+        ANY
     }
 
     private static final class PlacedWard {

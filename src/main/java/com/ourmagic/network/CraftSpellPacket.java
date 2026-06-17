@@ -62,6 +62,11 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
             }
 
             SpellInstance craftedSpell = SpellInstance.roll(packet.spellKey, context.getSender().getRandom());
+            boolean wardRecipe = isWardRecipe(packet.spellKey);
+            if (wardRecipe) {
+                context.getSender().displayClientMessage(Component.literal("Ward crafting uses Ward Diagrams and is command-only for now.").withStyle(ChatFormatting.RED), false);
+                return;
+            }
 
             if (packet.target == Target.WAND) {
                 if (data.addSpell(craftedSpell)) {
@@ -131,6 +136,10 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
         if (SpellIngredients.consumePayloadKnowledge(inventory, spellKey)) {
             SpellIngredients.consumeShapeRequirements(inventory, spellKey);
         }
+    }
+
+    private static boolean isWardRecipe(String spellKey) {
+        return SpellRegistry.isWardRecipe(spellKey);
     }
 
     private record CraftCheck(boolean allowed, int effectCount) {

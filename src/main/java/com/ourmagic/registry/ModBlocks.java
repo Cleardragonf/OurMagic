@@ -43,6 +43,10 @@ public final class ModBlocks {
             () -> new MagicAccumulatorBlock(MagicEnergyType.ARCANE, BlockBehaviour.Properties.copy(Blocks.AMETHYST_BLOCK)
                     .strength(3.0F, 9.0F)
                     .lightLevel(state -> 8)));
+    public static final RegistryObject<Block> DARK_ACCUMULATOR = BLOCKS.register("dark_accumulator",
+            () -> new MagicAccumulatorBlock(MagicEnergyType.DARK, BlockBehaviour.Properties.copy(Blocks.SCULK)
+                    .strength(3.0F, 9.0F)
+                    .lightLevel(state -> 4)));
     public static final RegistryObject<Block> FIRE_ACCUMULATOR = BLOCKS.register("fire_accumulator",
             () -> new MagicAccumulatorBlock(MagicEnergyType.FIRE, BlockBehaviour.Properties.copy(Blocks.AMETHYST_BLOCK)
                     .strength(3.0F, 9.0F)

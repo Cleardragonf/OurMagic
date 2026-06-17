@@ -7,6 +7,7 @@ import com.ourmagic.block.entity.WardStoneBlockEntity;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellRegistry;
+import com.ourmagic.magic.energy.MagicEnergyType;
 import com.ourmagic.magic.spell.payloads.PayloadEffect;
 import com.ourmagic.magic.spell.runtime.MagicAllies;
 import com.ourmagic.magic.spell.runtime.MagicStatusEffects;
@@ -24,6 +25,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.QuartPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -248,6 +250,15 @@ public class WorldWards extends SavedData {
         int activeAtAnchor = data.countWardsAt(masterAnchor);
         List<String> payloadKeys = SpellRegistry.payloadParts(spell.key());
         ActiveWard appliedWard = new ActiveWard(masterAnchor.immutable(), owner.getUUID(), spell.key(), spell.displayName(), area.get().spaces(), area.get().bounds(), new HashSet<>());
+        Map<MagicEnergyType, Integer> requiredPassive = passiveWardCostsPerSecond(appliedWard, payloadKeys);
+        Optional<WardStoneBlockEntity> wardStone = WardStoneBlockEntity.getOrCreate(level, masterAnchor);
+        if (wardStone.isEmpty()) {
+            return new ApplyResult(false, "There is no Ward Stone at that position.");
+        }
+        Optional<String> missingRequirement = missingMagicFlowRequirement(wardStone.get(), requiredPassive);
+        if (missingRequirement.isPresent()) {
+            return new ApplyResult(false, "This ward requires at least " + missingRequirement.get() + " in the Ward Stone core.");
+        }
         for (int i = 0; i < data.wards.size(); i++) {
             ActiveWard ward = data.wards.get(i);
             if (!ward.anchor.equals(masterAnchor)) {
@@ -356,6 +367,118 @@ public class WorldWards extends SavedData {
         return Optional.of(charge + anchoredWards.size() + "/" + slots + " wards / " + spaces + " spaces, passive " + passiveCost + " MF/s, active up to " + activeCost + " MF/use: " + String.join(", ", names));
     }
 
+    public static Optional<HudSummary> hudSummary(ServerLevel level, BlockPos target, Optional<BlockPos> selectedAnchor) {
+        WorldWards data = get(level);
+        boolean wardStone = level.getBlockState(target).is(ModBlocks.WARD_STONE.get());
+        boolean perimeterStone = level.getBlockState(target).is(ModBlocks.WARD_PERIMETER_STONE.get());
+        Long linkedAnchor = data.perimeterLinks.get(target.asLong());
+
+        if (wardStone) {
+            Optional<WardStoneBlockEntity.WardMultiblock> core = WardStoneBlockEntity.findMultiblock(level, target);
+            if (core.isEmpty()) {
+                return Optional.empty();
+            }
+            data.migrateWardCore(level, core.get());
+            BlockPos master = core.get().master();
+            int active = data.countWardsAt(master);
+            List<String> lines = new ArrayList<>();
+            List<String> names = data.wardNamesAt(master);
+            if (names.isEmpty()) {
+                lines.add("Active wards: none");
+            } else {
+                lines.add("Active wards: " + active);
+                names.stream().limit(5).forEach(name -> lines.add("- " + name));
+            }
+            return Optional.of(new HudSummary("Ward Stone", List.copyOf(lines), Optional.of(master)));
+        }
+
+        if (perimeterStone || linkedAnchor != null) {
+            List<String> lines = new ArrayList<>();
+            if (linkedAnchor == null) {
+                lines.add("Linked: no");
+            } else {
+                BlockPos anchor = data.normalizeAnchorOrSelf(level, BlockPos.of(linkedAnchor));
+                lines.add("Linked: " + anchor.toShortString());
+                computeArea(level, anchor).ifPresentOrElse(
+                        area -> lines.add("Volume: " + area.spaces().size() + " blocks"),
+                        () -> lines.add("Volume: incomplete"));
+            }
+            selectedAnchor.ifPresent(anchor -> {
+                BlockPos normalized = data.normalizeAnchorOrSelf(level, anchor);
+                lines.add("Selected: " + normalized.toShortString());
+                boolean linkedToSelected = linkedAnchor != null && data.normalizeAnchorOrSelf(level, BlockPos.of(linkedAnchor)).equals(normalized);
+                lines.add(linkedToSelected ? "Sneak-click to unlink" : "Click to link selected core");
+            });
+            return Optional.of(new HudSummary("Ward Perimeter", List.copyOf(lines), linkedAnchor == null ? selectedAnchor : Optional.of(BlockPos.of(linkedAnchor))));
+        }
+
+        if (selectedAnchor.isPresent()) {
+            BlockPos anchor = data.normalizeAnchorOrSelf(level, selectedAnchor.get());
+            Optional<WardStoneBlockEntity.WardMultiblock> core = WardStoneBlockEntity.findMultiblock(level, anchor);
+            if (core.isEmpty()) {
+                return Optional.of(new HudSummary("Ward Tuner", List.of("Stored Ward Stone is missing", "Click a Ward Stone to bind"), Optional.empty()));
+            }
+            Optional<ComputedArea> area = computeArea(level, core.get().master());
+            List<String> lines = new ArrayList<>();
+            lines.add("Selected: " + core.get().master().toShortString());
+            lines.add("Perimeters: " + linkedPerimeters(level, core.get().master()).size() + " linked");
+            lines.add(area.map(computedArea -> "Volume: " + computedArea.spaces().size() + " blocks").orElse("Volume: incomplete"));
+            lines.add("Click Ward Perimeter Stone to link");
+            return Optional.of(new HudSummary("Ward Tuner", List.copyOf(lines), Optional.of(core.get().master())));
+        }
+
+        return Optional.empty();
+    }
+
+    public static Optional<HudSummary> magicFlowHudSummary(ServerLevel level, BlockPos target) {
+        WorldWards data = get(level);
+        Optional<WardStoneBlockEntity.WardMultiblock> core = WardStoneBlockEntity.findMultiblock(level, target);
+        if (core.isEmpty()) {
+            return Optional.empty();
+        }
+        data.migrateWardCore(level, core.get());
+        BlockPos master = core.get().master();
+        Optional<WardStoneBlockEntity> wardStoneEntity = WardStoneBlockEntity.getOrCreate(level, master);
+        if (wardStoneEntity.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<ActiveWard> activeWards = data.wards.stream()
+                .filter(ward -> ward.anchor.equals(master))
+                .toList();
+        List<String> lines = new ArrayList<>();
+        WardStoneBlockEntity wardStone = wardStoneEntity.get();
+        for (MagicEnergyType type : MagicEnergyType.values()) {
+            lines.add(progressLine(type.displayName() + " MF", wardStone.magicFlow(type), wardStone.magicFlowCapacity(type)));
+        }
+        lines.add("Core: " + wardStone.multiblockSize() + " stones, " + activeWards.size() + "/" + wardStone.wardSlots() + " wards");
+
+        if (activeWards.isEmpty()) {
+            lines.add("No active ward drain");
+            return Optional.of(new HudSummary("Ward Stone MF", List.copyOf(lines), Optional.empty()));
+        }
+
+        int totalPassive = 0;
+        int totalActive = 0;
+        for (ActiveWard ward : activeWards) {
+            List<String> payloads = SpellRegistry.payloadParts(ward.spellKey);
+            totalPassive += passiveWardCostPerSecond(ward, payloads);
+            totalActive += activeWardCost(payloads);
+        }
+        lines.add("Total drain: " + totalPassive + " MF/s");
+        lines.add("Active use: up to " + totalActive + " MF");
+
+        for (ActiveWard ward : activeWards.stream().limit(3).toList()) {
+            List<String> payloads = SpellRegistry.payloadParts(ward.spellKey);
+            lines.add(ward.displayName + " (" + wardMagicTypes(payloads) + "): " + passiveWardCostPerSecond(ward, payloads) + "/s, " + activeWardCost(payloads) + "/use");
+            lines.add("  " + compactHudLine(wardCostBreakdown(ward, payloads), 92));
+        }
+        if (activeWards.size() > 3) {
+            lines.add("+" + (activeWards.size() - 3) + " more wards");
+        }
+        return Optional.of(new HudSummary("Ward Stone MF", List.copyOf(lines), Optional.empty()));
+    }
+
     public static boolean showOutline(ServerLevel level, BlockPos anchor) {
         BlockPos masterAnchor = get(level).normalizeAnchorOrSelf(level, anchor);
         Optional<ComputedArea> area = computeArea(level, masterAnchor);
@@ -447,6 +570,40 @@ public class WorldWards extends SavedData {
         return count;
     }
 
+    private List<String> wardNamesAt(BlockPos anchor) {
+        return wards.stream()
+                .filter(ward -> ward.anchor.equals(anchor))
+                .map(ward -> ward.displayName)
+                .toList();
+    }
+
+    private static String progressLine(String label, int value, int max) {
+        return "@bar|" + label + "|" + Math.max(0, value) + "|" + Math.max(1, max);
+    }
+
+    private static String wardCostBreakdown(ActiveWard ward, List<String> payloadKeys) {
+        int volumeCost = Math.max(1, ward.spaces.size() / VOLUME_PASSIVE_DIVISOR);
+        List<String> parts = new ArrayList<>();
+        parts.add("base " + BASE_PASSIVE_MAGIC_FLOW);
+        parts.add("volume " + volumeCost);
+        parts.add("types " + wardMagicTypes(payloadKeys));
+        for (String payloadKey : payloadKeys) {
+            int passive = PASSIVE_MAGIC_FLOW_COSTS.getOrDefault(payloadKey, 0);
+            int active = ACTIVE_MAGIC_FLOW_COSTS.getOrDefault(payloadKey, 0);
+            if (passive > 0 || active > 0) {
+                parts.add(payloadKey + " " + passive + "/s+" + active + "/use");
+            }
+        }
+        return String.join(", ", parts);
+    }
+
+    private static String compactHudLine(String line, int maxLength) {
+        if (line.length() <= maxLength) {
+            return line;
+        }
+        return line.substring(0, Math.max(0, maxLength - 3)) + "...";
+    }
+
     public static boolean isLightWardAt(ServerLevel level, BlockPos pos) {
         WorldWards data = get(level);
         return data.wards.stream()
@@ -513,19 +670,17 @@ public class WorldWards extends SavedData {
     }
 
     private boolean consumeWardPassiveCost(ServerLevel level, ActiveWard ward, List<String> payloadKeys) {
-        int cost = passiveWardCostPerSecond(ward, payloadKeys);
         Optional<WardStoneBlockEntity> wardStone = WardStoneBlockEntity.getOrCreate(level, ward.anchor);
-        if (wardStone.isEmpty() || !wardStone.get().hasMagicFlow(cost)) {
+        if (wardStone.isEmpty() || !hasMagicFlowCosts(wardStone.get(), passiveWardCostsPerSecond(ward, payloadKeys))) {
             return false;
         }
         return level.getGameTime() % PASSIVE_DRAIN_INTERVAL_TICKS != 0
-                || wardStone.get().consumeMagicFlow(cost, false);
+                || consumeMagicFlowCosts(wardStone.get(), passiveWardCostsPerSecond(ward, payloadKeys));
     }
 
     private boolean consumeWardActiveCost(ServerLevel level, ActiveWard ward, List<String> payloadKeys) {
-        int cost = activeWardCost(payloadKeys);
         return WardStoneBlockEntity.getOrCreate(level, ward.anchor)
-                .map(wardStone -> wardStone.consumeMagicFlow(cost, false))
+                .map(wardStone -> consumeMagicFlowCosts(wardStone, activeWardCosts(payloadKeys)))
                 .orElse(false);
     }
 
@@ -534,31 +689,114 @@ public class WorldWards extends SavedData {
     }
 
     private boolean isWardOnline(ServerLevel level, ActiveWard ward, List<String> payloadKeys) {
-        int passiveCost = passiveWardCostPerSecond(ward, payloadKeys);
         return WardStoneBlockEntity.getOrCreate(level, ward.anchor)
-                .map(wardStone -> wardStone.hasMagicFlow(passiveCost))
+                .map(wardStone -> hasMagicFlowCosts(wardStone, passiveWardCostsPerSecond(ward, payloadKeys)))
                 .orElse(false);
     }
 
     private static int passiveWardCostPerSecond(ActiveWard ward, List<String> payloadKeys) {
-        int volumeCost = Math.max(1, ward.spaces.size() / VOLUME_PASSIVE_DIVISOR);
-        int payloadCost = BASE_PASSIVE_MAGIC_FLOW + volumeCost;
-        for (String payloadKey : payloadKeys) {
-            payloadCost += PASSIVE_MAGIC_FLOW_COSTS.getOrDefault(payloadKey, 0);
-        }
-        return payloadCost;
+        return passiveWardCostsPerSecond(ward, payloadKeys).values().stream().mapToInt(Integer::intValue).sum();
     }
 
     private static int activeWardCost(List<String> payloadKeys) {
-        int payloadCost = BASE_ACTIVE_MAGIC_FLOW;
-        for (String payloadKey : payloadKeys) {
-            payloadCost += ACTIVE_MAGIC_FLOW_COSTS.getOrDefault(payloadKey, 0);
-        }
-        return payloadCost;
+        return activeWardCosts(payloadKeys).values().stream().mapToInt(Integer::intValue).sum();
     }
 
     private static String costSummary(ActiveWard ward, List<String> payloadKeys) {
-        return "Costs: " + passiveWardCostPerSecond(ward, payloadKeys) + " MF/s passive, " + activeWardCost(payloadKeys) + " MF/use active.";
+        return "Requires " + formatMagicFlowCosts(passiveWardCostsPerSecond(ward, payloadKeys)) + ". Costs: " + passiveWardCostPerSecond(ward, payloadKeys) + " MF/s passive, " + activeWardCost(payloadKeys) + " MF/use active.";
+    }
+
+    private static Map<MagicEnergyType, Integer> passiveWardCostsPerSecond(ActiveWard ward, List<String> payloadKeys) {
+        Map<MagicEnergyType, Integer> costs = new java.util.EnumMap<>(MagicEnergyType.class);
+        MagicEnergyType overheadType = firstWardPayloadMagicType(payloadKeys);
+        addMagicFlowCost(costs, overheadType, BASE_PASSIVE_MAGIC_FLOW + Math.max(1, ward.spaces.size() / VOLUME_PASSIVE_DIVISOR));
+        for (String payloadKey : payloadKeys) {
+            if (payloadKey.equals("ward")) {
+                continue;
+            }
+            addMagicFlowCost(costs, wardPayloadMagicType(payloadKey), PASSIVE_MAGIC_FLOW_COSTS.getOrDefault(payloadKey, 0));
+        }
+        return costs;
+    }
+
+    private static Map<MagicEnergyType, Integer> activeWardCosts(List<String> payloadKeys) {
+        Map<MagicEnergyType, Integer> costs = new java.util.EnumMap<>(MagicEnergyType.class);
+        addMagicFlowCost(costs, firstWardPayloadMagicType(payloadKeys), BASE_ACTIVE_MAGIC_FLOW);
+        for (String payloadKey : payloadKeys) {
+            if (payloadKey.equals("ward")) {
+                continue;
+            }
+            addMagicFlowCost(costs, wardPayloadMagicType(payloadKey), ACTIVE_MAGIC_FLOW_COSTS.getOrDefault(payloadKey, 0));
+        }
+        return costs;
+    }
+
+    private static MagicEnergyType firstWardPayloadMagicType(List<String> payloadKeys) {
+        return payloadKeys.stream()
+                .filter(payloadKey -> !payloadKey.equals("ward"))
+                .findFirst()
+                .map(WorldWards::wardPayloadMagicType)
+                .orElse(MagicEnergyType.ARCANE);
+    }
+
+    private static String wardMagicTypes(List<String> payloadKeys) {
+        return payloadKeys.stream()
+                .filter(payloadKey -> !payloadKey.equals("ward"))
+                .map(WorldWards::wardPayloadMagicType)
+                .distinct()
+                .map(MagicEnergyType::displayName)
+                .collect(java.util.stream.Collectors.joining("+"));
+    }
+
+    private static void addMagicFlowCost(Map<MagicEnergyType, Integer> costs, MagicEnergyType type, int amount) {
+        if (amount > 0) {
+            costs.merge(type, amount, Integer::sum);
+        }
+    }
+
+    private static boolean hasMagicFlowCosts(WardStoneBlockEntity wardStone, Map<MagicEnergyType, Integer> costs) {
+        for (Map.Entry<MagicEnergyType, Integer> cost : costs.entrySet()) {
+            if (!wardStone.hasMagicFlow(cost.getKey(), cost.getValue())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean consumeMagicFlowCosts(WardStoneBlockEntity wardStone, Map<MagicEnergyType, Integer> costs) {
+        if (!hasMagicFlowCosts(wardStone, costs)) {
+            return false;
+        }
+        for (Map.Entry<MagicEnergyType, Integer> cost : costs.entrySet()) {
+            wardStone.consumeMagicFlow(cost.getKey(), cost.getValue(), false);
+        }
+        return true;
+    }
+
+    private static Optional<String> missingMagicFlowRequirement(WardStoneBlockEntity wardStone, Map<MagicEnergyType, Integer> costs) {
+        return costs.entrySet().stream()
+                .filter(cost -> !wardStone.hasMagicFlow(cost.getKey(), cost.getValue()))
+                .map(cost -> cost.getValue() + " " + cost.getKey().displayName() + " MF")
+                .findFirst();
+    }
+
+    private static String formatMagicFlowCosts(Map<MagicEnergyType, Integer> costs) {
+        return costs.entrySet().stream()
+                .map(cost -> cost.getValue() + " " + cost.getKey().displayName() + " MF")
+                .collect(java.util.stream.Collectors.joining(" + "));
+    }
+
+    private static MagicEnergyType wardPayloadMagicType(String payloadKey) {
+        return switch (payloadKey) {
+            case "anti_fire", "anti_water", "air", "air_bubble", "bubble", "freeze", "frost", "thaw" -> MagicEnergyType.WATER;
+            case "fire", "fireball", "fire_place", "fireguard" -> MagicEnergyType.FIRE;
+            case "agility", "blastguard", "charm", "cleanse", "fallguard", "fertility", "fortify", "grow", "heal", "life_ward", "mana_shield", "regenerate", "sanctuary" -> MagicEnergyType.LIFE;
+            case "anti_projectile", "levitate", "lightning", "reflect_projectile", "weather" -> MagicEnergyType.STORM;
+            case "anchor", "anti_explosion", "anti_grief", "gravity", "item_guard", "lockdown", "storage_lock" -> MagicEnergyType.EARTH;
+            case "anti_decay", "anti_summon", "anti_teleport", "arrow", "bind", "blast", "blind", "curse", "dark", "disarm", "entry_filter", "explode", "hex", "lifedrain", "mana_drain", "manaburn", "missile", "overload", "push", "silence", "stasis", "stun", "weakening" -> MagicEnergyType.DARK;
+            case "alarm", "anti_magic", "camouflage", "dispel", "light", "nullify", "reflect", "reveal", "temporal" -> MagicEnergyType.ARCANE;
+            default -> MagicEnergyType.ARCANE;
+        };
     }
 
     private static Optional<ComputedArea> computeArea(ServerLevel level, BlockPos anchor) {
@@ -662,6 +900,9 @@ public class WorldWards extends SavedData {
 
     public static boolean isLinkedPerimeter(ServerLevel level, BlockPos perimeter) {
         return get(level).perimeterLinks.containsKey(perimeter.asLong());
+    }
+
+    public record HudSummary(String title, List<String> lines, Optional<BlockPos> outlineAnchor) {
     }
 
     private boolean isCamouflagedPerimeter(BlockPos anchor, BlockPos perimeter) {
@@ -1186,10 +1427,17 @@ public class WorldWards extends SavedData {
         if (owner != null) {
             return targetRule.matches(owner, entity);
         }
-        return switch (targetRule) {
+        return switch (targetRule.mode()) {
+            case NON_ALLIED -> true;
             case HOSTILE -> entity.getType().getCategory() == MobCategory.MONSTER;
             case PLAYERS -> entity instanceof ServerPlayer;
             case ALLIES -> false;
+            case MOBS -> entity instanceof Mob;
+            case MONSTERS -> entity.getType().getCategory() == MobCategory.MONSTER;
+            case PASSIVE -> TargetRule.isPassiveCategory(entity.getType().getCategory());
+            case ANIMALS -> TargetRule.isAnimalCategory(entity.getType().getCategory());
+            case PLAYER_NAME -> targetRule.matches(null, entity);
+            case ENTITY_TYPE -> targetRule.matches(null, entity);
             case ANY -> true;
         };
     }
@@ -1866,29 +2114,80 @@ public class WorldWards extends SavedData {
     private record CamouflageCandidate(BlockState state, int score) {
     }
 
-    private enum TargetRule {
-        HOSTILE,
-        PLAYERS,
-        ALLIES,
-        ANY;
-
+    private record TargetRule(TargetMode mode, String parameter) {
         private static TargetRule fromShape(String shape) {
-            return switch (shape) {
-                case "ward_players" -> PLAYERS;
-                case "ward_allies" -> ALLIES;
-                case "ward_any" -> ANY;
-                default -> HOSTILE;
+            if (shape.startsWith("ward_player_")) {
+                return new TargetRule(TargetMode.PLAYER_NAME, shape.substring("ward_player_".length()));
+            }
+            if (shape.startsWith("ward_mob_")) {
+                return new TargetRule(TargetMode.ENTITY_TYPE, shape.substring("ward_mob_".length()));
+            }
+            if (shape.startsWith("ward_entity_type_")) {
+                return new TargetRule(TargetMode.ENTITY_TYPE, shape.substring("ward_entity_type_".length()));
+            }
+            if (shape.startsWith("ward_entity_")) {
+                return new TargetRule(TargetMode.ENTITY_TYPE, shape.substring("ward_entity_".length()));
+            }
+            TargetMode mode = switch (shape) {
+                case "ward_non_allied" -> TargetMode.NON_ALLIED;
+                case "ward_hostile" -> TargetMode.HOSTILE;
+                case "ward_players" -> TargetMode.PLAYERS;
+                case "ward_allies" -> TargetMode.ALLIES;
+                case "ward_mobs" -> TargetMode.MOBS;
+                case "ward_monsters" -> TargetMode.MONSTERS;
+                case "ward_passive" -> TargetMode.PASSIVE;
+                case "ward_animals" -> TargetMode.ANIMALS;
+                case "ward_any" -> TargetMode.ANY;
+                default -> TargetMode.NON_ALLIED;
             };
+            return new TargetRule(mode, "");
         }
 
         private boolean matches(ServerPlayer caster, LivingEntity entity) {
-            return switch (this) {
-                case HOSTILE -> entity != caster && !MagicAllies.isAlly(caster, entity);
+            return switch (mode) {
+                case NON_ALLIED -> entity != caster && !MagicAllies.isAlly(caster, entity);
+                case HOSTILE -> entity != caster && !MagicAllies.isAlly(caster, entity) && entity.getType().getCategory() == MobCategory.MONSTER;
                 case PLAYERS -> entity instanceof ServerPlayer player && player != caster && !MagicAllies.isAlly(caster, player);
                 case ALLIES -> MagicAllies.isAlly(caster, entity);
+                case MOBS -> entity instanceof Mob && entity != caster && !MagicAllies.isAlly(caster, entity);
+                case MONSTERS -> entity != caster && !MagicAllies.isAlly(caster, entity) && entity.getType().getCategory() == MobCategory.MONSTER;
+                case PASSIVE -> entity != caster && !MagicAllies.isAlly(caster, entity) && isPassiveCategory(entity.getType().getCategory());
+                case ANIMALS -> entity != caster && !MagicAllies.isAlly(caster, entity) && isAnimalCategory(entity.getType().getCategory());
+                case PLAYER_NAME -> entity instanceof ServerPlayer player && player.getGameProfile().getName().equalsIgnoreCase(parameter);
+                case ENTITY_TYPE -> entityTypeMatches(entity, parameter);
                 case ANY -> entity != caster;
             };
         }
+
+        private static boolean isPassiveCategory(MobCategory category) {
+            return category != MobCategory.MONSTER;
+        }
+
+        private static boolean isAnimalCategory(MobCategory category) {
+            return switch (category) {
+                case CREATURE, WATER_CREATURE, WATER_AMBIENT, UNDERGROUND_WATER_CREATURE, AXOLOTLS, AMBIENT -> true;
+                default -> false;
+            };
+        }
+
+        private static boolean entityTypeMatches(LivingEntity entity, String parameter) {
+            ResourceLocation targetType = ResourceLocation.tryParse(parameter.contains(":") ? parameter : "minecraft:" + parameter);
+            return targetType != null && BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).equals(targetType);
+        }
+    }
+
+    private enum TargetMode {
+        NON_ALLIED,
+        HOSTILE,
+        PLAYERS,
+        ALLIES,
+        MOBS,
+        MONSTERS,
+        PASSIVE,
+        ANIMALS,
+        PLAYER_NAME,
+        ENTITY_TYPE,
+        ANY
     }
 
     private static final class ActiveWard {

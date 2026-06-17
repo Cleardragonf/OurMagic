@@ -24,6 +24,7 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.GRIMOIRE.get());
                 output.accept(ModItems.GUIDE_BOOK.get());
                 output.accept(ModItems.WARD_TUNER.get());
+                output.accept(ModItems.WARD_DIAGRAM.get());
                 output.accept(ModItems.MAGIC_LINKER.get());
                 output.accept(ModItems.LIGHTNING_TALISMAN.get());
                 output.accept(ModItems.ANCHOR_TALISMAN.get());
@@ -42,6 +43,7 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.MAGIC_FLOW_CONVERTER.get());
                 output.accept(ModItems.MAGIC_BATTERY.get());
                 output.accept(ModItems.ARCANE_ACCUMULATOR.get());
+                output.accept(ModItems.DARK_ACCUMULATOR.get());
                 output.accept(ModItems.FIRE_ACCUMULATOR.get());
                 output.accept(ModItems.WATER_ACCUMULATOR.get());
                 output.accept(ModItems.EARTH_ACCUMULATOR.get());

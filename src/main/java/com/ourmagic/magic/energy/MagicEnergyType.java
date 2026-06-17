@@ -11,6 +11,7 @@ import java.util.Locale;
 
 public enum MagicEnergyType {
     ARCANE("Arcane", 0x9D61FF),
+    DARK("Dark", 0x4A1B5F),
     FIRE("Fire", 0xFF6A22),
     WATER("Water", 0x36A9FF),
     EARTH("Earth", 0x8B6F3E),
@@ -42,12 +43,29 @@ public enum MagicEnergyType {
         FluidState fluid = level.getFluidState(pos);
         return switch (this) {
             case ARCANE -> arcaneValue(state);
+            case DARK -> darkValue(level, pos, state);
             case FIRE -> fireValue(state, fluid);
             case WATER -> waterValue(state, fluid);
             case EARTH -> earthValue(state);
             case LIFE -> lifeValue(state);
             case STORM -> stormValue(state);
         };
+    }
+
+    private static int darkValue(Level level, BlockPos pos, BlockState state) {
+        if (state.is(Blocks.SCULK) || state.is(Blocks.SCULK_CATALYST) || state.is(Blocks.SCULK_SHRIEKER)) {
+            return 16;
+        }
+        if (state.is(Blocks.SOUL_SAND) || state.is(Blocks.SOUL_SOIL) || state.is(Blocks.WITHER_ROSE)) {
+            return 10;
+        }
+        if (state.is(Blocks.OBSIDIAN) || state.is(Blocks.CRYING_OBSIDIAN)) {
+            return 5;
+        }
+        if (level.getMaxLocalRawBrightness(pos) <= 0) {
+            return 1;
+        }
+        return 0;
     }
 
     private static int arcaneValue(BlockState state) {

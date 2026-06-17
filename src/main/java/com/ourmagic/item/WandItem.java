@@ -186,6 +186,10 @@ public class WandItem extends Item {
             player.displayClientMessage(Component.literal("That spell source does not contain a valid spell.").withStyle(ChatFormatting.RED), false);
             return true;
         }
+        if (SpellRegistry.isWardRecipe(spellKey)) {
+            player.displayClientMessage(Component.literal("Wards belong on Ward Stones, not wands. Draw a Ward Diagram and cast it onto the stone.").withStyle(ChatFormatting.RED), false);
+            return true;
+        }
 
         if (!data.addSpell(sourceSpell)) {
             player.displayClientMessage(Component.literal("That wand already knows " + sourceSpell.displayName()).withStyle(ChatFormatting.YELLOW), false);

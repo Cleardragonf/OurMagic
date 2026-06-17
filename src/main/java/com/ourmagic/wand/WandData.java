@@ -397,7 +397,7 @@ public final class WandData {
 
     public boolean addSpell(String key) {
         Spell spell = SpellRegistry.get(key);
-        if (spell == null || spells.stream().anyMatch(existing -> existing.key().equals(key))) {
+        if (spell == null || SpellRegistry.isWardRecipe(key) || spells.stream().anyMatch(existing -> existing.key().equals(key))) {
             return false;
         }
 
@@ -410,7 +410,7 @@ public final class WandData {
     }
 
     public boolean addSpell(SpellInstance instance) {
-        if (SpellRegistry.get(instance.key()) == null || spells.stream().anyMatch(existing -> existing.key().equals(instance.key()))) {
+        if (SpellRegistry.get(instance.key()) == null || SpellRegistry.isWardRecipe(instance.key()) || spells.stream().anyMatch(existing -> existing.key().equals(instance.key()))) {
             return false;
         }
 

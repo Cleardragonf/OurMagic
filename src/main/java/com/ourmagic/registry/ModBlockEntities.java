@@ -25,6 +25,7 @@ public final class ModBlockEntities {
     public static final RegistryObject<BlockEntityType<MagicAccumulatorBlockEntity>> MAGIC_ACCUMULATOR = BLOCK_ENTITIES.register("magic_accumulator",
             () -> BlockEntityType.Builder.of(MagicAccumulatorBlockEntity::new,
                     ModBlocks.ARCANE_ACCUMULATOR.get(),
+                    ModBlocks.DARK_ACCUMULATOR.get(),
                     ModBlocks.FIRE_ACCUMULATOR.get(),
                     ModBlocks.WATER_ACCUMULATOR.get(),
                     ModBlocks.EARTH_ACCUMULATOR.get(),

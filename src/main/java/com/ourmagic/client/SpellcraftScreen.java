@@ -297,6 +297,9 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         addToWandButton.active = canCraft;
         paperButton.active = canCraft;
         grimoireButton.active = canCraft;
+        addToWandButton.setTooltip(Tooltip.create(Component.literal("Add to wand")));
+        paperButton.setTooltip(Tooltip.create(Component.literal("Make spell paper")));
+        grimoireButton.setTooltip(Tooltip.create(Component.literal("Add to grimoire")));
     }
 
     private void renderSpellPreview(GuiGraphics graphics, String key, boolean craftable) {
@@ -392,6 +395,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
 
     private List<String> craftableEffects() {
         return SpellRegistry.payloadKeys().stream()
+                .filter(effect -> !effect.equals("ward"))
                 .filter(effect -> !SpellRegistry.allowedShapesForPayloads(List.of(effect)).isEmpty())
                 .filter(effect -> hasPayloadIngredients(effect) || hasKnownPayload(effect))
                 .toList();

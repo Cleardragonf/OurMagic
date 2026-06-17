@@ -396,6 +396,12 @@ public final class SpellIngredients {
     }
 
     private static List<Requirement> shapeRequirements(String shape) {
+        if (shape.startsWith("ward_player_")
+                || shape.startsWith("ward_mob_")
+                || shape.startsWith("ward_entity_")
+                || shape.startsWith("ward_entity_type_")) {
+            return List.of(item("pulse_talisman", ModItems.PULSE_TALISMAN.get(), 2));
+        }
         return switch (shape) {
             case "self" -> List.of(item("anchor_talisman", ModItems.ANCHOR_TALISMAN.get(), 1));
             case "target" -> List.of(item("seeker_talisman", ModItems.SEEKER_TALISMAN.get(), 1));
@@ -407,7 +413,7 @@ public final class SpellIngredients {
             case "ally_target_aoe" -> List.of(item("beacon_talisman", ModItems.BEACON_TALISMAN.get(), 2));
             case "items_self_aoe" -> List.of(item("magnet_talisman", ModItems.MAGNET_TALISMAN.get(), 2));
             case "water_target_aoe" -> List.of(item("tide_talisman", ModItems.TIDE_TALISMAN.get(), 2));
-            case "ward_hostile", "ward_players", "ward_allies", "ward_any" -> List.of(item("pulse_talisman", ModItems.PULSE_TALISMAN.get(), 2));
+            case "ward_non_allied", "ward_hostile", "ward_players", "ward_allies", "ward_mobs", "ward_monsters", "ward_passive", "ward_animals", "ward_any" -> List.of(item("pulse_talisman", ModItems.PULSE_TALISMAN.get(), 2));
             default -> List.of();
         };
     }

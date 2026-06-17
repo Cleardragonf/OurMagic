@@ -152,8 +152,6 @@ public final class SpellRegistry {
             random("nullify", "target", 2),
             random("stun", "target", 1),
             random("warp", "self", 1),
-            random("ward", "self", 3),
-            random("ward", "ally_aoe", 2),
             random("gravity", "target_aoe", 2),
             random("silence", "target", 2),
             random("charm", "target", 2),
@@ -249,6 +247,10 @@ public final class SpellRegistry {
     public static boolean isValidRecipe(String spellKey) {
         Recipe recipe = Recipe.parse(spellKey);
         return recipe != null && isPayloadCombinationAllowed(recipe.payloads()) && isShapeAllowed(recipe.payloads(), recipe.shape()) && get(spellKey) != null;
+    }
+
+    public static boolean isWardRecipe(String spellKey) {
+        return payloadParts(spellKey).contains("ward");
     }
 
     public static List<PayloadEffect> payloadEffectsExcluding(String spellKey, String excludedPayload) {
@@ -401,7 +403,7 @@ public final class SpellRegistry {
         part("summon_arcane", () -> new SummonPayload(SummonPayload.Variant.ARCANE), shapes("point", "block"), mana(30, 58), cooldown(84, 168));
         part("summon_swarm", () -> new SummonPayload(SummonPayload.Variant.SWARM), shapes("point", "block"), mana(18, 35), cooldown(56, 112));
         part("transmute", TransmutePayload::new, shapes("block", "target_aoe", "aoe"), mana(12, 24), cooldown(35, 70));
-        part("ward", WardPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe", "ward_hostile", "ward_players", "ward_allies", "ward_any"), mana(15, 29), cooldown(56, 112));
+        part("ward", WardPayload::new, shapes("self", "target", "ally_aoe", "ally_target_aoe", "ward_non_allied", "ward_hostile", "ward_players", "ward_allies", "ward_mobs", "ward_monsters", "ward_passive", "ward_animals", "ward_any"), mana(15, 29), cooldown(56, 112));
         part("anti_fire", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_FIRE), shapes("target"), mana(12, 24), cooldown(45, 90));
         part("anti_water", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_WATER), shapes("target"), mana(12, 24), cooldown(45, 90));
         part("anti_explosion", () -> new WardAreaPayload(WardAreaPayload.Variant.ANTI_EXPLOSION), shapes("target"), mana(16, 32), cooldown(60, 120));
@@ -446,9 +448,14 @@ public final class SpellRegistry {
         shape("ally_target_aoe", particle -> SpellShapes.playersAroundLookedLivingOrSelf(18, 4, particle));
         shape("items_self_aoe", particle -> SpellShapes.itemsAroundSelf(10, particle));
         shape("water_target_aoe", particle -> SpellShapes.waterBlocksAroundLookedLivingOrPoint(18, 18, 1, 1, 0, particle));
+        shape("ward_non_allied", particle -> SpellShapes.lookedPoint(20, 12));
         shape("ward_hostile", particle -> SpellShapes.lookedPoint(20, 12));
         shape("ward_players", particle -> SpellShapes.lookedPoint(20, 12));
         shape("ward_allies", particle -> SpellShapes.lookedPoint(20, 12));
+        shape("ward_mobs", particle -> SpellShapes.lookedPoint(20, 12));
+        shape("ward_monsters", particle -> SpellShapes.lookedPoint(20, 12));
+        shape("ward_passive", particle -> SpellShapes.lookedPoint(20, 12));
+        shape("ward_animals", particle -> SpellShapes.lookedPoint(20, 12));
         shape("ward_any", particle -> SpellShapes.lookedPoint(20, 12));
     }
 
@@ -570,7 +577,7 @@ public final class SpellRegistry {
             return null;
         }
 
-        ShapePart shape = SHAPES.get(parsed.shape());
+        ShapePart shape = SHAPES.get(shapeFactoryKey(parsed.shape()));
         if (shape == null) {
             return null;
         }
@@ -718,7 +725,7 @@ public final class SpellRegistry {
     }
 
     private static boolean isShapeAllowed(List<String> payloads, String shape) {
-        if (payloads.isEmpty() || !SHAPES.containsKey(shape)) {
+        if (payloads.isEmpty() || !SHAPES.containsKey(shapeFactoryKey(shape))) {
             return false;
         }
 
@@ -741,6 +748,21 @@ public final class SpellRegistry {
             }
         }
         return true;
+    }
+
+    private static String shapeFactoryKey(String shape) {
+        String wardBaseShape = parameterizedWardBaseShape(shape);
+        return wardBaseShape == null ? shape : wardBaseShape;
+    }
+
+    private static String parameterizedWardBaseShape(String shape) {
+        if (shape.startsWith("ward_player_")) {
+            return "ward_players";
+        }
+        if (shape.startsWith("ward_mob_") || shape.startsWith("ward_entity_") || shape.startsWith("ward_entity_type_")) {
+            return "ward_mobs";
+        }
+        return null;
     }
 
     private static boolean isWardShapeAllowed(List<String> payloads) {

@@ -1,5 +1,7 @@
 package com.ourmagic.block.entity;
 
+import com.ourmagic.magic.energy.MagicEnergyType;
+import com.ourmagic.magic.energy.MagicEnergyReceiver;
 import com.ourmagic.registry.ModBlockEntities;
 import com.ourmagic.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
@@ -18,15 +20,16 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-public class WardStoneBlockEntity extends BlockEntity {
+public class WardStoneBlockEntity extends BlockEntity implements MagicEnergyReceiver {
     private static final String TAG_MAGIC_FLOW = "MagicFlow";
-    private static final int MAGIC_FLOW_CAPACITY_PER_STONE = 100_000;
+    private static final String TAG_MAGIC_FLOW_TYPES = "MagicFlowTypes";
+    private static final int MAGIC_FLOW_CAPACITY_PER_TYPE = 100_000;
     private static final int MAX_MULTIBLOCK_STONES = 128;
     private static final Comparator<BlockPos> MASTER_ORDER = Comparator
             .comparingInt((BlockPos pos) -> pos.getY())
             .thenComparingInt(pos -> pos.getX())
             .thenComparingInt(pos -> pos.getZ());
-    private int magicFlow;
+    private final int[] magicFlow = new int[MagicEnergyType.values().length];
 
     public WardStoneBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.WARD_STONE.get(), pos, state);
@@ -94,12 +97,28 @@ public class WardStoneBlockEntity extends BlockEntity {
     }
 
     public int magicFlow() {
+        int total = 0;
+        for (MagicEnergyType type : MagicEnergyType.values()) {
+            total += magicFlow(type);
+        }
+        return total;
+    }
+
+    public int magicFlow(MagicEnergyType type) {
         WardStoneBlockEntity master = masterOrSelf();
-        return master == this ? magicFlow : master.magicFlow();
+        return master == this ? magicFlow[type.ordinal()] : master.magicFlow(type);
     }
 
     public int magicFlowCapacity() {
-        return MAGIC_FLOW_CAPACITY_PER_STONE * multiblockSize();
+        return magicFlowCapacityPerType() * MagicEnergyType.values().length;
+    }
+
+    public int magicFlowCapacity(MagicEnergyType type) {
+        return magicFlowCapacityPerType();
+    }
+
+    public int magicFlowCapacityPerType() {
+        return MAGIC_FLOW_CAPACITY_PER_TYPE;
     }
 
     public int multiblockSize() {
@@ -114,63 +133,101 @@ public class WardStoneBlockEntity extends BlockEntity {
     }
 
     public boolean hasMagicFlow(int amount) {
-        return magicFlow() >= amount;
+        return hasMagicFlow(MagicEnergyType.ARCANE, amount);
+    }
+
+    public boolean hasMagicFlow(MagicEnergyType type, int amount) {
+        return magicFlow(type) >= amount;
+    }
+
+    @Override
+    public int receiveMagicEnergy(MagicEnergyType type, int amount, boolean simulate) {
+        return receiveMagicFlow(type, amount, simulate);
     }
 
     public int receiveMagicFlow(int amount, boolean simulate) {
+        return receiveMagicFlow(MagicEnergyType.ARCANE, amount, simulate);
+    }
+
+    public int receiveMagicFlow(MagicEnergyType type, int amount, boolean simulate) {
         WardStoneBlockEntity master = masterOrSelf();
         if (master != this) {
-            return master.receiveMagicFlow(amount, simulate);
+            return master.receiveMagicFlow(type, amount, simulate);
         }
         if (amount <= 0) {
             return 0;
         }
-        int accepted = Math.min(amount, magicFlowCapacity() - magicFlow);
+        int index = type.ordinal();
+        int accepted = Math.min(amount, magicFlowCapacity(type) - magicFlow[index]);
         if (accepted > 0 && !simulate) {
-            magicFlow += accepted;
+            magicFlow[index] += accepted;
             setChangedAndUpdate();
         }
         return accepted;
     }
 
     public boolean consumeMagicFlow(int amount, boolean simulate) {
+        return consumeMagicFlow(MagicEnergyType.ARCANE, amount, simulate);
+    }
+
+    public boolean consumeMagicFlow(MagicEnergyType type, int amount, boolean simulate) {
         WardStoneBlockEntity master = masterOrSelf();
         if (master != this) {
-            return master.consumeMagicFlow(amount, simulate);
+            return master.consumeMagicFlow(type, amount, simulate);
         }
         if (amount <= 0) {
             return true;
         }
-        if (magicFlow < amount) {
+        int index = type.ordinal();
+        if (magicFlow[index] < amount) {
             return false;
         }
         if (!simulate) {
-            magicFlow -= amount;
+            magicFlow[index] -= amount;
             setChangedAndUpdate();
         }
         return true;
     }
 
     public void setMagicFlow(int amount) {
+        setMagicFlow(MagicEnergyType.ARCANE, amount);
+    }
+
+    public void setMagicFlow(MagicEnergyType type, int amount) {
         WardStoneBlockEntity master = masterOrSelf();
         if (master != this) {
-            master.setMagicFlow(amount);
+            master.setMagicFlow(type, amount);
             return;
         }
-        magicFlow = Math.max(0, Math.min(magicFlowCapacity(), amount));
+        magicFlow[type.ordinal()] = Math.max(0, Math.min(magicFlowCapacity(type), amount));
         setChangedAndUpdate();
     }
 
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        magicFlow = Math.max(0, tag.getInt(TAG_MAGIC_FLOW));
+        java.util.Arrays.fill(magicFlow, 0);
+        CompoundTag typed = tag.getCompound(TAG_MAGIC_FLOW_TYPES);
+        for (MagicEnergyType type : MagicEnergyType.values()) {
+            magicFlow[type.ordinal()] = Math.max(0, Math.min(magicFlowCapacity(type), typed.getInt(type.serializedName())));
+        }
+        if (tag.contains(TAG_MAGIC_FLOW) && magicFlow() == 0) {
+            magicFlow[MagicEnergyType.ARCANE.ordinal()] = Math.max(0, Math.min(magicFlowCapacity(MagicEnergyType.ARCANE), tag.getInt(TAG_MAGIC_FLOW)));
+        }
     }
 
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        tag.putInt(TAG_MAGIC_FLOW, magicFlow);
+        CompoundTag typed = new CompoundTag();
+        for (MagicEnergyType type : MagicEnergyType.values()) {
+            int stored = magicFlow[type.ordinal()];
+            if (stored > 0) {
+                typed.putInt(type.serializedName(), stored);
+            }
+        }
+        tag.put(TAG_MAGIC_FLOW_TYPES, typed);
+        tag.putInt(TAG_MAGIC_FLOW, magicFlow());
     }
 
     @Override
@@ -199,23 +256,33 @@ public class WardStoneBlockEntity extends BlockEntity {
     }
 
     private static void consolidateMagicFlow(ServerLevel level, WardMultiblock multiblock, WardStoneBlockEntity master) {
-        int capacity = MAGIC_FLOW_CAPACITY_PER_STONE * multiblock.size();
-        long total = 0L;
+        int capacity = MAGIC_FLOW_CAPACITY_PER_TYPE;
+        long[] totals = new long[MagicEnergyType.values().length];
         for (long stone : multiblock.stones()) {
             Optional<WardStoneBlockEntity> wardStone = getOrCreateLocal(level, BlockPos.of(stone));
             if (wardStone.isEmpty()) {
                 continue;
             }
-            total += wardStone.get().magicFlow;
-            if (!wardStone.get().worldPosition.equals(master.worldPosition) && wardStone.get().magicFlow != 0) {
-                wardStone.get().magicFlow = 0;
-                wardStone.get().setChangedAndUpdate();
+            for (MagicEnergyType type : MagicEnergyType.values()) {
+                int index = type.ordinal();
+                totals[index] += wardStone.get().magicFlow[index];
+                if (!wardStone.get().worldPosition.equals(master.worldPosition) && wardStone.get().magicFlow[index] != 0) {
+                    wardStone.get().magicFlow[index] = 0;
+                    wardStone.get().setChangedAndUpdate();
+                }
             }
         }
 
-        int consolidated = (int) Math.min(capacity, total);
-        if (master.magicFlow != consolidated) {
-            master.magicFlow = consolidated;
+        boolean changed = false;
+        for (MagicEnergyType type : MagicEnergyType.values()) {
+            int index = type.ordinal();
+            int consolidated = (int) Math.min(capacity, totals[index]);
+            if (master.magicFlow[index] != consolidated) {
+                master.magicFlow[index] = consolidated;
+                changed = true;
+            }
+        }
+        if (changed) {
             master.setChangedAndUpdate();
         }
     }
@@ -226,7 +293,7 @@ public class WardStoneBlockEntity extends BlockEntity {
         }
 
         public int capacity() {
-            return size() * MAGIC_FLOW_CAPACITY_PER_STONE;
+            return MAGIC_FLOW_CAPACITY_PER_TYPE;
         }
 
         public boolean contains(BlockPos pos) {

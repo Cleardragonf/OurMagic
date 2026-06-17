@@ -16,17 +16,17 @@ public record MagicLinkHudDataPacket(BlockPos pos, String title, List<String> li
         buffer.writeUtf(packet.title, 64);
         buffer.writeVarInt(packet.lines.size());
         for (String line : packet.lines) {
-            buffer.writeUtf(line, 96);
+            buffer.writeUtf(line, 160);
         }
     }
 
     public static MagicLinkHudDataPacket decode(FriendlyByteBuf buffer) {
         BlockPos pos = buffer.readBlockPos();
         String title = buffer.readUtf(64);
-        int count = Math.min(8, buffer.readVarInt());
+        int count = Math.min(16, buffer.readVarInt());
         List<String> lines = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            lines.add(buffer.readUtf(96));
+            lines.add(buffer.readUtf(160));
         }
         return new MagicLinkHudDataPacket(pos, title, lines);
     }

@@ -7,6 +7,8 @@ import com.ourmagic.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.LongTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -23,14 +25,19 @@ import java.util.Set;
 
 public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyReceiver {
     private static final String TAG_MAGIC_ENERGY = "MagicEnergy";
+    private static final String TAG_LINKS = "MagicLinks";
     private static final int MAGIC_ENERGY_CAPACITY_PER_BLOCK = 500_000;
     private static final int MAX_MULTIBLOCK_BLOCKS = 64;
+    private static final int MAX_LINKS = 8;
+    private static final int MAX_LINK_DISTANCE = 32;
+    private static final int PUSH_PER_TYPE_PER_TICK = 240;
     private static final Comparator<BlockPos> MASTER_ORDER = Comparator
             .comparingInt((BlockPos pos) -> pos.getY())
             .thenComparingInt(pos -> pos.getX())
             .thenComparingInt(pos -> pos.getZ());
 
     private final int[] energy = new int[MagicEnergyType.values().length];
+    private final Set<Long> linkedTargets = new java.util.LinkedHashSet<>();
 
     public MagicBatteryBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MAGIC_BATTERY.get(), pos, state);
@@ -81,6 +88,20 @@ public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyR
         }
 
         return Optional.of(new BatteryMultiblock(master.immutable(), Set.copyOf(blocks)));
+    }
+
+    public static void serverTick(net.minecraft.world.level.Level level, BlockPos pos, BlockState state, MagicBatteryBlockEntity battery) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        MagicBatteryBlockEntity master = getOrCreate(serverLevel, pos).orElse(null);
+        if (master == null || !battery.getBlockPos().equals(master.getBlockPos())) {
+            return;
+        }
+        int pushed = master.pushToReceivers(serverLevel);
+        if (pushed > 0) {
+            master.setChangedAndUpdate();
+        }
     }
 
     private static Optional<MagicBatteryBlockEntity> getOrCreateLocal(ServerLevel level, BlockPos pos) {
@@ -139,6 +160,38 @@ public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyR
         return MAGIC_ENERGY_CAPACITY_PER_BLOCK * multiblockSize();
     }
 
+    public int linkCount() {
+        return masterOrSelf().linkedTargets.size();
+    }
+
+    public int maxLinks() {
+        return MAX_LINKS;
+    }
+
+    public LinkResult toggleLink(BlockPos target) {
+        MagicBatteryBlockEntity master = masterOrSelf();
+        if (target.equals(master.worldPosition)) {
+            return new LinkResult(false, "Cannot link a battery to itself.");
+        }
+        if (master.worldPosition.distSqr(target) > MAX_LINK_DISTANCE * MAX_LINK_DISTANCE) {
+            return new LinkResult(false, "Target is too far away. Max range is " + MAX_LINK_DISTANCE + " blocks.");
+        }
+        if (!(level instanceof ServerLevel serverLevel) || magicReceiver(serverLevel, target).isEmpty()) {
+            return new LinkResult(false, "That block cannot receive magic energy.");
+        }
+        long key = target.asLong();
+        if (master.linkedTargets.remove(key)) {
+            master.setChangedAndUpdate();
+            return new LinkResult(true, "Magic battery link removed: " + target.toShortString() + ".");
+        }
+        if (master.linkedTargets.size() >= MAX_LINKS) {
+            return new LinkResult(false, "This battery already has " + MAX_LINKS + " links.");
+        }
+        master.linkedTargets.add(key);
+        master.setChangedAndUpdate();
+        return new LinkResult(true, "Magic battery link added: " + target.toShortString() + ".");
+    }
+
     public int multiblockSize() {
         if (level instanceof ServerLevel serverLevel) {
             return findMultiblock(serverLevel, worldPosition).map(BatteryMultiblock::size).orElse(1);
@@ -165,6 +218,11 @@ public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyR
         for (MagicEnergyType type : MagicEnergyType.values()) {
             energy[type.ordinal()] = Math.max(0, energyTag.getInt(type.serializedName()));
         }
+        linkedTargets.clear();
+        ListTag links = tag.getList(TAG_LINKS, net.minecraft.nbt.Tag.TAG_LONG);
+        for (int i = 0; i < links.size(); i++) {
+            linkedTargets.add(((LongTag) links.get(i)).getAsLong());
+        }
     }
 
     @Override
@@ -178,6 +236,11 @@ public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyR
             }
         }
         tag.put(TAG_MAGIC_ENERGY, energyTag);
+        ListTag links = new ListTag();
+        for (long linkedTarget : linkedTargets) {
+            links.add(LongTag.valueOf(linkedTarget));
+        }
+        tag.put(TAG_LINKS, links);
     }
 
     @Override
@@ -209,6 +272,63 @@ public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyR
         }
     }
 
+    private int pushToReceivers(ServerLevel level) {
+        if (linkedTargets.isEmpty()) {
+            return 0;
+        }
+        int pushed = 0;
+        java.util.Iterator<Long> iterator = linkedTargets.iterator();
+        boolean removedInvalid = false;
+        java.util.List<TransferTarget> targets = new java.util.ArrayList<>();
+        while (iterator.hasNext()) {
+            BlockPos targetPos = BlockPos.of(iterator.next());
+            Optional<MagicEnergyReceiver> receiver = magicReceiver(level, targetPos);
+            if (receiver.isEmpty()) {
+                iterator.remove();
+                removedInvalid = true;
+                continue;
+            }
+            targets.add(new TransferTarget(targetPos.immutable(), receiver.get()));
+        }
+        if (removedInvalid) {
+            setChangedAndUpdate();
+        }
+        if (targets.isEmpty()) {
+            return 0;
+        }
+
+        for (MagicEnergyType type : MagicEnergyType.values()) {
+            int budget = Math.min(PUSH_PER_TYPE_PER_TICK, stored(type));
+            int remainingTargets = targets.size();
+            for (TransferTarget target : targets) {
+                if (budget <= 0 || remainingTargets <= 0) {
+                    break;
+                }
+                int share = Math.max(1, (int) Math.ceil(budget / (double) remainingTargets));
+                int accepted = target.receiver().receiveMagicEnergy(type, Math.min(share, stored(type)), true);
+                if (accepted > 0) {
+                    int extracted = extractMagicEnergy(type, accepted, false);
+                    int received = target.receiver().receiveMagicEnergy(type, extracted, false);
+                    if (received < extracted) {
+                        receiveMagicEnergy(type, extracted - received, false);
+                    }
+                    pushed += received;
+                    budget -= received;
+                }
+                remainingTargets--;
+            }
+        }
+        return pushed;
+    }
+
+    private static Optional<MagicEnergyReceiver> magicReceiver(ServerLevel level, BlockPos pos) {
+        BlockEntity target = level.getBlockEntity(pos);
+        if (target instanceof MagicEnergyReceiver receiver) {
+            return Optional.of(receiver);
+        }
+        return WardStoneBlockEntity.getOrCreate(level, pos).map(wardStone -> (MagicEnergyReceiver) wardStone);
+    }
+
     private static void consolidateEnergy(ServerLevel level, BatteryMultiblock multiblock, MagicBatteryBlockEntity master) {
         int capacity = MAGIC_ENERGY_CAPACITY_PER_BLOCK * multiblock.size();
         int[] totals = new int[MagicEnergyType.values().length];
@@ -238,5 +358,11 @@ public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyR
         public int size() {
             return blocks.size();
         }
+    }
+
+    public record LinkResult(boolean success, String message) {
+    }
+
+    private record TransferTarget(BlockPos pos, MagicEnergyReceiver receiver) {
     }
 }
