@@ -6,6 +6,7 @@ import com.ourmagic.item.GrimoireItem;
 import com.ourmagic.item.MagicLinkerItem;
 import com.ourmagic.item.SpellFocusItem;
 import com.ourmagic.item.WandItem;
+import com.ourmagic.item.WardDiagramItem;
 import com.ourmagic.item.WardTunerItem;
 import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraft.world.item.BlockItem;
@@ -24,6 +25,7 @@ public final class ModItems {
     public static final RegistryObject<Item> GRIMOIRE = ITEMS.register("grimoire", () -> new GrimoireItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> GUIDE_BOOK = ITEMS.register("guide_book", () -> new GuideBookItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> WARD_TUNER = ITEMS.register("ward_tuner", () -> new WardTunerItem(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> WARD_DIAGRAM = ITEMS.register("ward_diagram", () -> new WardDiagramItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> MAGIC_LINKER = ITEMS.register("magic_linker", () -> new MagicLinkerItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> LIGHTNING_TALISMAN = ITEMS.register("lightning_talisman", () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> ANCHOR_TALISMAN = ITEMS.register("anchor_talisman", () -> new Item(new Item.Properties()));
@@ -42,6 +44,7 @@ public final class ModItems {
     public static final RegistryObject<Item> MAGIC_FLOW_CONVERTER = ITEMS.register("magic_flow_converter", () -> new BlockItem(ModBlocks.MAGIC_FLOW_CONVERTER.get(), new Item.Properties()));
     public static final RegistryObject<Item> MAGIC_BATTERY = ITEMS.register("magic_battery", () -> new BlockItem(ModBlocks.MAGIC_BATTERY.get(), new Item.Properties()));
     public static final RegistryObject<Item> ARCANE_ACCUMULATOR = ITEMS.register("arcane_accumulator", () -> new BlockItem(ModBlocks.ARCANE_ACCUMULATOR.get(), new Item.Properties()));
+    public static final RegistryObject<Item> DARK_ACCUMULATOR = ITEMS.register("dark_accumulator", () -> new BlockItem(ModBlocks.DARK_ACCUMULATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> FIRE_ACCUMULATOR = ITEMS.register("fire_accumulator", () -> new BlockItem(ModBlocks.FIRE_ACCUMULATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> WATER_ACCUMULATOR = ITEMS.register("water_accumulator", () -> new BlockItem(ModBlocks.WATER_ACCUMULATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> EARTH_ACCUMULATOR = ITEMS.register("earth_accumulator", () -> new BlockItem(ModBlocks.EARTH_ACCUMULATOR.get(), new Item.Properties()));

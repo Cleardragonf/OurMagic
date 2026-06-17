@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.ourmagic.item.WardDiagramItem;
 import com.ourmagic.magic.ArcaneKnowledgeBook;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellInstance;
@@ -27,7 +28,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -106,6 +106,9 @@ public final class OurMagicCommands {
                         .then(Commands.literal("paper")
                                 .then(Commands.argument("spell", StringArgumentType.greedyString())
                                         .executes(context -> giveWardPaper(context.getSource(), context.getSource().getPlayerOrException(), StringArgumentType.getString(context, "spell")))))
+                        .then(Commands.literal("diagram")
+                                .then(Commands.argument("spell", StringArgumentType.greedyString())
+                                        .executes(context -> giveWardPaper(context.getSource(), context.getSource().getPlayerOrException(), StringArgumentType.getString(context, "spell")))))
                         .then(Commands.literal("apply")
                                 .then(Commands.argument("pos", BlockPosArgument.blockPos())
                                         .then(Commands.argument("spell", StringArgumentType.greedyString())
@@ -158,6 +161,10 @@ public final class OurMagicCommands {
         Spell spell = SpellRegistry.get(spellKey);
         if (spell == null) {
             source.sendFailure(Component.literal("Unknown spell recipe: " + spellKey));
+            return 0;
+        }
+        if (SpellRegistry.isWardRecipe(spell.key())) {
+            source.sendFailure(Component.literal("Ward recipes cannot be placed on wands. Use a Ward Diagram on a Ward Stone instead."));
             return 0;
         }
 
@@ -235,12 +242,11 @@ public final class OurMagicCommands {
             return 0;
         }
 
-        ItemStack paper = new ItemStack(Items.PAPER);
-        SpellInstance.fixed(resolvedSpellKey).writeToItem(paper);
-        if (!target.getInventory().add(paper)) {
-            target.drop(paper, false);
+        ItemStack diagram = WardDiagramItem.create(SpellInstance.fixed(resolvedSpellKey));
+        if (!target.getInventory().add(diagram)) {
+            target.drop(diagram, false);
         }
-        source.sendSuccess(() -> Component.literal("Gave ward paper " + resolvedSpellKey + " to " + target.getGameProfile().getName()), true);
+        source.sendSuccess(() -> Component.literal("Gave ward diagram " + resolvedSpellKey + " to " + target.getGameProfile().getName()), true);
         return 1;
     }
 
@@ -262,9 +268,19 @@ public final class OurMagicCommands {
             return trimmed;
         }
 
-        String[] split = trimmed.split("@", 2);
+        String[] split = trimmed.split("@");
+        String payloadSpec;
+        String shapeSpec;
+        if (split.length >= 3 && normalizeRecipeToken(split[0]).equals(WARD_PAYLOAD)) {
+            payloadSpec = split[1];
+            shapeSpec = joinRecipeTokens(split, 2);
+        } else {
+            payloadSpec = split[0];
+            shapeSpec = split.length > 1 ? joinRecipeTokens(split, 1) : "";
+        }
+
         List<String> payloads = new ArrayList<>();
-        for (String rawPayload : split[0].split("\\+")) {
+        for (String rawPayload : payloadSpec.split("\\+")) {
             String payload = normalizeRecipeToken(rawPayload);
             if (!payload.isEmpty()) {
                 payloads.add(payload);
@@ -274,8 +290,18 @@ public final class OurMagicCommands {
         payloads.remove(WARD_PAYLOAD);
         payloads.add(0, WARD_PAYLOAD);
 
-        String shape = split.length > 1 ? normalizeWardShape(split[1]) : DEFAULT_WARD_SHAPE;
+        String shape = shapeSpec.isEmpty() ? DEFAULT_WARD_SHAPE : normalizeWardShape(shapeSpec);
         return String.join("+", payloads) + "@" + shape;
+    }
+
+    private static String joinRecipeTokens(String[] tokens, int start) {
+        List<String> parts = new ArrayList<>();
+        for (int i = start; i < tokens.length; i++) {
+            if (!tokens[i].isBlank()) {
+                parts.add(tokens[i]);
+            }
+        }
+        return String.join("_", parts);
     }
 
     private static String normalizeWardShape(String input) {
@@ -286,11 +312,27 @@ public final class OurMagicCommands {
         if (shape.startsWith("ward_")) {
             return shape;
         }
+        if (shape.startsWith("player_") && shape.length() > "player_".length()) {
+            return "ward_player_" + shape.substring("player_".length());
+        }
+        if (shape.startsWith("mob_") && shape.length() > "mob_".length()) {
+            return "ward_mob_" + shape.substring("mob_".length());
+        }
+        if (shape.startsWith("entity_type_") && shape.length() > "entity_type_".length()) {
+            return "ward_entity_type_" + shape.substring("entity_type_".length());
+        }
+        if (shape.startsWith("entity_") && shape.length() > "entity_".length()) {
+            return "ward_entity_" + shape.substring("entity_".length());
+        }
         return switch (shape) {
             case "any", "all", "everyone", "everything" -> "ward_any";
-            case "hostile", "hostiles", "enemy", "enemies", "mob", "mobs" -> "ward_hostile";
+            case "non_allied", "non_ally", "nonallied", "not_allied", "enemy", "enemies" -> "ward_non_allied";
+            case "hostile", "hostiles", "monster", "monsters" -> "ward_hostile";
             case "player", "players" -> "ward_players";
             case "ally", "allies", "friend", "friends", "friendly" -> "ward_allies";
+            case "mob", "mobs" -> "ward_mobs";
+            case "passive", "passives", "creature", "creatures" -> "ward_passive";
+            case "animal", "animals" -> "ward_animals";
             default -> "ward_" + shape;
         };
     }

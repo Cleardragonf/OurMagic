@@ -1,11 +1,12 @@
 package com.ourmagic.block;
 
 import com.ourmagic.block.entity.WardStoneBlockEntity;
+import com.ourmagic.item.WardDiagramItem;
 import com.ourmagic.magic.Spell;
 import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.magic.ward.WorldWards;
-import com.ourmagic.network.CraftSpellPacket;
+import com.ourmagic.registry.ModItems;
 import com.ourmagic.util.PlayerTitles;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -16,7 +17,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.RenderShape;
@@ -45,15 +45,18 @@ public class WardStoneBlock extends BaseEntityBlock {
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         ItemStack stack = player.getItemInHand(hand);
+        if (stack.is(ModItems.MAGIC_LINKER.get())) {
+            return InteractionResult.PASS;
+        }
         if (level.isClientSide) {
-            return stack.is(Items.PAPER) && stack.hasTag() && stack.getOrCreateTag().contains(CraftSpellPacket.TAG_SPELL_KEY)
+            return WardDiagramItem.hasWard(stack)
                     ? InteractionResult.SUCCESS
                     : InteractionResult.SUCCESS;
         }
         if (!(level instanceof ServerLevel serverLevel) || !(player instanceof ServerPlayer serverPlayer)) {
             return InteractionResult.PASS;
         }
-        if (!stack.is(Items.PAPER) || !stack.hasTag() || !stack.getOrCreateTag().contains(CraftSpellPacket.TAG_SPELL_KEY)) {
+        if (!WardDiagramItem.hasWard(stack)) {
             if (WorldWards.showOutline(serverLevel, pos)) {
                 String message = WorldWards.describe(serverLevel, pos)
                         .orElseGet(() -> WardStoneBlockEntity.getOrCreate(serverLevel, pos)
@@ -75,7 +78,7 @@ public class WardStoneBlock extends BaseEntityBlock {
             return InteractionResult.CONSUME;
         }
 
-        String spellKey = stack.getOrCreateTag().getString(CraftSpellPacket.TAG_SPELL_KEY);
+        String spellKey = SpellInstance.fromItem(stack).key();
         Spell spell = SpellRegistry.get(spellKey);
         if (spell == null || !SpellRegistry.payloadParts(spellKey).contains("ward")) {
             PlayerTitles.show(serverPlayer,

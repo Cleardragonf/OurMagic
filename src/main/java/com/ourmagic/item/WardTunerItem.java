@@ -15,8 +15,8 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 
 public class WardTunerItem extends Item {
-    private static final String TAG_WARD_STONE = "OurMagicWardStone";
-    private static final String TAG_DIMENSION = "OurMagicWardDimension";
+    public static final String TAG_WARD_STONE = "OurMagicWardStone";
+    public static final String TAG_DIMENSION = "OurMagicWardDimension";
 
     public WardTunerItem(Properties properties) {
         super(properties);
@@ -81,5 +81,19 @@ public class WardTunerItem extends Item {
         CompoundTag tag = context.getItemInHand().getOrCreateTag();
         tag.putLong(TAG_WARD_STONE, pos.asLong());
         tag.putString(TAG_DIMENSION, level.dimension().location().toString());
+    }
+
+    public static boolean hasBoundWardStone(net.minecraft.world.item.ItemStack stack) {
+        CompoundTag tag = stack.getOrCreateTag();
+        return tag.contains(TAG_WARD_STONE) && tag.contains(TAG_DIMENSION);
+    }
+
+    public static boolean isBoundToDimension(net.minecraft.world.item.ItemStack stack, ServerLevel level) {
+        ResourceLocation storedDimension = ResourceLocation.tryParse(stack.getOrCreateTag().getString(TAG_DIMENSION));
+        return level.dimension().location().equals(storedDimension);
+    }
+
+    public static BlockPos boundWardStone(net.minecraft.world.item.ItemStack stack) {
+        return BlockPos.of(stack.getOrCreateTag().getLong(TAG_WARD_STONE));
     }
 }

@@ -114,8 +114,13 @@ public class GuideBookScreen extends Screen {
                     )),
                     new Page("Spell Paper", "Portable recipes", List.of(
                             "Spell paper carries one crafted spell recipe.",
-                            "Use it to teach a wand, feed a ward, or save a useful build for later.",
+                            "Use it to teach a wand or save a useful build for later.",
                             "Paper is helpful when you are not ready to commit a spell to your main wand."
+                    )),
+                    new Page("Ward Diagrams", "Ward-only recipes", List.of(
+                            "Ward recipes are drawn as Ward Diagrams instead of being taught to wands.",
+                            "Use a Ward Diagram on the master Ward Stone to cast it into the ward volume.",
+                            "A Ward Diagram is consumed when the ward is successfully applied."
                     ))
             )),
             new Chapter("Spellcraft", "Building spells", List.of(
@@ -152,7 +157,8 @@ public class GuideBookScreen extends Screen {
                     new Page("Outputs", "Where the result goes", List.of(
                             "Add to Wand teaches the held wand.",
                             "Make Spell Paper creates a portable spell recipe.",
-                            "Add to Grimoire stores the spell in a grimoire."
+                            "Ward recipes make Ward Diagrams and can only be applied to Ward Stones.",
+                            "Add to Grimoire stores non-ward spells in a grimoire."
                     ))
             )),
             new Chapter("Ingredients", "Costs and requirements", List.of(

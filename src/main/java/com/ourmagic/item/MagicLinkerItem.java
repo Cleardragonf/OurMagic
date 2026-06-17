@@ -1,6 +1,9 @@
 package com.ourmagic.item;
 
 import com.ourmagic.block.entity.MagicAccumulatorBlockEntity;
+import com.ourmagic.block.entity.MagicBatteryBlockEntity;
+import com.ourmagic.block.entity.MagicFlowConverterBlockEntity;
+import com.ourmagic.block.entity.WardStoneBlockEntity;
 import com.ourmagic.magic.energy.MagicEnergyReceiver;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -34,45 +37,67 @@ public class MagicLinkerItem extends Item {
         }
 
         BlockPos clicked = context.getClickedPos();
-        BlockEntity clickedEntity = level.getBlockEntity(clicked);
+        BlockEntity clickedEntity = clickedEntity(serverLevel, clicked);
+        if (player.isSprinting() && clickedEntity instanceof MagicAccumulatorBlockEntity accumulator) {
+            accumulator.cycleTransferMode();
+            player.displayClientMessage(Component.literal("Accumulator mode: " + accumulator.transferMode().displayName())
+                    .withStyle(ChatFormatting.AQUA), false);
+            return InteractionResult.CONSUME;
+        }
         if (player.isShiftKeyDown()) {
-            if (clickedEntity instanceof MagicAccumulatorBlockEntity accumulator) {
-                accumulator.cycleTransferMode();
-                player.displayClientMessage(Component.literal("Accumulator mode: " + accumulator.transferMode().displayName())
-                        .withStyle(ChatFormatting.AQUA), false);
-            } else {
-                clearSource(context);
-                player.displayClientMessage(Component.literal("Magic Linker source cleared.").withStyle(ChatFormatting.YELLOW), false);
-            }
+            clearSource(context);
+            player.displayClientMessage(Component.literal("Magic Linker source cleared.").withStyle(ChatFormatting.YELLOW), false);
             return InteractionResult.CONSUME;
         }
 
-        if (clickedEntity instanceof MagicAccumulatorBlockEntity source && !hasSource(context)) {
+        if ((clickedEntity instanceof MagicAccumulatorBlockEntity || clickedEntity instanceof MagicBatteryBlockEntity || clickedEntity instanceof MagicFlowConverterBlockEntity) && !hasSource(context)) {
             rememberSource(context, serverLevel, clicked);
-            player.displayClientMessage(Component.literal("Magic Linker source set to accumulator at " + clicked.toShortString() + ".")
+            player.displayClientMessage(Component.literal("Magic Linker source set to " + sourceName(clickedEntity) + " at " + clicked.toShortString() + ".")
                     .withStyle(ChatFormatting.AQUA), false);
             return InteractionResult.CONSUME;
         }
 
         if (!hasSource(context)) {
-            player.displayClientMessage(Component.literal("Click an accumulator first, then a magic receiver.").withStyle(ChatFormatting.YELLOW), false);
+            player.displayClientMessage(Component.literal("Click an accumulator, Magic Battery, or Magic Flow Converter first, then a compatible target.").withStyle(ChatFormatting.YELLOW), false);
             return InteractionResult.CONSUME;
         }
 
         ResourceLocation storedDimension = ResourceLocation.tryParse(context.getItemInHand().getOrCreateTag().getString(TAG_DIMENSION));
         if (!serverLevel.dimension().location().equals(storedDimension)) {
-            player.displayClientMessage(Component.literal("That accumulator is in another dimension.").withStyle(ChatFormatting.RED), false);
+            player.displayClientMessage(Component.literal("That magic source is in another dimension.").withStyle(ChatFormatting.RED), false);
             return InteractionResult.CONSUME;
         }
 
         BlockPos sourcePos = BlockPos.of(context.getItemInHand().getOrCreateTag().getLong(TAG_SOURCE));
         BlockEntity sourceEntity = level.getBlockEntity(sourcePos);
-        if (!(sourceEntity instanceof MagicAccumulatorBlockEntity source)) {
-            clearSource(context);
-            player.displayClientMessage(Component.literal("Stored accumulator no longer exists. Source cleared.").withStyle(ChatFormatting.RED), false);
+        if (sourceEntity instanceof MagicFlowConverterBlockEntity converter) {
+            if (WardStoneBlockEntity.findMultiblock(serverLevel, clicked).isEmpty()) {
+                player.displayClientMessage(Component.literal("Magic Flow Converters link to Ward Stones.").withStyle(ChatFormatting.YELLOW), false);
+                return InteractionResult.CONSUME;
+            }
+            MagicFlowConverterBlockEntity.LinkResult result = converter.toggleWardLink(clicked);
+            ChatFormatting color = result.success() ? ChatFormatting.AQUA : ChatFormatting.RED;
+            player.displayClientMessage(Component.literal(result.message()).withStyle(color), false);
             return InteractionResult.CONSUME;
         }
-        if (!(clickedEntity instanceof MagicEnergyReceiver)) {
+
+        if (sourceEntity instanceof MagicBatteryBlockEntity battery) {
+            if (magicReceiver(serverLevel, clicked).isEmpty()) {
+                player.displayClientMessage(Component.literal("That block cannot receive magic energy.").withStyle(ChatFormatting.YELLOW), false);
+                return InteractionResult.CONSUME;
+            }
+            MagicBatteryBlockEntity.LinkResult result = battery.toggleLink(clicked);
+            ChatFormatting color = result.success() ? ChatFormatting.AQUA : ChatFormatting.RED;
+            player.displayClientMessage(Component.literal(result.message()).withStyle(color), false);
+            return InteractionResult.CONSUME;
+        }
+
+        if (!(sourceEntity instanceof MagicAccumulatorBlockEntity source)) {
+            clearSource(context);
+            player.displayClientMessage(Component.literal("Stored magic source no longer exists. Source cleared.").withStyle(ChatFormatting.RED), false);
+            return InteractionResult.CONSUME;
+        }
+        if (magicReceiver(serverLevel, clicked).isEmpty()) {
             player.displayClientMessage(Component.literal("That block cannot receive magic energy.").withStyle(ChatFormatting.YELLOW), false);
             return InteractionResult.CONSUME;
         }
@@ -81,6 +106,22 @@ public class MagicLinkerItem extends Item {
         ChatFormatting color = result.success() ? ChatFormatting.AQUA : ChatFormatting.RED;
         player.displayClientMessage(Component.literal(result.message()).withStyle(color), false);
         return InteractionResult.CONSUME;
+    }
+
+    private static BlockEntity clickedEntity(ServerLevel level, BlockPos pos) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity != null) {
+            return blockEntity;
+        }
+        return WardStoneBlockEntity.getOrCreate(level, pos).map(wardStone -> (BlockEntity) wardStone).orElse(null);
+    }
+
+    private static java.util.Optional<MagicEnergyReceiver> magicReceiver(ServerLevel level, BlockPos pos) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity instanceof MagicEnergyReceiver receiver) {
+            return java.util.Optional.of(receiver);
+        }
+        return WardStoneBlockEntity.getOrCreate(level, pos).map(wardStone -> (MagicEnergyReceiver) wardStone);
     }
 
     private static boolean hasSource(UseOnContext context) {
@@ -98,5 +139,15 @@ public class MagicLinkerItem extends Item {
         CompoundTag tag = context.getItemInHand().getOrCreateTag();
         tag.remove(TAG_SOURCE);
         tag.remove(TAG_DIMENSION);
+    }
+
+    private static String sourceName(BlockEntity source) {
+        if (source instanceof MagicFlowConverterBlockEntity) {
+            return "Magic Flow Converter";
+        }
+        if (source instanceof MagicBatteryBlockEntity) {
+            return "Magic Battery";
+        }
+        return "accumulator";
     }
 }

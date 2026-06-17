@@ -100,6 +100,9 @@ public final class WandTemplates {
     private static List<WandData.WandSpellData> adminSpells() {
         List<WandData.WandSpellData> spells = new ArrayList<>();
         for (Spell spell : SpellRegistry.all()) {
+            if (SpellRegistry.isWardRecipe(spell.key())) {
+                continue;
+            }
             spells.add(new WandData.WandSpellData(spell.key(), 0, 5));
         }
         return spells;
