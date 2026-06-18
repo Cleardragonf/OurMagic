@@ -11,16 +11,28 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.phys.BlockHitResult;
 
 import javax.annotation.Nullable;
 
 public class MagicFlowConverterBlock extends BaseEntityBlock {
+    private static final VoxelShape SHAPE = Shapes.or(
+            box(2.0D, 0.0D, 2.0D, 14.0D, 4.0D, 14.0D),
+            box(5.0D, 4.0D, 5.0D, 11.0D, 12.0D, 11.0D),
+            box(0.0D, 4.0D, 6.0D, 4.0D, 10.0D, 10.0D),
+            box(12.0D, 4.0D, 6.0D, 16.0D, 10.0D, 10.0D),
+            box(6.0D, 12.0D, 6.0D, 10.0D, 15.0D, 10.0D)
+    ).optimize();
+
     public MagicFlowConverterBlock(Properties properties) {
         super(properties);
     }
@@ -34,6 +46,16 @@ public class MagicFlowConverterBlock extends BaseEntityBlock {
     @Override
     public RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return SHAPE;
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return SHAPE;
     }
 
     @Override

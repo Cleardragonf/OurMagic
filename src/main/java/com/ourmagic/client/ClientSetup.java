@@ -31,6 +31,11 @@ public final class ClientSetup {
             ItemBlockRenderTypes.setRenderLayer(ModBlocks.TEMPORARY_SHIELD.get(), RenderType.translucent());
             ItemBlockRenderTypes.setRenderLayer(ModBlocks.WARD_BOUNDARY.get(), RenderType.translucent());
             BlockEntityRenderers.register(ModBlockEntities.WARD_CAMOUFLAGE.get(), WardCamouflageBlockEntityRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.MAGIC_BATTERY.get(), MagicBatteryBlockEntityRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.WARD_STONE.get(), WardStoneBlockEntityRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.MAGIC_RELAY.get(), MagicRelayBlockEntityRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.CREATIVE_RF_GENERATOR.get(), CreativeRfGeneratorBlockEntityRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.TELEPORT_PORTAL.get(), TeleportPortalBlockEntityRenderer::new);
         });
     }
 

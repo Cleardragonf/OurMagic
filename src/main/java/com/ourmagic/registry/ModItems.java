@@ -43,6 +43,7 @@ public final class ModItems {
     public static final RegistryObject<Item> WARD_STONE = ITEMS.register("ward_stone", () -> new BlockItem(ModBlocks.WARD_STONE.get(), new Item.Properties()));
     public static final RegistryObject<Item> MAGIC_FLOW_CONVERTER = ITEMS.register("magic_flow_converter", () -> new BlockItem(ModBlocks.MAGIC_FLOW_CONVERTER.get(), new Item.Properties()));
     public static final RegistryObject<Item> MAGIC_BATTERY = ITEMS.register("magic_battery", () -> new BlockItem(ModBlocks.MAGIC_BATTERY.get(), new Item.Properties()));
+    public static final RegistryObject<Item> MAGIC_RELAY = ITEMS.register("magic_relay", () -> new BlockItem(ModBlocks.MAGIC_RELAY.get(), new Item.Properties()));
     public static final RegistryObject<Item> ARCANE_ACCUMULATOR = ITEMS.register("arcane_accumulator", () -> new BlockItem(ModBlocks.ARCANE_ACCUMULATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> DARK_ACCUMULATOR = ITEMS.register("dark_accumulator", () -> new BlockItem(ModBlocks.DARK_ACCUMULATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> FIRE_ACCUMULATOR = ITEMS.register("fire_accumulator", () -> new BlockItem(ModBlocks.FIRE_ACCUMULATOR.get(), new Item.Properties()));
@@ -52,6 +53,7 @@ public final class ModItems {
     public static final RegistryObject<Item> STORM_ACCUMULATOR = ITEMS.register("storm_accumulator", () -> new BlockItem(ModBlocks.STORM_ACCUMULATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> CREATIVE_RF_GENERATOR = ITEMS.register("creative_rf_generator", () -> new BlockItem(ModBlocks.CREATIVE_RF_GENERATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> WARD_PERIMETER_STONE = ITEMS.register("ward_perimeter_stone", () -> new BlockItem(ModBlocks.WARD_PERIMETER_STONE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> TELEPORT_PORTAL = ITEMS.register("teleport_portal", () -> new BlockItem(ModBlocks.TELEPORT_PORTAL.get(), new Item.Properties()));
     public static final RegistryObject<Item> WARLOCK_SPAWN_EGG = ITEMS.register("warlock_spawn_egg", () -> new ForgeSpawnEggItem(ModEntities.WARLOCK, 0x2A1734, 0xC66CFF, new Item.Properties()));
 
     private ModItems() {

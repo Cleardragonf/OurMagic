@@ -3,6 +3,7 @@ package com.ourmagic.network;
 import com.ourmagic.block.entity.MagicAccumulatorBlockEntity;
 import com.ourmagic.block.entity.MagicBatteryBlockEntity;
 import com.ourmagic.block.entity.MagicFlowConverterBlockEntity;
+import com.ourmagic.block.entity.MagicRelayBlockEntity;
 import com.ourmagic.item.WardTunerItem;
 import com.ourmagic.magic.energy.MagicEnergyReceiver;
 import com.ourmagic.magic.energy.MagicEnergyType;
@@ -80,7 +81,6 @@ public record MagicLinkHudQueryPacket(BlockPos pos) {
                     : Optional.empty();
             Optional<WorldWards.HudSummary> summary = WorldWards.hudSummary(level, pos, selectedAnchor);
             if (summary.isPresent()) {
-                summary.get().outlineAnchor().ifPresent(anchor -> WorldWards.showOutline(level, anchor));
                 return new HudData(summary.get().title(), summary.get().lines());
             }
         }
@@ -97,7 +97,7 @@ public record MagicLinkHudQueryPacket(BlockPos pos) {
                     progressLine("Stored", accumulator.stored(), accumulator.capacity()),
                     "Output: " + accumulator.lastPushed() + " ME/t",
                     "Mode: " + accumulator.transferMode().displayName(),
-                    "Links: " + accumulator.linkCount() + "/" + accumulator.maxLinks()
+                    linkLine(accumulator.linkCount(), accumulator.inboundLinkCount(), accumulator.maxLinks())
             ));
         }
         if (blockEntity instanceof MagicBatteryBlockEntity) {
@@ -107,11 +107,20 @@ public record MagicLinkHudQueryPacket(BlockPos pos) {
             }
             List<String> lines = new ArrayList<>();
             lines.add("Blocks: " + battery.multiblockSize() + "  Cap/type: " + battery.capacity());
-            lines.add("Links: " + battery.linkCount() + "/" + battery.maxLinks());
+            lines.add(linkLine(battery.linkCount(), battery.inboundLinkCount(), battery.maxLinks()));
             for (MagicEnergyType type : MagicEnergyType.values()) {
                 lines.add(progressLine(type.displayName(), battery.stored(type), battery.capacity()));
             }
             return new HudData("Magic Battery", lines);
+        }
+        if (blockEntity instanceof MagicRelayBlockEntity relay) {
+            List<String> lines = new ArrayList<>();
+            lines.add("Output: " + relay.lastPushed() + " ME/t");
+            lines.add(linkLine(relay.linkCount(), relay.inboundLinkCount(), relay.maxLinks()));
+            for (MagicEnergyType type : MagicEnergyType.values()) {
+                lines.add(progressLine(type.displayName(), relay.stored(type), relay.capacity()));
+            }
+            return new HudData("Magic Relay", lines);
         }
         if (blockEntity instanceof MagicFlowConverterBlockEntity converter) {
             return new HudData("Magic Flow Converter", List.of(
@@ -150,6 +159,10 @@ public record MagicLinkHudQueryPacket(BlockPos pos) {
 
     private static String progressLine(String label, int value, int max) {
         return "@bar|" + label + "|" + Math.max(0, value) + "|" + Math.max(1, max);
+    }
+
+    private static String linkLine(int outgoing, int incoming, int max) {
+        return "Links: " + (outgoing + incoming) + "/" + max + " (in " + incoming + ", out " + outgoing + ")";
     }
 
     private static HudData energyCapabilityData(BlockEntity blockEntity) {

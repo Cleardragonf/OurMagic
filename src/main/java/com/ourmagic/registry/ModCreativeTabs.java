@@ -42,6 +42,7 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.WARD_STONE.get());
                 output.accept(ModItems.MAGIC_FLOW_CONVERTER.get());
                 output.accept(ModItems.MAGIC_BATTERY.get());
+                output.accept(ModItems.MAGIC_RELAY.get());
                 output.accept(ModItems.ARCANE_ACCUMULATOR.get());
                 output.accept(ModItems.DARK_ACCUMULATOR.get());
                 output.accept(ModItems.FIRE_ACCUMULATOR.get());
@@ -51,6 +52,7 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.STORM_ACCUMULATOR.get());
                 output.accept(ModItems.CREATIVE_RF_GENERATOR.get());
                 output.accept(ModItems.WARD_PERIMETER_STONE.get());
+                output.accept(ModItems.TELEPORT_PORTAL.get());
                 output.accept(ModItems.WARLOCK_SPAWN_EGG.get());
             })
             .build());

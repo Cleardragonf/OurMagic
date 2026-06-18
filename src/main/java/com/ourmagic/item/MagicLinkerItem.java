@@ -3,6 +3,8 @@ package com.ourmagic.item;
 import com.ourmagic.block.entity.MagicAccumulatorBlockEntity;
 import com.ourmagic.block.entity.MagicBatteryBlockEntity;
 import com.ourmagic.block.entity.MagicFlowConverterBlockEntity;
+import com.ourmagic.block.entity.MagicRelayBlockEntity;
+import com.ourmagic.block.entity.TeleportPortalBlockEntity;
 import com.ourmagic.block.entity.WardStoneBlockEntity;
 import com.ourmagic.magic.energy.MagicEnergyReceiver;
 import net.minecraft.ChatFormatting;
@@ -50,7 +52,7 @@ public class MagicLinkerItem extends Item {
             return InteractionResult.CONSUME;
         }
 
-        if ((clickedEntity instanceof MagicAccumulatorBlockEntity || clickedEntity instanceof MagicBatteryBlockEntity || clickedEntity instanceof MagicFlowConverterBlockEntity) && !hasSource(context)) {
+        if ((clickedEntity instanceof MagicAccumulatorBlockEntity || clickedEntity instanceof MagicBatteryBlockEntity || clickedEntity instanceof MagicFlowConverterBlockEntity || clickedEntity instanceof MagicRelayBlockEntity || clickedEntity instanceof TeleportPortalBlockEntity) && !hasSource(context)) {
             rememberSource(context, serverLevel, clicked);
             player.displayClientMessage(Component.literal("Magic Linker source set to " + sourceName(clickedEntity) + " at " + clicked.toShortString() + ".")
                     .withStyle(ChatFormatting.AQUA), false);
@@ -87,6 +89,28 @@ public class MagicLinkerItem extends Item {
                 return InteractionResult.CONSUME;
             }
             MagicBatteryBlockEntity.LinkResult result = battery.toggleLink(clicked);
+            ChatFormatting color = result.success() ? ChatFormatting.AQUA : ChatFormatting.RED;
+            player.displayClientMessage(Component.literal(result.message()).withStyle(color), false);
+            return InteractionResult.CONSUME;
+        }
+
+        if (sourceEntity instanceof MagicRelayBlockEntity relay) {
+            if (magicReceiver(serverLevel, clicked).isEmpty()) {
+                player.displayClientMessage(Component.literal("That block cannot receive magic energy.").withStyle(ChatFormatting.YELLOW), false);
+                return InteractionResult.CONSUME;
+            }
+            MagicRelayBlockEntity.LinkResult result = relay.toggleLink(clicked);
+            ChatFormatting color = result.success() ? ChatFormatting.AQUA : ChatFormatting.RED;
+            player.displayClientMessage(Component.literal(result.message()).withStyle(color), false);
+            return InteractionResult.CONSUME;
+        }
+
+        if (sourceEntity instanceof TeleportPortalBlockEntity portal) {
+            if (!(clickedEntity instanceof TeleportPortalBlockEntity)) {
+                player.displayClientMessage(Component.literal("Teleportation Portals link to other Teleportation Portals.").withStyle(ChatFormatting.YELLOW), false);
+                return InteractionResult.CONSUME;
+            }
+            TeleportPortalBlockEntity.LinkResult result = portal.toggleLink(serverLevel, clicked);
             ChatFormatting color = result.success() ? ChatFormatting.AQUA : ChatFormatting.RED;
             player.displayClientMessage(Component.literal(result.message()).withStyle(color), false);
             return InteractionResult.CONSUME;
@@ -147,6 +171,12 @@ public class MagicLinkerItem extends Item {
         }
         if (source instanceof MagicBatteryBlockEntity) {
             return "Magic Battery";
+        }
+        if (source instanceof MagicRelayBlockEntity) {
+            return "Magic Relay";
+        }
+        if (source instanceof TeleportPortalBlockEntity) {
+            return "Teleportation Portal";
         }
         return "accumulator";
     }

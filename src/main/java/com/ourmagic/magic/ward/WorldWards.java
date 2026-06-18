@@ -2,6 +2,7 @@ package com.ourmagic.magic.ward;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.block.WardBoundaryBlock;
+import com.ourmagic.block.WardBlock;
 import com.ourmagic.block.entity.WardCamouflageBlockEntity;
 import com.ourmagic.block.entity.WardStoneBlockEntity;
 import com.ourmagic.magic.Spell;
@@ -58,7 +59,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.FallingBlock;
 import net.minecraft.world.level.block.LeavesBlock;
-import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -455,7 +455,7 @@ public class WorldWards extends SavedData {
 
         if (activeWards.isEmpty()) {
             lines.add("No active ward drain");
-            return Optional.of(new HudSummary("Ward Stone MF", List.copyOf(lines), Optional.empty()));
+            return Optional.of(new HudSummary("WardStone MF", List.copyOf(lines), Optional.empty()));
         }
 
         int totalPassive = 0;
@@ -467,16 +467,7 @@ public class WorldWards extends SavedData {
         }
         lines.add("Total drain: " + totalPassive + " MF/s");
         lines.add("Active use: up to " + totalActive + " MF");
-
-        for (ActiveWard ward : activeWards.stream().limit(3).toList()) {
-            List<String> payloads = SpellRegistry.payloadParts(ward.spellKey);
-            lines.add(ward.displayName + " (" + wardMagicTypes(payloads) + "): " + passiveWardCostPerSecond(ward, payloads) + "/s, " + activeWardCost(payloads) + "/use");
-            lines.add("  " + compactHudLine(wardCostBreakdown(ward, payloads), 92));
-        }
-        if (activeWards.size() > 3) {
-            lines.add("+" + (activeWards.size() - 3) + " more wards");
-        }
-        return Optional.of(new HudSummary("Ward Stone MF", List.copyOf(lines), Optional.empty()));
+        return Optional.of(new HudSummary("WardStone MF", List.copyOf(lines), Optional.empty()));
     }
 
     public static boolean showOutline(ServerLevel level, BlockPos anchor) {
@@ -1214,7 +1205,7 @@ public class WorldWards extends SavedData {
             return;
         }
 
-        if (light || airBubble) {
+        if (airBubble) {
             maintainBoundaryShell(level, ward, airBubble);
         }
         if (camouflage) {
@@ -1248,14 +1239,20 @@ public class WorldWards extends SavedData {
                     continue;
                 }
             }
-            if (light && state.is(Blocks.LIGHT)) {
-                if (!shouldPlaceLightSource(ward, pos)) {
+            if (light && !airBubble && state.is(ModBlocks.WARD_BOUNDARY.get())) {
+                level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+                continue;
+            }
+            if (light && state.is(ModBlocks.WARD.get())) {
+                if (!shouldPlaceWardInterior(ward, pos)) {
                     level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+                } else if (state.getValue(WardBlock.LEVEL) != 15) {
+                    level.setBlock(pos, state.setValue(WardBlock.LEVEL, 15), 3);
                 }
                 continue;
             }
-            if (light && shouldPlaceLightSource(ward, pos) && state.isAir()) {
-                level.setBlock(pos, Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 15), 3);
+            if (light && shouldPlaceWardInterior(ward, pos) && state.isAir()) {
+                level.setBlock(pos, ModBlocks.WARD.get().defaultBlockState().setValue(WardBlock.LEVEL, 15), 3);
                 continue;
             }
             if ((fertility || light || grow) && level.getGameTime() % growthInterval(light, fertility, grow) == 0 && state.getBlock() instanceof BonemealableBlock growable && growable.isValidBonemealTarget(level, pos, state, false)) {
@@ -1522,7 +1519,7 @@ public class WorldWards extends SavedData {
     private static void removeWardInfrastructure(ServerLevel level, ActiveWard ward) {
         for (long space : ward.spaces) {
             BlockPos pos = BlockPos.of(space);
-            if (level.getBlockState(pos).is(Blocks.LIGHT) || level.getBlockState(pos).is(ModBlocks.WARD_BOUNDARY.get())) {
+            if (level.getBlockState(pos).is(ModBlocks.WARD.get()) || level.getBlockState(pos).is(ModBlocks.WARD_BOUNDARY.get())) {
                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
             }
         }
@@ -1548,7 +1545,7 @@ public class WorldWards extends SavedData {
                 }
                 continue;
             }
-            if (state.isAir() || state.is(Blocks.LIGHT) || replaceWater && state.getFluidState().is(FluidTags.WATER)) {
+            if (state.isAir() || state.is(ModBlocks.WARD.get()) || replaceWater && state.getFluidState().is(FluidTags.WATER)) {
                 level.setBlock(pos, boundaryState, 3);
             }
         }
@@ -1677,7 +1674,7 @@ public class WorldWards extends SavedData {
         return !ward.camouflageSpaces.contains(pos.asLong())
                 && !state.isAir()
                 && state.getFluidState().isEmpty()
-                && !state.is(Blocks.LIGHT)
+                && !state.is(ModBlocks.WARD.get())
                 && !state.is(ModBlocks.WARD_STONE.get())
                 && !state.is(ModBlocks.WARD_PERIMETER_STONE.get())
                 && !state.is(ModBlocks.WARD_CAMOUFLAGE.get())
@@ -1710,7 +1707,7 @@ public class WorldWards extends SavedData {
             return false;
         }
         return state.isAir()
-                || state.is(Blocks.LIGHT)
+                || state.is(ModBlocks.WARD.get())
                 || state.is(ModBlocks.WARD_BOUNDARY.get())
                 || state.is(ModBlocks.WARD_CAMOUFLAGE.get())
                 || state.is(ModBlocks.WARD_PERIMETER_STONE.get())
@@ -1881,7 +1878,7 @@ public class WorldWards extends SavedData {
         return !state.isAir()
                 && state.getFluidState().isEmpty()
                 && !state.hasBlockEntity()
-                && !state.is(Blocks.LIGHT)
+                && !state.is(ModBlocks.WARD.get())
                 && !state.is(ModBlocks.WARD_STONE.get())
                 && !state.is(ModBlocks.WARD_PERIMETER_STONE.get())
                 && !state.is(ModBlocks.WARD_CAMOUFLAGE.get())
@@ -1930,30 +1927,11 @@ public class WorldWards extends SavedData {
                 || pos.getZ() == minZ || pos.getZ() == maxZ;
     }
 
-    private static boolean shouldPlaceLightSource(ActiveWard ward, BlockPos pos) {
+    private static boolean shouldPlaceWardInterior(ActiveWard ward, BlockPos pos) {
         if (isBoundaryPosition(ward, pos)) {
             return false;
         }
-        int minX = (int) Math.floor(ward.bounds.minX);
-        int minY = (int) Math.floor(ward.bounds.minY);
-        int minZ = (int) Math.floor(ward.bounds.minZ);
-        int maxX = (int) Math.ceil(ward.bounds.maxX) - 1;
-        int maxY = (int) Math.ceil(ward.bounds.maxY) - 1;
-        int maxZ = (int) Math.ceil(ward.bounds.maxZ) - 1;
-
-        if (maxX - minX > 5 && (pos.getX() <= minX + 1 || pos.getX() >= maxX - 1)) {
-            return false;
-        }
-        if (maxY - minY > 5 && (pos.getY() <= minY + 1 || pos.getY() >= maxY - 1)) {
-            return false;
-        }
-        if (maxZ - minZ > 5 && (pos.getZ() <= minZ + 1 || pos.getZ() >= maxZ - 1)) {
-            return false;
-        }
-
-        return Math.floorMod(pos.getX() - minX, 3) == 0
-                && Math.floorMod(pos.getY() - minY, 3) == 0
-                && Math.floorMod(pos.getZ() - minZ, 3) == 0;
+        return ward.spaces.contains(pos.asLong());
     }
 
     private static int growthInterval(boolean light, boolean fertility, boolean grow) {

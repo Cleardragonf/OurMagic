@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "ourmagic:block/magic_relay"
+    }
+  }
+}

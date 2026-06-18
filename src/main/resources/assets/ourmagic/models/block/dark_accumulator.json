@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:block/cube_all",
   "textures": {
-    "all": "minecraft:block/sculk"
+    "all": "ourmagic:block/dark_accumulator"
   }
 }

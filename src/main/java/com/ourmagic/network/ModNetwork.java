@@ -106,6 +106,16 @@ public final class ModNetwork {
                 .decoder(MagicLinkHudDataPacket::decode)
                 .consumerMainThread(MagicLinkHudDataPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(TeleportPortalDataPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(TeleportPortalDataPacket::encode)
+                .decoder(TeleportPortalDataPacket::decode)
+                .consumerMainThread(TeleportPortalDataPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(TeleportPortalUpdatePacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(TeleportPortalUpdatePacket::encode)
+                .decoder(TeleportPortalUpdatePacket::decode)
+                .consumerMainThread(TeleportPortalUpdatePacket::handle)
+                .add();
     }
 
     public static void syncMana(ServerPlayer player, PlayerMana mana) {

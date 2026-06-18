@@ -1,0 +1,96 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "ourmagic:block/magic_relay",
+    "crystal": "ourmagic:block/magic_relay"
+  },
+  "elements": [
+    {
+      "from": [5, 5, 5],
+      "to": [11, 11, 11],
+      "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+      "faces": {
+        "north": { "texture": "#crystal" },
+        "east": { "texture": "#crystal" },
+        "south": { "texture": "#crystal" },
+        "west": { "texture": "#crystal" },
+        "up": { "texture": "#crystal" },
+        "down": { "texture": "#crystal" }
+      }
+    },
+    {
+      "from": [6.5, 11, 6.5],
+      "to": [9.5, 15, 9.5],
+      "rotation": { "origin": [8, 11, 8], "axis": "y", "angle": 45 },
+      "faces": {
+        "north": { "texture": "#crystal" },
+        "east": { "texture": "#crystal" },
+        "south": { "texture": "#crystal" },
+        "west": { "texture": "#crystal" },
+        "up": { "texture": "#crystal" },
+        "down": { "texture": "#crystal" }
+      }
+    },
+    {
+      "from": [6.5, 1, 6.5],
+      "to": [9.5, 5, 9.5],
+      "rotation": { "origin": [8, 5, 8], "axis": "y", "angle": 45 },
+      "faces": {
+        "north": { "texture": "#crystal" },
+        "east": { "texture": "#crystal" },
+        "south": { "texture": "#crystal" },
+        "west": { "texture": "#crystal" },
+        "up": { "texture": "#crystal" },
+        "down": { "texture": "#crystal" }
+      }
+    },
+    {
+      "from": [3, 7, 7],
+      "to": [5, 9, 9],
+      "faces": {
+        "north": { "texture": "#crystal" },
+        "east": { "texture": "#crystal" },
+        "south": { "texture": "#crystal" },
+        "west": { "texture": "#crystal" },
+        "up": { "texture": "#crystal" },
+        "down": { "texture": "#crystal" }
+      }
+    },
+    {
+      "from": [11, 7, 7],
+      "to": [13, 9, 9],
+      "faces": {
+        "north": { "texture": "#crystal" },
+        "east": { "texture": "#crystal" },
+        "south": { "texture": "#crystal" },
+        "west": { "texture": "#crystal" },
+        "up": { "texture": "#crystal" },
+        "down": { "texture": "#crystal" }
+      }
+    },
+    {
+      "from": [7, 7, 3],
+      "to": [9, 9, 5],
+      "faces": {
+        "north": { "texture": "#crystal" },
+        "east": { "texture": "#crystal" },
+        "south": { "texture": "#crystal" },
+        "west": { "texture": "#crystal" },
+        "up": { "texture": "#crystal" },
+        "down": { "texture": "#crystal" }
+      }
+    },
+    {
+      "from": [7, 7, 11],
+      "to": [9, 9, 13],
+      "faces": {
+        "north": { "texture": "#crystal" },
+        "east": { "texture": "#crystal" },
+        "south": { "texture": "#crystal" },
+        "west": { "texture": "#crystal" },
+        "up": { "texture": "#crystal" },
+        "down": { "texture": "#crystal" }
+      }
+    }
+  ]
+}

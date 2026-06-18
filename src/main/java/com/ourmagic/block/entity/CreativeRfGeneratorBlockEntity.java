@@ -43,6 +43,10 @@ public class CreativeRfGeneratorBlockEntity extends BlockEntity {
         return "Unlimited RF. Pushes up to " + RF_PUSH_PER_SIDE_PER_TICK + " RF/t per side. Last tick: " + lastTickPushed + " RF.";
     }
 
+    public int lastTickPushed() {
+        return lastTickPushed;
+    }
+
     @Override
     public <T> LazyOptional<T> getCapability(net.minecraftforge.common.capabilities.Capability<T> capability, @Nullable Direction side) {
         if (capability == ForgeCapabilities.ENERGY) {

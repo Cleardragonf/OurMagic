@@ -1,6 +1,90 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "parent": "minecraft:block/block",
   "textures": {
-    "all": "minecraft:block/lodestone_side"
-  }
+    "particle": "ourmagic:block/magic_flow_converter",
+    "converter": "ourmagic:block/magic_flow_converter"
+  },
+  "elements": [
+    {
+      "from": [2, 0, 2],
+      "to": [14, 4, 14],
+      "faces": {
+        "north": { "texture": "#converter" },
+        "east": { "texture": "#converter" },
+        "south": { "texture": "#converter" },
+        "west": { "texture": "#converter" },
+        "up": { "texture": "#converter" },
+        "down": { "texture": "#converter" }
+      }
+    },
+    {
+      "from": [5, 4, 5],
+      "to": [11, 12, 11],
+      "faces": {
+        "north": { "texture": "#converter" },
+        "east": { "texture": "#converter" },
+        "south": { "texture": "#converter" },
+        "west": { "texture": "#converter" },
+        "up": { "texture": "#converter" },
+        "down": { "texture": "#converter" }
+      }
+    },
+    {
+      "from": [0, 4, 6],
+      "to": [4, 10, 10],
+      "faces": {
+        "north": { "texture": "#converter" },
+        "east": { "texture": "#converter" },
+        "south": { "texture": "#converter" },
+        "west": { "texture": "#converter" },
+        "up": { "texture": "#converter" },
+        "down": { "texture": "#converter" }
+      }
+    },
+    {
+      "from": [12, 4, 6],
+      "to": [16, 10, 10],
+      "faces": {
+        "north": { "texture": "#converter" },
+        "east": { "texture": "#converter" },
+        "south": { "texture": "#converter" },
+        "west": { "texture": "#converter" },
+        "up": { "texture": "#converter" },
+        "down": { "texture": "#converter" }
+      }
+    },
+    {
+      "from": [6, 12, 6],
+      "to": [10, 15, 10],
+      "rotation": { "origin": [8, 12, 8], "axis": "y", "angle": 45 },
+      "faces": {
+        "north": { "texture": "#converter" },
+        "east": { "texture": "#converter" },
+        "south": { "texture": "#converter" },
+        "west": { "texture": "#converter" },
+        "up": { "texture": "#converter" },
+        "down": { "texture": "#converter" }
+      }
+    },
+    {
+      "from": [4, 7, 7],
+      "to": [5, 9, 9],
+      "faces": {
+        "north": { "texture": "#converter" },
+        "south": { "texture": "#converter" },
+        "up": { "texture": "#converter" },
+        "down": { "texture": "#converter" }
+      }
+    },
+    {
+      "from": [11, 7, 7],
+      "to": [12, 9, 9],
+      "faces": {
+        "north": { "texture": "#converter" },
+        "south": { "texture": "#converter" },
+        "up": { "texture": "#converter" },
+        "down": { "texture": "#converter" }
+      }
+    }
+  ]
 }

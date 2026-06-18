@@ -5,6 +5,8 @@ import com.ourmagic.block.entity.CreativeRfGeneratorBlockEntity;
 import com.ourmagic.block.entity.MagicAccumulatorBlockEntity;
 import com.ourmagic.block.entity.MagicBatteryBlockEntity;
 import com.ourmagic.block.entity.MagicFlowConverterBlockEntity;
+import com.ourmagic.block.entity.MagicRelayBlockEntity;
+import com.ourmagic.block.entity.TeleportPortalBlockEntity;
 import com.ourmagic.block.entity.WardCamouflageBlockEntity;
 import com.ourmagic.block.entity.WardStoneBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -22,6 +24,8 @@ public final class ModBlockEntities {
             () -> BlockEntityType.Builder.of(MagicFlowConverterBlockEntity::new, ModBlocks.MAGIC_FLOW_CONVERTER.get()).build(null));
     public static final RegistryObject<BlockEntityType<MagicBatteryBlockEntity>> MAGIC_BATTERY = BLOCK_ENTITIES.register("magic_battery",
             () -> BlockEntityType.Builder.of(MagicBatteryBlockEntity::new, ModBlocks.MAGIC_BATTERY.get()).build(null));
+    public static final RegistryObject<BlockEntityType<MagicRelayBlockEntity>> MAGIC_RELAY = BLOCK_ENTITIES.register("magic_relay",
+            () -> BlockEntityType.Builder.of(MagicRelayBlockEntity::new, ModBlocks.MAGIC_RELAY.get()).build(null));
     public static final RegistryObject<BlockEntityType<MagicAccumulatorBlockEntity>> MAGIC_ACCUMULATOR = BLOCK_ENTITIES.register("magic_accumulator",
             () -> BlockEntityType.Builder.of(MagicAccumulatorBlockEntity::new,
                     ModBlocks.ARCANE_ACCUMULATOR.get(),
@@ -33,6 +37,8 @@ public final class ModBlockEntities {
                     ModBlocks.STORM_ACCUMULATOR.get()).build(null));
     public static final RegistryObject<BlockEntityType<CreativeRfGeneratorBlockEntity>> CREATIVE_RF_GENERATOR = BLOCK_ENTITIES.register("creative_rf_generator",
             () -> BlockEntityType.Builder.of(CreativeRfGeneratorBlockEntity::new, ModBlocks.CREATIVE_RF_GENERATOR.get()).build(null));
+    public static final RegistryObject<BlockEntityType<TeleportPortalBlockEntity>> TELEPORT_PORTAL = BLOCK_ENTITIES.register("teleport_portal",
+            () -> BlockEntityType.Builder.of(TeleportPortalBlockEntity::new, ModBlocks.TELEPORT_PORTAL.get()).build(null));
     public static final RegistryObject<BlockEntityType<WardCamouflageBlockEntity>> WARD_CAMOUFLAGE = BLOCK_ENTITIES.register("ward_camouflage",
             () -> BlockEntityType.Builder.of(WardCamouflageBlockEntity::new, ModBlocks.WARD_CAMOUFLAGE.get()).build(null));
 

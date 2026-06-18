@@ -32,6 +32,7 @@ public class MagicAccumulatorBlockEntity extends BlockEntity implements MagicEne
     private static final int PUSH_PER_SIDE_PER_TICK = 120;
     private static final int MAX_LINKS = 8;
     private static final int MAX_LINK_DISTANCE = 32;
+    private static final java.util.List<BlockPos> HARVEST_OFFSETS = createHarvestOffsets();
 
     private final MagicEnergyStorage energy = new MagicEnergyStorage(CAPACITY);
     private final java.util.Set<Long> linkedTargets = new java.util.LinkedHashSet<>();
@@ -43,6 +44,22 @@ public class MagicAccumulatorBlockEntity extends BlockEntity implements MagicEne
     public MagicAccumulatorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MAGIC_ACCUMULATOR.get(), pos, state);
         tickOffset = Math.floorMod(pos.getX() * 31 + pos.getY() * 17 + pos.getZ() * 13, HARVEST_INTERVAL_TICKS);
+    }
+
+    private static java.util.List<BlockPos> createHarvestOffsets() {
+        java.util.List<BlockPos> offsets = new java.util.ArrayList<>();
+        int harvestRadiusSqr = HARVEST_RADIUS * HARVEST_RADIUS;
+        for (int x = -HARVEST_RADIUS; x <= HARVEST_RADIUS; x++) {
+            for (int y = -HARVEST_RADIUS; y <= HARVEST_RADIUS; y++) {
+                for (int z = -HARVEST_RADIUS; z <= HARVEST_RADIUS; z++) {
+                    if (x == 0 && y == 0 && z == 0 || x * x + y * y + z * z > harvestRadiusSqr) {
+                        continue;
+                    }
+                    offsets.add(new BlockPos(x, y, z));
+                }
+            }
+        }
+        return java.util.List.copyOf(offsets);
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, MagicAccumulatorBlockEntity accumulator) {
@@ -91,6 +108,18 @@ public class MagicAccumulatorBlockEntity extends BlockEntity implements MagicEne
         return linkedTargets.size();
     }
 
+    public int inboundLinkCount() {
+        return level instanceof net.minecraft.server.level.ServerLevel serverLevel ? MagicLinkNetwork.inboundLinkCount(serverLevel, worldPosition) : 0;
+    }
+
+    public int totalLinkCount(net.minecraft.server.level.ServerLevel level) {
+        return linkedTargets.size() + MagicLinkNetwork.inboundLinkCount(level, worldPosition);
+    }
+
+    public boolean linksTo(BlockPos target) {
+        return linkedTargets.contains(target.asLong());
+    }
+
     public int maxLinks() {
         return MAX_LINKS;
     }
@@ -101,7 +130,8 @@ public class MagicAccumulatorBlockEntity extends BlockEntity implements MagicEne
 
     public String statusLine() {
         return magicType().displayName() + " ME " + stored() + "/" + capacity()
-                + ". Mode: " + transferMode.displayName() + ". Links: " + linkedTargets.size() + "/" + MAX_LINKS
+                + ". Mode: " + transferMode.displayName() + ". Links: " + (linkedTargets.size() + inboundLinkCount()) + "/" + MAX_LINKS
+                + " (in " + inboundLinkCount() + ", out " + linkedTargets.size() + ")"
                 + ". Last harvest: " + lastHarvest + ", last push: " + lastPushed + ".";
     }
 
@@ -126,8 +156,11 @@ public class MagicAccumulatorBlockEntity extends BlockEntity implements MagicEne
             setChangedAndUpdate();
             return new LinkResult(true, "Magic link removed: " + target.toShortString() + ".");
         }
-        if (linkedTargets.size() >= MAX_LINKS) {
+        if (level instanceof net.minecraft.server.level.ServerLevel serverLevel && totalLinkCount(serverLevel) >= MAX_LINKS) {
             return new LinkResult(false, "This accumulator already has " + MAX_LINKS + " links.");
+        }
+        if (level instanceof net.minecraft.server.level.ServerLevel serverLevel && !MagicLinkNetwork.targetHasLinkCapacity(serverLevel, target)) {
+            return new LinkResult(false, "Target already has its maximum links.");
         }
         linkedTargets.add(key);
         setChangedAndUpdate();
@@ -183,16 +216,12 @@ public class MagicAccumulatorBlockEntity extends BlockEntity implements MagicEne
         MagicEnergyType type = magicType();
         int generated = 0;
         BlockPos.MutableBlockPos scanPos = new BlockPos.MutableBlockPos();
-        for (int x = -HARVEST_RADIUS; x <= HARVEST_RADIUS && generated < MAX_HARVEST_PER_CYCLE; x++) {
-            for (int y = -HARVEST_RADIUS; y <= HARVEST_RADIUS && generated < MAX_HARVEST_PER_CYCLE; y++) {
-                for (int z = -HARVEST_RADIUS; z <= HARVEST_RADIUS && generated < MAX_HARVEST_PER_CYCLE; z++) {
-                    if (x == 0 && y == 0 && z == 0) {
-                        continue;
-                    }
-                    scanPos.set(pos.getX() + x, pos.getY() + y, pos.getZ() + z);
-                    generated += energy.receive(type, Math.min(type.sourceValue(level, scanPos), MAX_HARVEST_PER_CYCLE - generated), false);
-                }
+        for (BlockPos offset : HARVEST_OFFSETS) {
+            if (generated >= MAX_HARVEST_PER_CYCLE) {
+                break;
             }
+            scanPos.set(pos.getX() + offset.getX(), pos.getY() + offset.getY(), pos.getZ() + offset.getZ());
+            generated += energy.receive(type, Math.min(type.sourceValue(level, scanPos), MAX_HARVEST_PER_CYCLE - generated), false);
         }
         return generated;
     }

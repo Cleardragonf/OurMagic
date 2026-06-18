@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "ourmagic:block/teleport_portal",
+    "glyph": "ourmagic:block/teleport_portal"
+  },
+  "elements": [
+    {
+      "from": [1, 0, 1],
+      "to": [15, 1, 15],
+      "faces": {
+        "up": { "texture": "#glyph" },
+        "down": { "texture": "#glyph" },
+        "north": { "texture": "#glyph" },
+        "south": { "texture": "#glyph" },
+        "west": { "texture": "#glyph" },
+        "east": { "texture": "#glyph" }
+      }
+    },
+    {
+      "from": [4, 1, 4],
+      "to": [12, 2, 12],
+      "faces": {
+        "up": { "texture": "#glyph" },
+        "north": { "texture": "#glyph" },
+        "south": { "texture": "#glyph" },
+        "west": { "texture": "#glyph" },
+        "east": { "texture": "#glyph" }
+      }
+    }
+  ]
+}

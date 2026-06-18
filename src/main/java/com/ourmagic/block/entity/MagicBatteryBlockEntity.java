@@ -164,6 +164,20 @@ public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyR
         return masterOrSelf().linkedTargets.size();
     }
 
+    public int inboundLinkCount() {
+        MagicBatteryBlockEntity master = masterOrSelf();
+        return master.level instanceof ServerLevel serverLevel ? MagicLinkNetwork.inboundLinkCount(serverLevel, master.worldPosition) : 0;
+    }
+
+    public int totalLinkCount(ServerLevel level) {
+        MagicBatteryBlockEntity master = masterOrSelf();
+        return master.linkedTargets.size() + MagicLinkNetwork.inboundLinkCount(level, master.worldPosition);
+    }
+
+    public boolean linksTo(BlockPos target) {
+        return masterOrSelf().linkedTargets.contains(target.asLong());
+    }
+
     public int maxLinks() {
         return MAX_LINKS;
     }
@@ -184,8 +198,11 @@ public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyR
             master.setChangedAndUpdate();
             return new LinkResult(true, "Magic battery link removed: " + target.toShortString() + ".");
         }
-        if (master.linkedTargets.size() >= MAX_LINKS) {
+        if (master.totalLinkCount(serverLevel) >= MAX_LINKS) {
             return new LinkResult(false, "This battery already has " + MAX_LINKS + " links.");
+        }
+        if (!MagicLinkNetwork.targetHasLinkCapacity(serverLevel, target)) {
+            return new LinkResult(false, "Target already has its maximum links.");
         }
         master.linkedTargets.add(key);
         master.setChangedAndUpdate();
@@ -202,6 +219,8 @@ public class MagicBatteryBlockEntity extends BlockEntity implements MagicEnergyR
     public String statusLine() {
         StringBuilder builder = new StringBuilder();
         builder.append(multiblockSize()).append(" blocks, ").append(capacity()).append(" ME/type. ");
+        builder.append("Links: ").append(linkCount() + inboundLinkCount()).append("/").append(MAX_LINKS)
+                .append(" (in ").append(inboundLinkCount()).append(", out ").append(linkCount()).append("). ");
         for (MagicEnergyType type : MagicEnergyType.values()) {
             if (builder.charAt(builder.length() - 1) != ' ') {
                 builder.append(", ");
