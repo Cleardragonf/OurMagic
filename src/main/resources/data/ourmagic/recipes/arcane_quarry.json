@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "APA",
+    "BDB",
+    "RBR"
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "P": { "item": "minecraft:diamond_pickaxe" },
+    "B": { "item": "ourmagic:magic_battery" },
+    "D": { "item": "minecraft:diamond" },
+    "R": { "item": "minecraft:redstone_block" }
+  },
+  "result": { "item": "ourmagic:arcane_quarry" }
+}

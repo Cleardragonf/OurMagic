@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "EAE",
+    "BDB",
+    "EAE"
+  ],
+  "key": {
+    "E": { "item": "minecraft:ender_eye" },
+    "A": { "item": "minecraft:amethyst_block" },
+    "B": { "item": "ourmagic:magic_battery" },
+    "D": { "item": "ourmagic:crystal_drive_bay" }
+  },
+  "result": { "item": "ourmagic:quantum_storage_core" }
+}

@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " A ",
+    " C ",
+    " S "
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "C": { "item": "minecraft:copper_ingot" },
+    "S": { "item": "minecraft:smooth_stone" }
+  },
+  "result": { "item": "ourmagic:quarry_marker", "count": 2 }
+}

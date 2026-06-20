@@ -40,7 +40,10 @@ public final class ClientGuiInputGuard {
                 || screen instanceof SpellcraftScreen
                 || screen instanceof PlayerUpgradeScreen
                 || screen instanceof GuideBookScreen
-                || screen instanceof TeleportPortalScreen;
+                || screen instanceof TeleportPortalScreen
+                || screen instanceof CrystalDriveBayScreen
+                || screen instanceof ArcaneQuarryScreen
+                || screen instanceof QuantumStorageScreen;
     }
 
     private static boolean isHoldingWand(Minecraft minecraft) {

@@ -2,10 +2,13 @@ package com.ourmagic.registry;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.block.entity.CreativeRfGeneratorBlockEntity;
+import com.ourmagic.block.entity.ArcaneQuarryBlockEntity;
+import com.ourmagic.block.entity.CrystalDriveBayBlockEntity;
 import com.ourmagic.block.entity.MagicAccumulatorBlockEntity;
 import com.ourmagic.block.entity.MagicBatteryBlockEntity;
 import com.ourmagic.block.entity.MagicFlowConverterBlockEntity;
 import com.ourmagic.block.entity.MagicRelayBlockEntity;
+import com.ourmagic.block.entity.QuarryMarkerBlockEntity;
 import com.ourmagic.block.entity.TeleportPortalBlockEntity;
 import com.ourmagic.block.entity.WardCamouflageBlockEntity;
 import com.ourmagic.block.entity.WardStoneBlockEntity;
@@ -26,6 +29,12 @@ public final class ModBlockEntities {
             () -> BlockEntityType.Builder.of(MagicBatteryBlockEntity::new, ModBlocks.MAGIC_BATTERY.get()).build(null));
     public static final RegistryObject<BlockEntityType<MagicRelayBlockEntity>> MAGIC_RELAY = BLOCK_ENTITIES.register("magic_relay",
             () -> BlockEntityType.Builder.of(MagicRelayBlockEntity::new, ModBlocks.MAGIC_RELAY.get()).build(null));
+    public static final RegistryObject<BlockEntityType<ArcaneQuarryBlockEntity>> ARCANE_QUARRY = BLOCK_ENTITIES.register("arcane_quarry",
+            () -> BlockEntityType.Builder.of(ArcaneQuarryBlockEntity::new, ModBlocks.ARCANE_QUARRY.get()).build(null));
+    public static final RegistryObject<BlockEntityType<QuarryMarkerBlockEntity>> QUARRY_MARKER = BLOCK_ENTITIES.register("quarry_marker",
+            () -> BlockEntityType.Builder.of(QuarryMarkerBlockEntity::new, ModBlocks.QUARRY_MARKER.get()).build(null));
+    public static final RegistryObject<BlockEntityType<CrystalDriveBayBlockEntity>> CRYSTAL_DRIVE_BAY = BLOCK_ENTITIES.register("crystal_drive_bay",
+            () -> BlockEntityType.Builder.of(CrystalDriveBayBlockEntity::new, ModBlocks.CRYSTAL_DRIVE_BAY.get()).build(null));
     public static final RegistryObject<BlockEntityType<MagicAccumulatorBlockEntity>> MAGIC_ACCUMULATOR = BLOCK_ENTITIES.register("magic_accumulator",
             () -> BlockEntityType.Builder.of(MagicAccumulatorBlockEntity::new,
                     ModBlocks.ARCANE_ACCUMULATOR.get(),

@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "ourmagic:block/quantum_storage_core" }
+  }
+}

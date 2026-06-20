@@ -2,6 +2,7 @@ package com.ourmagic.registry;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.item.GuideBookItem;
+import com.ourmagic.item.CrystalDriveItem;
 import com.ourmagic.item.GrimoireItem;
 import com.ourmagic.item.MagicLinkerItem;
 import com.ourmagic.item.SpellFocusItem;
@@ -27,6 +28,9 @@ public final class ModItems {
     public static final RegistryObject<Item> WARD_TUNER = ITEMS.register("ward_tuner", () -> new WardTunerItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> WARD_DIAGRAM = ITEMS.register("ward_diagram", () -> new WardDiagramItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> MAGIC_LINKER = ITEMS.register("magic_linker", () -> new MagicLinkerItem(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> CRACKED_CRYSTAL_DRIVE = ITEMS.register("cracked_crystal_drive", () -> new CrystalDriveItem(new Item.Properties(), 4_096));
+    public static final RegistryObject<Item> CLEAR_CRYSTAL_DRIVE = ITEMS.register("clear_crystal_drive", () -> new CrystalDriveItem(new Item.Properties(), 16_384));
+    public static final RegistryObject<Item> RESONANT_CRYSTAL_DRIVE = ITEMS.register("resonant_crystal_drive", () -> new CrystalDriveItem(new Item.Properties(), 65_536));
     public static final RegistryObject<Item> LIGHTNING_TALISMAN = ITEMS.register("lightning_talisman", () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> ANCHOR_TALISMAN = ITEMS.register("anchor_talisman", () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> SEEKER_TALISMAN = ITEMS.register("seeker_talisman", () -> new Item(new Item.Properties()));
@@ -44,6 +48,10 @@ public final class ModItems {
     public static final RegistryObject<Item> MAGIC_FLOW_CONVERTER = ITEMS.register("magic_flow_converter", () -> new BlockItem(ModBlocks.MAGIC_FLOW_CONVERTER.get(), new Item.Properties()));
     public static final RegistryObject<Item> MAGIC_BATTERY = ITEMS.register("magic_battery", () -> new BlockItem(ModBlocks.MAGIC_BATTERY.get(), new Item.Properties()));
     public static final RegistryObject<Item> MAGIC_RELAY = ITEMS.register("magic_relay", () -> new BlockItem(ModBlocks.MAGIC_RELAY.get(), new Item.Properties()));
+    public static final RegistryObject<Item> ARCANE_QUARRY = ITEMS.register("arcane_quarry", () -> new BlockItem(ModBlocks.ARCANE_QUARRY.get(), new Item.Properties()));
+    public static final RegistryObject<Item> QUARRY_MARKER = ITEMS.register("quarry_marker", () -> new BlockItem(ModBlocks.QUARRY_MARKER.get(), new Item.Properties()));
+    public static final RegistryObject<Item> CRYSTAL_DRIVE_BAY = ITEMS.register("crystal_drive_bay", () -> new BlockItem(ModBlocks.CRYSTAL_DRIVE_BAY.get(), new Item.Properties()));
+    public static final RegistryObject<Item> QUANTUM_STORAGE_CORE = ITEMS.register("quantum_storage_core", () -> new BlockItem(ModBlocks.QUANTUM_STORAGE_CORE.get(), new Item.Properties()));
     public static final RegistryObject<Item> ARCANE_ACCUMULATOR = ITEMS.register("arcane_accumulator", () -> new BlockItem(ModBlocks.ARCANE_ACCUMULATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> DARK_ACCUMULATOR = ITEMS.register("dark_accumulator", () -> new BlockItem(ModBlocks.DARK_ACCUMULATOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> FIRE_ACCUMULATOR = ITEMS.register("fire_accumulator", () -> new BlockItem(ModBlocks.FIRE_ACCUMULATOR.get(), new Item.Properties()));

@@ -1,6 +1,7 @@
 package com.ourmagic.network;
 
 import com.ourmagic.block.entity.MagicAccumulatorBlockEntity;
+import com.ourmagic.block.entity.ArcaneQuarryBlockEntity;
 import com.ourmagic.block.entity.MagicBatteryBlockEntity;
 import com.ourmagic.block.entity.MagicFlowConverterBlockEntity;
 import com.ourmagic.block.entity.MagicRelayBlockEntity;
@@ -127,6 +128,13 @@ public record MagicLinkHudQueryPacket(BlockPos pos) {
                     "Input: RF or Arcane ME",
                     "Output: Ward MF",
                     converter.linkedWardCoreSummary()
+            ));
+        }
+        if (blockEntity instanceof ArcaneQuarryBlockEntity quarry) {
+            return new HudData("Arcane Quarry", List.of(
+                    progressLine("Stored", quarry.storedEnergy(), quarry.capacity()),
+                    linkLine(0, quarry.inboundLinkCount(), quarry.maxLinks()),
+                    quarry.statusLine()
             ));
         }
         if (blockEntity instanceof MagicEnergyReceiver receiver) {

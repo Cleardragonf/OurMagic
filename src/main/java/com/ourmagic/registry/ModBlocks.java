@@ -2,10 +2,14 @@ package com.ourmagic.registry;
 
 import com.ourmagic.OurMagic;
 import com.ourmagic.block.CreativeRfGeneratorBlock;
+import com.ourmagic.block.ArcaneQuarryBlock;
+import com.ourmagic.block.CrystalDriveBayBlock;
 import com.ourmagic.block.MagicAccumulatorBlock;
 import com.ourmagic.block.MagicBatteryBlock;
 import com.ourmagic.block.MagicFlowConverterBlock;
 import com.ourmagic.block.MagicRelayBlock;
+import com.ourmagic.block.QuarryMarkerBlock;
+import com.ourmagic.block.QuantumStorageCoreBlock;
 import com.ourmagic.block.TeleportPortalBlock;
 import com.ourmagic.block.TemporaryShieldBlock;
 import com.ourmagic.block.WardBoundaryBlock;
@@ -48,6 +52,26 @@ public final class ModBlocks {
                     .strength(4.0F, 18.0F)
                     .noOcclusion()
                     .lightLevel(state -> 6)));
+    public static final RegistryObject<Block> ARCANE_QUARRY = BLOCKS.register("arcane_quarry",
+            () -> new ArcaneQuarryBlock(BlockBehaviour.Properties.copy(Blocks.DEEPSLATE_TILES)
+                    .strength(5.0F, 18.0F)
+                    .noOcclusion()
+                    .lightLevel(state -> 6)));
+    public static final RegistryObject<Block> QUARRY_MARKER = BLOCKS.register("quarry_marker",
+            () -> new QuarryMarkerBlock(BlockBehaviour.Properties.copy(Blocks.LODESTONE)
+                    .strength(2.5F, 9.0F)
+                    .noOcclusion()
+                    .lightLevel(state -> 5)));
+    public static final RegistryObject<Block> CRYSTAL_DRIVE_BAY = BLOCKS.register("crystal_drive_bay",
+            () -> new CrystalDriveBayBlock(BlockBehaviour.Properties.copy(Blocks.OBSIDIAN)
+                    .strength(4.0F, 18.0F)
+                    .noOcclusion()
+                    .lightLevel(state -> 5)));
+    public static final RegistryObject<Block> QUANTUM_STORAGE_CORE = BLOCKS.register("quantum_storage_core",
+            () -> new QuantumStorageCoreBlock(BlockBehaviour.Properties.copy(Blocks.RESPAWN_ANCHOR)
+                    .strength(6.0F, 30.0F)
+                    .noOcclusion()
+                    .lightLevel(state -> 7)));
     public static final RegistryObject<Block> ARCANE_ACCUMULATOR = BLOCKS.register("arcane_accumulator",
             () -> new MagicAccumulatorBlock(MagicEnergyType.ARCANE, BlockBehaviour.Properties.copy(Blocks.AMETHYST_BLOCK)
                     .strength(3.0F, 9.0F)

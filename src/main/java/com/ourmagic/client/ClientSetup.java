@@ -28,6 +28,9 @@ public final class ClientSetup {
             MenuScreens.register(ModMenus.WAND.get(), WandScreen::new);
             MenuScreens.register(ModMenus.SPELLCRAFT.get(), SpellcraftScreen::new);
             MenuScreens.register(ModMenus.PLAYER_UPGRADES.get(), PlayerUpgradeScreen::new);
+            MenuScreens.register(ModMenus.CRYSTAL_DRIVE_BAY.get(), CrystalDriveBayScreen::new);
+            MenuScreens.register(ModMenus.ARCANE_QUARRY.get(), ArcaneQuarryScreen::new);
+            MenuScreens.register(ModMenus.QUANTUM_STORAGE.get(), QuantumStorageScreen::new);
             ItemBlockRenderTypes.setRenderLayer(ModBlocks.TEMPORARY_SHIELD.get(), RenderType.translucent());
             ItemBlockRenderTypes.setRenderLayer(ModBlocks.WARD_BOUNDARY.get(), RenderType.translucent());
             BlockEntityRenderers.register(ModBlockEntities.WARD_CAMOUFLAGE.get(), WardCamouflageBlockEntityRenderer::new);

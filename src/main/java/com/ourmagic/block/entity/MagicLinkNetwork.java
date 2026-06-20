@@ -41,6 +41,9 @@ final class MagicLinkNetwork {
         if (blockEntity instanceof MagicAccumulatorBlockEntity accumulator) {
             return accumulator.totalLinkCount(level) < accumulator.maxLinks();
         }
+        if (blockEntity instanceof ArcaneQuarryBlockEntity quarry) {
+            return quarry.totalLinkCount(level) < quarry.maxLinks();
+        }
         return true;
     }
 

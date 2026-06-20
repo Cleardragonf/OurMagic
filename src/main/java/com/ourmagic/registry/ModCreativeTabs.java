@@ -26,6 +26,9 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.WARD_TUNER.get());
                 output.accept(ModItems.WARD_DIAGRAM.get());
                 output.accept(ModItems.MAGIC_LINKER.get());
+                output.accept(ModItems.CRACKED_CRYSTAL_DRIVE.get());
+                output.accept(ModItems.CLEAR_CRYSTAL_DRIVE.get());
+                output.accept(ModItems.RESONANT_CRYSTAL_DRIVE.get());
                 output.accept(ModItems.LIGHTNING_TALISMAN.get());
                 output.accept(ModItems.ANCHOR_TALISMAN.get());
                 output.accept(ModItems.SEEKER_TALISMAN.get());
@@ -43,6 +46,10 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.MAGIC_FLOW_CONVERTER.get());
                 output.accept(ModItems.MAGIC_BATTERY.get());
                 output.accept(ModItems.MAGIC_RELAY.get());
+                output.accept(ModItems.ARCANE_QUARRY.get());
+                output.accept(ModItems.QUARRY_MARKER.get());
+                output.accept(ModItems.CRYSTAL_DRIVE_BAY.get());
+                output.accept(ModItems.QUANTUM_STORAGE_CORE.get());
                 output.accept(ModItems.ARCANE_ACCUMULATOR.get());
                 output.accept(ModItems.DARK_ACCUMULATOR.get());
                 output.accept(ModItems.FIRE_ACCUMULATOR.get());

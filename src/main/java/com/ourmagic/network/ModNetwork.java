@@ -116,6 +116,26 @@ public final class ModNetwork {
                 .decoder(TeleportPortalUpdatePacket::decode)
                 .consumerMainThread(TeleportPortalUpdatePacket::handle)
                 .add();
+        CHANNEL.messageBuilder(QuantumStorageExtractPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(QuantumStorageExtractPacket::encode)
+                .decoder(QuantumStorageExtractPacket::decode)
+                .consumerMainThread(QuantumStorageExtractPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(QuantumStorageQueryPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(QuantumStorageQueryPacket::encode)
+                .decoder(QuantumStorageQueryPacket::decode)
+                .consumerMainThread(QuantumStorageQueryPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(QuantumStorageDataPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(QuantumStorageDataPacket::encode)
+                .decoder(QuantumStorageDataPacket::decode)
+                .consumerMainThread(QuantumStorageDataPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(QuantumStorageInsertPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(QuantumStorageInsertPacket::encode)
+                .decoder(QuantumStorageInsertPacket::decode)
+                .consumerMainThread(QuantumStorageInsertPacket::handle)
+                .add();
     }
 
     public static void syncMana(ServerPlayer player, PlayerMana mana) {
