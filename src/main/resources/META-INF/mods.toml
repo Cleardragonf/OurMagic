@@ -4,7 +4,7 @@ license="MIT"
 
 [[mods]]
 modId="ourmagic"
-version="1.0.0"
+version="${mod_version}"
 displayName="OurMagic"
 description='''A Forge-native wand-focused recreation of Magic's core wand play loop.'''
 
