@@ -10,6 +10,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -28,6 +29,7 @@ public class QuantumStorageMenu extends AbstractContainerMenu {
         this.player = inventory.player;
         this.corePos = corePos.immutable();
         this.access = ContainerLevelAccess.create(inventory.player.level(), corePos);
+        addPlayerInventory(inventory);
     }
 
     public BlockPos corePos() {
@@ -44,11 +46,34 @@ public class QuantumStorageMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
-        return ItemStack.EMPTY;
+        if (!(player.level() instanceof ServerLevel serverLevel) || index < 0 || index >= slots.size()) {
+            return ItemStack.EMPTY;
+        }
+        Slot slot = slots.get(index);
+        if (!slot.hasItem()) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack original = slot.getItem();
+        ItemStack copy = original.copy();
+        ItemStack remaining = QuantumStorageNetwork.insert(serverLevel, corePos, original);
+        slot.set(remaining);
+        slot.setChanged();
+        return copy;
     }
 
     @Override
     public boolean stillValid(Player player) {
         return stillValid(access, player, ModBlocks.QUANTUM_STORAGE_CORE.get());
+    }
+
+    private void addPlayerInventory(Inventory inventory) {
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                addSlot(new Slot(inventory, col + row * 9 + 9, 79 + col * 18, 232 + row * 18));
+            }
+        }
+        for (int col = 0; col < 9; col++) {
+            addSlot(new Slot(inventory, col, 79 + col * 18, 290));
+        }
     }
 }

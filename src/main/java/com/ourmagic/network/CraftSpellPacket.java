@@ -56,8 +56,8 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
                 return;
             }
             boolean hasIngredients = SpellIngredients.has(context.getSender().getInventory(), packet.spellKey);
-            if (!hasIngredients && !SpellIngredients.isUnlocked(context.getSender().getInventory(), packet.spellKey)) {
-                context.getSender().displayClientMessage(Component.literal("Missing spellcraft ingredients or grimoire knowledge.").withStyle(ChatFormatting.RED), false);
+            if (!hasIngredients) {
+                context.getSender().displayClientMessage(Component.literal("Missing spellcraft ingredients.").withStyle(ChatFormatting.RED), false);
                 return;
             }
 
@@ -128,13 +128,6 @@ public record CraftSpellPacket(InteractionHand hand, String spellKey, Target tar
     private static void consumeSpellcraftCost(net.minecraft.world.Container inventory, String spellKey, boolean hasIngredients) {
         if (hasIngredients) {
             SpellIngredients.consume(inventory, spellKey);
-            return;
-        }
-        if (SpellIngredients.consumeExactKnowledge(inventory, spellKey)) {
-            return;
-        }
-        if (SpellIngredients.consumePayloadKnowledge(inventory, spellKey)) {
-            SpellIngredients.consumeShapeRequirements(inventory, spellKey);
         }
     }
 

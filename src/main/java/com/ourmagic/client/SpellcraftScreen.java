@@ -1,6 +1,7 @@
 package com.ourmagic.client;
 
 import com.ourmagic.magic.Spell;
+import com.ourmagic.magic.SpellInstance;
 import com.ourmagic.magic.SpellIngredients;
 import com.ourmagic.magic.SpellRegistry;
 import com.ourmagic.network.CraftSpellPacket;
@@ -109,6 +110,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     private final List<MagicButton> effectButtons = new ArrayList<>();
     private final List<MagicButton> shapeButtons = new ArrayList<>();
     private final List<RequirementIcon> requirementIcons = new ArrayList<>();
+    private final List<PreviewIcon> previewIcons = new ArrayList<>();
     private final List<String> selectedEffects = new ArrayList<>();
     private MagicButton clearButton;
     private MagicButton addToWandButton;
@@ -195,6 +197,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
         renderRequirementTooltip(graphics, mouseX, mouseY);
+        renderPreviewTooltip(graphics, mouseX, mouseY);
     }
 
     @Override
@@ -218,9 +221,6 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         List<String> effects = craftableEffects();
         selectedEffects.removeIf(effect -> !effects.contains(effect));
-        if (selectedEffects.isEmpty() && !effects.isEmpty()) {
-            selectedEffects.add(effects.get(0));
-        }
         List<String> shapes = craftableShapes(effects);
         selectedShape = Math.max(0, Math.min(selectedShape, Math.max(0, shapes.size() - 1)));
         clampScrolls();
@@ -287,13 +287,13 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         boolean craftable = spell != null && !selectedEffects.isEmpty();
         renderSpellPreview(graphics, key, craftable);
         if (spell != null) {
-            String status = hasIngredients(key) ? "Ready" : isUnlocked(key) ? "Known" : "Needs items";
-            graphics.drawString(font, compact(status, 12), 334, 162, isUnlocked(key) ? COLOR_GREEN : 0xFFFF6666, false);
+            String status = hasIngredients(key) ? "Ready" : "Needs items";
+            graphics.drawString(font, compact(status, 12), 334, 162, hasIngredients(key) ? COLOR_GREEN : 0xFFFF6666, false);
         } else {
             graphics.drawString(font, "No recipe", 334, 162, 0xFFFF6666, false);
         }
         renderRequirements(graphics, key);
-        boolean canCraft = craftable && isUnlocked(key);
+        boolean canCraft = craftable && hasIngredients(key);
         addToWandButton.active = canCraft;
         paperButton.active = canCraft;
         grimoireButton.active = canCraft;
@@ -303,40 +303,66 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     }
 
     private void renderSpellPreview(GuiGraphics graphics, String key, boolean craftable) {
+        previewIcons.clear();
+        int contentX = 334;
+        int contentW = 92;
         int centerY = 112;
-        int effectX = 338;
-        int shapeX = 382;
+        int iconSize = 18;
+        int iconGap = 8;
 
         if (selectedEffects.isEmpty()) {
-            graphics.drawCenteredString(font, "Select", 360, centerY - 5, COLOR_TEXT);
+            graphics.drawCenteredString(font, "Select", contentX + contentW / 2, centerY - 5, COLOR_TEXT);
             return;
         }
 
         int effectCount = Math.min(3, selectedEffects.size());
-        int startX = effectX - (effectCount - 1) * 10;
-        for (int i = 0; i < effectCount; i++) {
-            blit(graphics, effectIcon(selectedEffects.get(i)), startX + i * 20, centerY - 8, 16, 16, 16, 16);
-        }
-
         String shape = SpellRegistry.shapeKey(key);
-        if (!shape.isEmpty()) {
-            blitShapeIcon(graphics, shape, shapeX, centerY - 8, 16);
+        int componentCount = effectCount + (shape.isEmpty() ? 0 : 1);
+        int totalWidth = componentCount * iconSize + Math.max(0, componentCount - 1) * iconGap;
+        int startX = contentX + Math.max(0, (contentW - totalWidth) / 2);
+        for (int i = 0; i < effectCount; i++) {
+            String effect = selectedEffects.get(i);
+            int x = startX + i * (iconSize + iconGap);
+            int y = centerY - 8;
+            blit(graphics, effectIcon(effect), x, y, iconSize, iconSize, 16, 16);
+            previewIcons.add(new PreviewIcon(x, y, iconSize, iconSize, Component.literal("Payload: " + titleCase(effect))));
         }
 
-        graphics.drawString(font, compact(key, 10), 334, 140, craftable ? COLOR_GOLD : 0xFFFF6666, false);
-        graphics.drawString(font, previewDescription(key), 334, 156, COLOR_TEXT, false);
+        if (!shape.isEmpty()) {
+            int x = startX + effectCount * (iconSize + iconGap);
+            int y = centerY - 8;
+            blitShapeIcon(graphics, shape, x, y, iconSize);
+            previewIcons.add(new PreviewIcon(x, y, iconSize, iconSize, Component.literal("Shape: " + titleCase(shape))));
+        }
+
+        drawCenteredFitted(graphics, spellDisplayName(key), contentX, 138, contentW, craftable ? COLOR_GOLD : 0xFFFF6666);
+        drawCenteredFitted(graphics, previewDescription(key), contentX, 154, contentW, COLOR_TEXT);
     }
 
     private static String previewDescription(String key) {
-        String payload = titleCase(SpellRegistry.payloadKey(key));
         String shape = titleCase(SpellRegistry.shapeKey(key));
-        if (payload.length() > 9) {
-            payload = payload.substring(0, 9);
+        int payloadCount = SpellRegistry.payloadParts(key).size();
+        return payloadCount + " payload" + (payloadCount == 1 ? "" : "s") + " via " + shape;
+    }
+
+    private static String spellDisplayName(String key) {
+        return key.isEmpty() ? "" : SpellInstance.fixed(key).displayName();
+    }
+
+    private void drawCenteredFitted(GuiGraphics graphics, String text, int x, int y, int width, int color) {
+        if (text.isEmpty()) {
+            return;
         }
-        if (shape.length() > 9) {
-            shape = shape.substring(0, 9);
+        if (font.width(text) <= width) {
+            graphics.drawCenteredString(font, text, x + width / 2, y, color);
+            return;
         }
-        return payload + " via " + shape;
+
+        String fitted = text;
+        while (fitted.length() > 3 && font.width(fitted + "...") > width) {
+            fitted = fitted.substring(0, fitted.length() - 1);
+        }
+        graphics.drawCenteredString(font, fitted + "...", x + width / 2, y, color);
     }
 
     private void toggleEffect(int index) {
@@ -346,9 +372,7 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         }
         String effect = effects.get(index);
         if (selectedEffects.contains(effect)) {
-            if (selectedEffects.size() > 1) {
-                selectedEffects.remove(effect);
-            }
+            selectedEffects.remove(effect);
             return;
         }
         if (maxEffects() == 1) {
@@ -394,18 +418,22 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     }
 
     private List<String> craftableEffects() {
-        return SpellRegistry.payloadKeys().stream()
+        List<String> discovered = SpellRegistry.payloadKeys().stream()
                 .filter(effect -> !effect.equals("ward"))
                 .filter(effect -> !SpellRegistry.allowedShapesForPayloads(List.of(effect)).isEmpty())
-                .filter(effect -> hasPayloadIngredients(effect) || hasKnownPayload(effect))
+                .filter(this::hasAnyPayloadIngredient)
+                .toList();
+        if (selectedEffects.isEmpty()) {
+            return discovered;
+        }
+        return discovered.stream()
+                .filter(effect -> selectedEffects.contains(effect) || canAddEffect(effect))
                 .toList();
     }
 
     private List<String> craftableShapes(List<String> effects) {
         if (selectedEffects.isEmpty() && !effects.isEmpty()) {
-            return SpellRegistry.allowedShapesForPayloads(List.of(effects.get(0))).stream()
-                    .filter(shape -> canUseShape(List.of(effects.get(0)), shape))
-                    .toList();
+            return List.of();
         }
         return SpellRegistry.allowedShapesForPayloads(selectedEffects).stream()
                 .filter(shape -> !selectedEffects.isEmpty())
@@ -417,34 +445,19 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
         return minecraft != null && minecraft.player != null && SpellIngredients.has(minecraft.player.getInventory(), key);
     }
 
-    private boolean isUnlocked(String key) {
-        return minecraft != null && minecraft.player != null && SpellIngredients.isUnlocked(minecraft.player.getInventory(), key);
-    }
-
-    private boolean hasPayloadIngredients(String payload) {
-        return minecraft != null && minecraft.player != null && SpellIngredients.hasPayloadRequirements(minecraft.player.getInventory(), payload + "@self");
-    }
-
-    private boolean hasKnownPayload(String payload) {
-        return minecraft != null && minecraft.player != null && SpellIngredients.knownPayloads(minecraft.player.getInventory()).contains(payload);
+    private boolean hasAnyPayloadIngredient(String payload) {
+        return minecraft != null && minecraft.player != null && SpellIngredients.hasAnyPayloadRequirement(minecraft.player.getInventory(), payload);
     }
 
     private boolean canUseShape(List<String> payloads, String shape) {
         if (minecraft == null || minecraft.player == null) {
             return false;
         }
-        String key = String.join("+", payloads) + "@" + shape;
-        return SpellIngredients.hasKnownSpell(minecraft.player.getInventory(), key)
-                || SpellIngredients.hasAnyShapeRequirement(minecraft.player.getInventory(), shape);
+        return SpellIngredients.hasAnyShapeRequirement(minecraft.player.getInventory(), shape);
     }
 
     private void renderRequirements(GuiGraphics graphics, String key) {
         requirementIcons.clear();
-        if (!hasIngredients(key) && isUnlocked(key)) {
-            graphics.drawString(font, "Known", 30, LOWER_PANEL_Y + 18, 0xFFB8FFB8, false);
-            return;
-        }
-
         List<SpellIngredients.Requirement> requirements = SpellIngredients.requirementsFor(key);
         int x = 30;
         int y = LOWER_PANEL_Y - 2;
@@ -475,6 +488,17 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
                 Component tooltip = icon.requirement().displayName().copy()
                         .append(Component.literal(" " + icon.amount() + "/" + icon.requirement().count()));
                 graphics.renderTooltip(font, tooltip, mouseX, mouseY);
+                return;
+            }
+        }
+    }
+
+    private void renderPreviewTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        for (PreviewIcon icon : previewIcons) {
+            int x = leftPos + icon.x();
+            int y = topPos + icon.y();
+            if (mouseX >= x && mouseX < x + icon.width() && mouseY >= y && mouseY < y + icon.height()) {
+                graphics.renderTooltip(font, icon.tooltip(), mouseX, mouseY);
                 return;
             }
         }
@@ -558,10 +582,38 @@ public class SpellcraftScreen extends AbstractContainerScreen<SpellcraftMenu> {
     }
 
     private static ResourceLocation effectIcon(String effect) {
-        return tex("icons/effects/" + normalize(effect) + ".png");
+        return tex("icons/effects/" + effectIconKey(effect) + ".png");
+    }
+
+    private static String effectIconKey(String effect) {
+        return switch (normalize(effect)) {
+            case "anchor", "recall", "stasis", "temporal", "lockdown" -> "bind";
+            case "anti_explosion" -> "blastguard";
+            case "anti_fire" -> "fireguard";
+            case "anti_grief", "anti_magic", "anti_projectile", "anti_summon", "anti_teleport", "anti_water",
+                    "entry_filter", "item_guard", "storage_lock" -> "shield";
+            case "anti_decay", "fertility", "grow" -> "regenerate";
+            case "air", "air_bubble" -> "bubble";
+            case "alarm", "echo", "reveal", "scry" -> "nullify";
+            case "camouflage", "illusion", "phase" -> "blink";
+            case "charm", "cleanse", "sanctuary" -> "heal";
+            case "conjure", "summon", "summon_random", "summon_undead", "summon_beast", "summon_guardian",
+                    "summon_arcane", "summon_swarm" -> "life_ward";
+            case "curse", "hex", "lifedrain", "mana_drain", "manaburn", "silence", "weakening" -> "stun";
+            case "dark", "dispel" -> "nullify";
+            case "disarm", "reflect", "reflect_projectile" -> "shield";
+            case "freeze", "frost", "thaw" -> "frost";
+            case "gravity", "overload", "weather" -> "lightning";
+            case "light" -> "fire";
+            case "mana_shield" -> "mana_shield";
+            case "rune", "transmute" -> "gather";
+            case "ward" -> "shield";
+            default -> normalize(effect);
+        };
     }
 
     private record RequirementIcon(int x, int y, SpellIngredients.Requirement requirement, int amount) {}
+    private record PreviewIcon(int x, int y, int width, int height, Component tooltip) {}
 
     private record AtlasIcon(int u, int v, int w, int h) {}
 

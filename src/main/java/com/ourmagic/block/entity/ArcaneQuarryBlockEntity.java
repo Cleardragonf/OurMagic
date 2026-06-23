@@ -7,15 +7,18 @@ import com.ourmagic.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.ArrayList;
@@ -28,6 +31,8 @@ public class ArcaneQuarryBlockEntity extends BlockEntity implements MagicEnergyR
     private static final String TAG_MIN = "Min";
     private static final String TAG_MAX = "Max";
     private static final String TAG_CURSOR = "Cursor";
+    private static final String TAG_PAUSED = "Paused";
+    private static final String TAG_UPGRADES = "Upgrades";
     private static final int CAPACITY = 100_000;
     private static final int COST_PER_BLOCK = 80;
     private static final int TICKS_PER_BLOCK = 12;
@@ -37,13 +42,20 @@ public class ArcaneQuarryBlockEntity extends BlockEntity implements MagicEnergyR
     private BlockPos min;
     private BlockPos max;
     private BlockPos cursor;
+    private boolean paused;
+    private final ItemStackHandler upgrades = new ItemStackHandler(7) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            setChangedAndUpdate();
+        }
+    };
 
     public ArcaneQuarryBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ARCANE_QUARRY.get(), pos, state);
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, ArcaneQuarryBlockEntity quarry) {
-        if (!(level instanceof ServerLevel serverLevel) || quarry.min == null || quarry.max == null || level.getGameTime() % TICKS_PER_BLOCK != 0L) {
+        if (!(level instanceof ServerLevel serverLevel) || quarry.paused || quarry.min == null || quarry.max == null || level.getGameTime() % Math.max(2, TICKS_PER_BLOCK - quarry.upgradeCount(Items.SUGAR) * 2) != 0L) {
             return;
         }
         quarry.mineNext(serverLevel);
@@ -101,7 +113,27 @@ public class ArcaneQuarryBlockEntity extends BlockEntity implements MagicEnergyR
 
     public String statusLine() {
         String area = min == null || max == null ? "Unbound" : min.toShortString() + " -> " + max.toShortString();
-        return area + ", " + energy + "/" + CAPACITY + " MF, cost " + COST_PER_BLOCK + " MF/block.";
+        return (paused ? "Paused, " : "Running, ") + area + ", " + energy + "/" + CAPACITY + " MF, cost " + effectiveCostPerBlock() + " MF/block.";
+    }
+
+    public boolean paused() {
+        return paused;
+    }
+
+    public void togglePaused() {
+        paused = !paused;
+        setChangedAndUpdate();
+    }
+
+    public void resetArea() {
+        min = null;
+        max = null;
+        cursor = null;
+        setChangedAndUpdate();
+    }
+
+    public IItemHandler upgrades() {
+        return upgrades;
     }
 
     @Override
@@ -111,6 +143,8 @@ public class ArcaneQuarryBlockEntity extends BlockEntity implements MagicEnergyR
         min = tag.contains(TAG_MIN) ? BlockPos.of(tag.getLong(TAG_MIN)) : null;
         max = tag.contains(TAG_MAX) ? BlockPos.of(tag.getLong(TAG_MAX)) : null;
         cursor = tag.contains(TAG_CURSOR) ? BlockPos.of(tag.getLong(TAG_CURSOR)) : null;
+        paused = tag.getBoolean(TAG_PAUSED);
+        upgrades.deserializeNBT(tag.getCompound(TAG_UPGRADES));
     }
 
     @Override
@@ -126,10 +160,13 @@ public class ArcaneQuarryBlockEntity extends BlockEntity implements MagicEnergyR
         if (cursor != null) {
             tag.putLong(TAG_CURSOR, cursor.asLong());
         }
+        tag.putBoolean(TAG_PAUSED, paused);
+        tag.put(TAG_UPGRADES, upgrades.serializeNBT());
     }
 
     private void mineNext(ServerLevel level) {
-        if (energy < COST_PER_BLOCK) {
+        int cost = effectiveCostPerBlock();
+        if (energy < cost) {
             return;
         }
         if (cursor == null || !inside(cursor)) {
@@ -150,7 +187,7 @@ public class ArcaneQuarryBlockEntity extends BlockEntity implements MagicEnergyR
             if (!level.destroyBlock(target, false)) {
                 continue;
             }
-            energy -= COST_PER_BLOCK;
+            energy -= cost;
             for (ItemStack drop : drops) {
                 ItemStack remainder = insertAdjacent(drop);
                 if (!remainder.isEmpty()) {
@@ -230,5 +267,20 @@ public class ArcaneQuarryBlockEntity extends BlockEntity implements MagicEnergyR
 
     private int volume() {
         return (max.getX() - min.getX() + 1) * (max.getY() - min.getY() + 1) * (max.getZ() - min.getZ() + 1);
+    }
+
+    private int effectiveCostPerBlock() {
+        return Math.max(10, COST_PER_BLOCK - upgradeCount(Items.REDSTONE) * 8);
+    }
+
+    private int upgradeCount(net.minecraft.world.item.Item item) {
+        int count = 0;
+        for (int i = 0; i < upgrades.getSlots(); i++) {
+            ItemStack stack = upgrades.getStackInSlot(i);
+            if (stack.is(item)) {
+                count += stack.getCount();
+            }
+        }
+        return count;
     }
 }

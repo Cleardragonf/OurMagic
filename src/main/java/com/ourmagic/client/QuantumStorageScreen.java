@@ -18,19 +18,22 @@ import java.util.Locale;
 
 public class QuantumStorageScreen extends AbstractContainerScreen<QuantumStorageMenu> {
     private static final int WIDTH = 320;
-    private static final int HEIGHT = 236;
+    private static final int HEIGHT = 320;
     private static final int SLOT_SIZE = 18;
     private static final int GRID_COLS = 10;
     private static final int GRID_ROWS = 6;
     private EditBox searchBox;
     private int scrollOffset;
     private int refreshTicks;
+    private SortMode sortMode = SortMode.NAME;
+    private boolean draggingScrollbar;
 
     public QuantumStorageScreen(QuantumStorageMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = WIDTH;
         imageHeight = HEIGHT;
-        inventoryLabelY = HEIGHT + 100;
+        inventoryLabelX = 79;
+        inventoryLabelY = 220;
     }
 
     @Override
@@ -43,11 +46,16 @@ public class QuantumStorageScreen extends AbstractContainerScreen<QuantumStorage
         addRenderableWidget(Button.builder(Component.literal("Insert Held"), button -> {
             ModNetwork.CHANNEL.sendToServer(new QuantumStorageInsertPacket(QuantumStorageInsertPacket.Mode.CARRIED, -1));
             requestRefresh();
-        }).bounds(leftPos + 16, topPos + 218, 92, 16).build());
+        }).bounds(leftPos + 16, topPos + 200, 92, 16).build());
         addRenderableWidget(Button.builder(Component.literal("Insert All"), button -> {
             ModNetwork.CHANNEL.sendToServer(new QuantumStorageInsertPacket(QuantumStorageInsertPacket.Mode.ALL, -1));
             requestRefresh();
-        }).bounds(leftPos + 112, topPos + 218, 82, 16).build());
+        }).bounds(leftPos + 112, topPos + 200, 82, 16).build());
+        addRenderableWidget(Button.builder(Component.literal("Sort: Name"), button -> {
+            sortMode = sortMode.next();
+            button.setMessage(Component.literal("Sort: " + sortMode.label()));
+            scrollOffset = 0;
+        }).bounds(leftPos + 198, topPos + 200, 106, 16).build());
         requestRefresh();
     }
 
@@ -56,6 +64,7 @@ public class QuantumStorageScreen extends AbstractContainerScreen<QuantumStorage
         graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xEE100819);
         drawBorder(graphics, leftPos, topPos, imageWidth, imageHeight, 0xFF55E8FF);
         graphics.fill(leftPos + 14, topPos + 58, leftPos + imageWidth - 14, topPos + 194, 0xAA05030A);
+        graphics.fill(leftPos + 75, topPos + 228, leftPos + 245, topPos + 310, 0xAA05030A);
         for (int row = 0; row < GRID_ROWS; row++) {
             for (int col = 0; col < GRID_COLS; col++) {
                 int x = leftPos + 18 + col * 28;
@@ -88,6 +97,11 @@ public class QuantumStorageScreen extends AbstractContainerScreen<QuantumStorage
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (scrollbarContains(mouseX, mouseY)) {
+            draggingScrollbar = true;
+            updateScrollFromMouse(mouseY);
+            return true;
+        }
         SlotHit hit = slotAt(mouseX, mouseY);
         if (hit != null) {
             List<ClientQuantumStorageData.Entry> entries = filteredEntries();
@@ -103,6 +117,21 @@ public class QuantumStorageScreen extends AbstractContainerScreen<QuantumStorage
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (draggingScrollbar) {
+            updateScrollFromMouse(mouseY);
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        draggingScrollbar = false;
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
@@ -140,18 +169,29 @@ public class QuantumStorageScreen extends AbstractContainerScreen<QuantumStorage
             graphics.drawString(font, "No stored items", leftPos + 22, topPos + 66, 0xFFFF7777, false);
         }
         renderScrollbar(graphics, entries.size());
-        graphics.drawString(font, "Click: extract stack  Right-click: extract 1  Shift-click: insert matching", leftPos + 16, topPos + 202, 0xFF8F7BA8, false);
+        graphics.drawString(font, "Click: extract stack  Right-click: extract 1  Shift-click: insert matching", leftPos + 16, topPos + 188, 0xFF8F7BA8, false);
     }
 
     private List<ClientQuantumStorageData.Entry> filteredEntries() {
         String query = searchBox == null ? "" : searchBox.getValue().trim().toLowerCase(Locale.ROOT);
-        List<ClientQuantumStorageData.Entry> entries = ClientQuantumStorageData.get(menu.corePos()).entries();
+        List<ClientQuantumStorageData.Entry> entries = sortEntries(ClientQuantumStorageData.get(menu.corePos()).entries());
         if (query.isEmpty()) {
             return entries;
         }
         return entries.stream()
                 .filter(entry -> entry.stack().getHoverName().getString().toLowerCase(Locale.ROOT).contains(query))
                 .toList();
+    }
+
+    private List<ClientQuantumStorageData.Entry> sortEntries(List<ClientQuantumStorageData.Entry> entries) {
+        java.util.ArrayList<ClientQuantumStorageData.Entry> sorted = new java.util.ArrayList<>(entries);
+        sorted.sort((a, b) -> switch (sortMode) {
+            case NAME -> a.stack().getHoverName().getString().compareToIgnoreCase(b.stack().getHoverName().getString());
+            case COUNT -> Integer.compare(b.count(), a.count());
+            case ITEM_ID -> String.valueOf(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(a.stack().getItem()))
+                    .compareToIgnoreCase(String.valueOf(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(b.stack().getItem())));
+        });
+        return sorted;
     }
 
     private void requestRefresh() {
@@ -182,6 +222,27 @@ public class QuantumStorageScreen extends AbstractContainerScreen<QuantumStorage
         int thumbH = maxRow == 0 ? h : Math.max(12, h * GRID_ROWS / Math.max(GRID_ROWS, totalRows));
         int thumbY = maxRow == 0 ? y : y + (h - thumbH) * rowOffset / maxRow;
         graphics.fill(x, thumbY, x + 4, thumbY + thumbH, 0xFF55E8FF);
+    }
+
+    private boolean scrollbarContains(double mouseX, double mouseY) {
+        int x = leftPos + imageWidth - 18;
+        int y = topPos + 62;
+        int h = GRID_ROWS * 22 - 4;
+        return mouseX >= x - 3 && mouseX < x + 7 && mouseY >= y && mouseY < y + h;
+    }
+
+    private void updateScrollFromMouse(double mouseY) {
+        int totalEntries = filteredEntries().size();
+        int totalRows = Math.max(0, (totalEntries + GRID_COLS - 1) / GRID_COLS);
+        int maxRow = Math.max(0, totalRows - GRID_ROWS);
+        if (maxRow == 0) {
+            scrollOffset = 0;
+            return;
+        }
+        int y = topPos + 62;
+        int h = GRID_ROWS * 22 - 4;
+        double percent = Math.max(0.0D, Math.min(1.0D, (mouseY - y) / h));
+        scrollOffset = Math.max(0, Math.min(maxRow, (int) Math.round(percent * maxRow))) * GRID_COLS;
     }
 
     private static int visibleSlots() {
@@ -232,5 +293,26 @@ public class QuantumStorageScreen extends AbstractContainerScreen<QuantumStorage
     }
 
     private record SlotHit(int index) {
+    }
+
+    private enum SortMode {
+        NAME("Name"),
+        COUNT("Count"),
+        ITEM_ID("ID");
+
+        private final String label;
+
+        SortMode(String label) {
+            this.label = label;
+        }
+
+        private String label() {
+            return label;
+        }
+
+        private SortMode next() {
+            SortMode[] values = values();
+            return values[(ordinal() + 1) % values.length];
+        }
     }
 }

@@ -124,6 +124,34 @@ public final class SpellIngredients {
         return Set.copyOf(payloads);
     }
 
+    public static boolean hasArcaneKnowledgePayload(Container inventory, String payload) {
+        return arcaneKnowledgePayloads(inventory).contains(payload);
+    }
+
+    public static boolean hasArcaneKnowledgeShape(Container inventory, String shape) {
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (!ArcaneKnowledgeBook.isKnowledgeBook(stack)) {
+                continue;
+            }
+            for (String spellKey : ArcaneKnowledgeBook.spellKeys(stack)) {
+                if (SpellRegistry.shapeKey(spellKey).equals(shape)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean hasAnyPayloadRequirement(Container inventory, String payload) {
+        for (Requirement requirement : payloadRequirementsFor(payload + "@self")) {
+            if (count(inventory, requirement) > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean consumeExactKnowledge(Container inventory, String spellKey) {
         return consumeExactGrimoireKnowledge(inventory, spellKey)
                 || consumeExactArcaneKnowledge(inventory, spellKey);

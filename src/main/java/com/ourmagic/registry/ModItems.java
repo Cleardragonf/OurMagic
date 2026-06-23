@@ -45,6 +45,7 @@ public final class ModItems {
     public static final RegistryObject<Item> TIDE_TALISMAN = ITEMS.register("tide_talisman", () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> TEMPORARY_SHIELD = ITEMS.register("temporary_shield", () -> new BlockItem(ModBlocks.TEMPORARY_SHIELD.get(), new Item.Properties()));
     public static final RegistryObject<Item> WARD_STONE = ITEMS.register("ward_stone", () -> new BlockItem(ModBlocks.WARD_STONE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> WARD_CRAFTER = ITEMS.register("ward_crafter", () -> new BlockItem(ModBlocks.WARD_CRAFTER.get(), new Item.Properties()));
     public static final RegistryObject<Item> MAGIC_FLOW_CONVERTER = ITEMS.register("magic_flow_converter", () -> new BlockItem(ModBlocks.MAGIC_FLOW_CONVERTER.get(), new Item.Properties()));
     public static final RegistryObject<Item> MAGIC_BATTERY = ITEMS.register("magic_battery", () -> new BlockItem(ModBlocks.MAGIC_BATTERY.get(), new Item.Properties()));
     public static final RegistryObject<Item> MAGIC_RELAY = ITEMS.register("magic_relay", () -> new BlockItem(ModBlocks.MAGIC_RELAY.get(), new Item.Properties()));

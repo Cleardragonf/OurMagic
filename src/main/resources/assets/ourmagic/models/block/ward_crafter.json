@@ -1,0 +1,67 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "base": "ourmagic:block/ward_stone",
+    "trim": "ourmagic:block/magic_battery",
+    "rune": "ourmagic:block/teleport_portal",
+    "particle": "ourmagic:block/ward_stone"
+  },
+  "elements": [
+    {
+      "from": [1, 0, 1],
+      "to": [15, 3, 15],
+      "faces": {
+        "down": { "texture": "#base", "cullface": "down" },
+        "up": { "texture": "#trim" },
+        "north": { "texture": "#base" },
+        "south": { "texture": "#base" },
+        "west": { "texture": "#base" },
+        "east": { "texture": "#base" }
+      }
+    },
+    {
+      "from": [3, 3, 3],
+      "to": [13, 10, 13],
+      "faces": {
+        "up": { "texture": "#rune" },
+        "north": { "texture": "#trim" },
+        "south": { "texture": "#trim" },
+        "west": { "texture": "#trim" },
+        "east": { "texture": "#trim" }
+      }
+    },
+    {
+      "from": [5, 10, 5],
+      "to": [11, 12, 11],
+      "faces": {
+        "up": { "texture": "#rune" },
+        "north": { "texture": "#base" },
+        "south": { "texture": "#base" },
+        "west": { "texture": "#base" },
+        "east": { "texture": "#base" }
+      }
+    },
+    {
+      "from": [0, 3, 7],
+      "to": [16, 5, 9],
+      "faces": {
+        "up": { "texture": "#trim" },
+        "north": { "texture": "#trim" },
+        "south": { "texture": "#trim" },
+        "west": { "texture": "#trim" },
+        "east": { "texture": "#trim" }
+      }
+    },
+    {
+      "from": [7, 3, 0],
+      "to": [9, 5, 16],
+      "faces": {
+        "up": { "texture": "#trim" },
+        "north": { "texture": "#trim" },
+        "south": { "texture": "#trim" },
+        "west": { "texture": "#trim" },
+        "east": { "texture": "#trim" }
+      }
+    }
+  ]
+}

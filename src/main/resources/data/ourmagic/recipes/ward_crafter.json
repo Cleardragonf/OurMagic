@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "APA",
+    "OWO",
+    "DCD"
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "P": { "item": "ourmagic:pulse_talisman" },
+    "O": { "item": "minecraft:obsidian" },
+    "W": { "item": "ourmagic:ward_stone" },
+    "D": { "item": "minecraft:deepslate_tiles" },
+    "C": { "item": "minecraft:crafting_table" }
+  },
+  "result": {
+    "item": "ourmagic:ward_crafter"
+  }
+}

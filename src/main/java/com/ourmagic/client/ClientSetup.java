@@ -27,6 +27,7 @@ public final class ClientSetup {
         event.enqueueWork(() -> {
             MenuScreens.register(ModMenus.WAND.get(), WandScreen::new);
             MenuScreens.register(ModMenus.SPELLCRAFT.get(), SpellcraftScreen::new);
+            MenuScreens.register(ModMenus.WARD_CRAFTER.get(), WardCrafterScreen::new);
             MenuScreens.register(ModMenus.PLAYER_UPGRADES.get(), PlayerUpgradeScreen::new);
             MenuScreens.register(ModMenus.CRYSTAL_DRIVE_BAY.get(), CrystalDriveBayScreen::new);
             MenuScreens.register(ModMenus.ARCANE_QUARRY.get(), ArcaneQuarryScreen::new);

@@ -43,6 +43,7 @@ public final class ModCreativeTabs {
                 output.accept(ModItems.TIDE_TALISMAN.get());
                 output.accept(ModItems.TEMPORARY_SHIELD.get());
                 output.accept(ModItems.WARD_STONE.get());
+                output.accept(ModItems.WARD_CRAFTER.get());
                 output.accept(ModItems.MAGIC_FLOW_CONVERTER.get());
                 output.accept(ModItems.MAGIC_BATTERY.get());
                 output.accept(ModItems.MAGIC_RELAY.get());

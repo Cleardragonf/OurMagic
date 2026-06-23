@@ -15,6 +15,7 @@ import com.ourmagic.block.TemporaryShieldBlock;
 import com.ourmagic.block.WardBoundaryBlock;
 import com.ourmagic.block.WardBlock;
 import com.ourmagic.block.WardCamouflageBlock;
+import com.ourmagic.block.WardCrafterBlock;
 import com.ourmagic.block.WardPerimeterStoneBlock;
 import com.ourmagic.block.WardStoneBlock;
 import com.ourmagic.magic.energy.MagicEnergyType;
@@ -38,6 +39,11 @@ public final class ModBlocks {
             () -> new WardStoneBlock(BlockBehaviour.Properties.copy(Blocks.CRYING_OBSIDIAN)
                     .strength(5.0F, 1200.0F)
                     .lightLevel(state -> 6)));
+    public static final RegistryObject<Block> WARD_CRAFTER = BLOCKS.register("ward_crafter",
+            () -> new WardCrafterBlock(BlockBehaviour.Properties.copy(Blocks.ENCHANTING_TABLE)
+                    .strength(4.0F, 18.0F)
+                    .noOcclusion()
+                    .lightLevel(state -> 7)));
     public static final RegistryObject<Block> MAGIC_FLOW_CONVERTER = BLOCKS.register("magic_flow_converter",
             () -> new MagicFlowConverterBlock(BlockBehaviour.Properties.copy(Blocks.LODESTONE)
                     .strength(4.0F, 18.0F)

@@ -41,6 +41,11 @@ public final class ModNetwork {
                 .decoder(CraftSpellPacket::decode)
                 .consumerMainThread(CraftSpellPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(CraftWardPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(CraftWardPacket::encode)
+                .decoder(CraftWardPacket::decode)
+                .consumerMainThread(CraftWardPacket::handle)
+                .add();
         CHANNEL.messageBuilder(FocusCastPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(FocusCastPacket::encode)
                 .decoder(FocusCastPacket::decode)
@@ -135,6 +140,11 @@ public final class ModNetwork {
                 .encoder(QuantumStorageInsertPacket::encode)
                 .decoder(QuantumStorageInsertPacket::decode)
                 .consumerMainThread(QuantumStorageInsertPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(ArcaneQuarryControlPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ArcaneQuarryControlPacket::encode)
+                .decoder(ArcaneQuarryControlPacket::decode)
+                .consumerMainThread(ArcaneQuarryControlPacket::handle)
                 .add();
     }
 
