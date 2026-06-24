@@ -3,15 +3,14 @@ plugins {
 }
 
 group = 'com.ourmagic'
-version = '1.2.0'
+version = '1.2.1'
 
 base {
     archivesName = 'OurMagic'
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
 }
 
 minecraft {
@@ -22,6 +21,7 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+
             mods {
                 ourmagic {
                     source sourceSets.main
@@ -33,6 +33,7 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+
             mods {
                 ourmagic {
                     source sourceSets.main
@@ -43,18 +44,34 @@ minecraft {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.20.1-47.2.0'
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.1'
 }
 
 tasks.named('processResources', ProcessResources).configure {
     def replaceProperties = [
             mod_version: project.version
     ]
+
     inputs.properties replaceProperties
 
     filesMatching('META-INF/mods.toml') {
         expand replaceProperties
     }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'     : 'OurMagic',
+                'Specification-Vendor'    : 'OurMagic',
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.version,
+                'Implementation-Vendor'   : 'OurMagic'
+        ])
+    }
+
+    finalizedBy 'reobfJar'
 }
 
 tasks.withType(JavaCompile).configureEach {
